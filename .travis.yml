@@ -12,6 +12,7 @@ env:
   - JDKVER=jdk8 GROUP=junit
   - JDKVER=jdk8 GROUP=nonjunit
   - JDKVER=jdkany GROUP=misc
+  - TRAVIS_REPO_SLUG=typetools/checker-framework
 
 before_script:
 - docker pull mdernst/ubuntu-for-cf-$JDKVER

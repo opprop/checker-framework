@@ -87,7 +87,7 @@ public class SuperTypeApplier extends IndexedElementAnnotationApplier {
         //  com.sun.tools.classfile.TypeAnnotation.read_position(...) (correct one)
         //  com.sun.tools.javac.jvm.ClassReader.readPosition() (buggy one)
         // In latter method readPosition(...), in the switch-block, the case CLASS_EXTENDS should
-        // set the value read by nextChar() to -1 if the read value is 0xffff, just same as 
+        // set the value read by nextChar() to -1 if the read value is 0xffff, just same as
         // the former method read_position(...) did.
         // This workaround should be removed when the corresponding langtools bug is fixed.
         return type_index == 0xffff ? -1 : type_index;

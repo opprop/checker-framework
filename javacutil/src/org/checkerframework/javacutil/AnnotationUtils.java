@@ -582,7 +582,7 @@ public class AnnotationUtils {
                                 + name
                                 + "' in annotation "
                                 + anno,
-                        e);
+                        ce);
                 return null; // dead code
             }
         }

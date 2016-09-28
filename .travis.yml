@@ -25,6 +25,7 @@ script:
 - REMOTE_ORIGIN_URL=`git config --get remote.origin.url`
 - >-
   docker run mdernst/ubuntu-for-cf-$JDKVER /bin/sh -c "true &&
+     echo $REMOTE_ORIGIN_URL &&
      export JAVA_HOME=\`which javac|xargs readlink -f|xargs dirname|xargs dirname\` &&
      git clone --quiet -b $TRAVIS_BRANCH --depth 3 $REMOTE_ORIGIN_URL checker-framework &&
      cd checker-framework &&

@@ -1,7 +1,5 @@
 package org.checkerframework.javacutil;
 
-import com.sun.glass.ui.TouchInputSupport;
-
 /*>>>
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;

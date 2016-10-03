@@ -1,5 +1,7 @@
 package org.checkerframework.javacutil;
 
+import com.sun.glass.ui.TouchInputSupport;
+
 /*>>>
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
@@ -576,24 +578,22 @@ public class AnnotationUtils {
             AnnotationMirror anno, CharSequence name, boolean useDefaults) {
         Name cn = getElementValueClassName(anno, name, useDefaults);
         try {
-            Class<?> cls = Class.forName(cn.toString());
+            ClassLoader appClassLoader = AnnotationUtils.class.getClassLoader();
+            if (appClassLoader == null) {
+                appClassLoader = ClassLoader.getSystemClassLoader();
+            }
+            Class<?> cls = Class.forName(cn.toString(), true, appClassLoader);
             return cls;
         } catch (ClassNotFoundException e) {
-            try {
-                Class<?> cls =
-                        Class.forName(cn.toString(), true, ClassLoader.getSystemClassLoader());
-                return cls;
-            } catch (ClassNotFoundException ce) {
-                ErrorReporter.errorAbort(
-                        "Could not load class '"
-                                + cn
-                                + "' for field '"
-                                + name
-                                + "' in annotation "
-                                + anno,
-                        ce);
-                return null; // dead code
-            }
+            ErrorReporter.errorAbort(
+                    "Could not load class '"
+                            + cn
+                            + "' for field '"
+                            + name
+                            + "' in annotation "
+                            + anno,
+                    e);
+            return null; // dead code
         }
     }
 

@@ -589,7 +589,7 @@ public class AnnotationClassLoader {
             final String annoName) {
         try {
             final Class<? extends Annotation> annoClass =
-                    Class.forName(annoName).asSubclass(Annotation.class);
+                    Class.forName(annoName, true, getAppClassLoader()).asSubclass(Annotation.class);
             return annoClass;
         } catch (ClassNotFoundException e) {
             checker.userErrorAbort(

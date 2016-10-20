@@ -425,7 +425,11 @@ public abstract class GenericAnnotatedTypeFactory<
     protected final QualifierDefaults createQualifierDefaults() {
         QualifierDefaults defs = new QualifierDefaults(elements, this);
         addCheckedCodeDefaults(defs);
+        addCheckedStandardDefaults(defs);
         addUncheckedCodeDefaults(defs);
+        addUncheckedStandardDefaults(defs);
+        ensureDefaultsExist(defs);
+
         return defs;
     }
 
@@ -509,17 +513,15 @@ public abstract class GenericAnnotatedTypeFactory<
         AnnotationMirror unqualified = AnnotationUtils.fromClass(elements, Unqualified.class);
         if (!foundOtherwise && this.isSupportedQualifier(unqualified)) {
             defs.addCheckedCodeDefault(unqualified, TypeUseLocation.OTHERWISE);
-            foundOtherwise = true;
         }
+    }
 
-        if (!foundOtherwise) {
-            ErrorReporter.errorAbort(
-                    "GenericAnnotatedTypeFactory.createQualifierDefaults: "
-                            + "@DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE) not found. "
-                            + "Every checker must specify a default qualifier. "
-                            + getSortedQualifierNames());
-        }
-
+    /**
+     * Adds the standard CLIMB defaults that do not conflict with previously added defaults.
+     *
+     * @param defs {@link QualifierDefaults} object to which defaults are added
+     */
+    protected void addCheckedStandardDefaults(QualifierDefaults defs) {
         if (this.everUseFlow) {
             Set<? extends AnnotationMirror> tops = this.qualHierarchy.getTopAnnotations();
             Set<? extends AnnotationMirror> bottoms = this.qualHierarchy.getBottomAnnotations();
@@ -564,9 +566,32 @@ public abstract class GenericAnnotatedTypeFactory<
                         AnnotationUtils.fromClass(elements, annotation), TypeUseLocation.OTHERWISE);
             }
         }
+    }
+
+    /**
+     * Adds standard unchecked defaults that do not conflict with previously added defaults.
+     *
+     * @param defs {@link QualifierDefaults} object to which defaults are added
+     */
+    protected void addUncheckedStandardDefaults(QualifierDefaults defs) {
         Set<? extends AnnotationMirror> tops = this.qualHierarchy.getTopAnnotations();
         Set<? extends AnnotationMirror> bottoms = this.qualHierarchy.getBottomAnnotations();
         defs.addUncheckedStandardDefaults(tops, bottoms);
+    }
+
+    /**
+     * Ensure that we have defaults specified.
+     *
+     * @param defs {@link QualifierDefaults} object to which defaults are added
+     */
+    protected void ensureDefaultsExist(QualifierDefaults defs) {
+        if (!defs.hasDefaultsForCheckedCode()) {
+            ErrorReporter.errorAbort(
+                    "GenericAnnotatedTypeFactory.createQualifierDefaults: "
+                            + "@DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE) not found. "
+                            + "Every checker must specify a default qualifier. "
+                            + getSortedQualifierNames());
+        }
 
         // Don't require @DefaultQualifierInHierarchyInUncheckedCode or an
         // unchecked default for TypeUseLocation.OTHERWISE.

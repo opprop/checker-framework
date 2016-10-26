@@ -3,7 +3,6 @@ package org.checkerframework.framework.type;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -221,8 +220,8 @@ class SupertypeFinder {
                 final List<? extends TypeMirror> typeArgs = superClass.getTypeArguments();
                 final List<AnnotatedTypeMirror> annotatedTypeArgs = dt.getTypeArguments();
                 for (int i = 0; i < typeArgs.size(); ++i) {
-                    atypeFactory.addComputedTypeAnnotations(types.asElement(typeArgs.get(i)),
-                            annotatedTypeArgs.get(i));
+                    atypeFactory.addComputedTypeAnnotations(
+                            types.asElement(typeArgs.get(i)), annotatedTypeArgs.get(i));
                 }
             } else if (!ElementUtils.isObject(typeElement)) {
                 supertypes.add(AnnotatedTypeMirror.createTypeOfObject(atypeFactory));

@@ -217,14 +217,12 @@ class SupertypeFinder {
                 AnnotatedDeclaredType dt =
                         (AnnotatedDeclaredType) atypeFactory.toAnnotatedType(superClass, false);
                 supertypes.add(dt);
-                // CZC: apply defaulting to the type arguments if the rawTypeAttributes of this typeElement is empty
-                if (((ClassSymbol) typeElement).getRawTypeAttributes().isEmpty()){
-                    final List<? extends TypeMirror> typeArgs = superClass.getTypeArguments();
-                    final List<AnnotatedTypeMirror> annotatedTypeArgs = dt.getTypeArguments();
-                    for (int i = 0; i < typeArgs.size(); i++) {
-                        atypeFactory.addComputedTypeAnnotations(types.asElement(typeArgs.get(i)),
-                                annotatedTypeArgs.get(i));
-                    }
+                // add computed type annotations to the type arguments of the super type
+                final List<? extends TypeMirror> typeArgs = superClass.getTypeArguments();
+                final List<AnnotatedTypeMirror> annotatedTypeArgs = dt.getTypeArguments();
+                for (int i = 0; i < typeArgs.size(); ++i) {
+                    atypeFactory.addComputedTypeAnnotations(types.asElement(typeArgs.get(i)),
+                            annotatedTypeArgs.get(i));
                 }
             } else if (!ElementUtils.isObject(typeElement)) {
                 supertypes.add(AnnotatedTypeMirror.createTypeOfObject(atypeFactory));

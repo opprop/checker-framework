@@ -2,7 +2,6 @@ package org.checkerframework.framework.type;
 
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.HashMap;

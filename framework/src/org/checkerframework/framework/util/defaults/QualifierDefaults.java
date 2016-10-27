@@ -49,6 +49,7 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.InternalUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 /**
  * Determines the default qualifiers on a type.
@@ -894,9 +895,10 @@ public class QualifierDefaults {
                             if (scope != null
                                     && scope.getKind() == ElementKind.PARAMETER
                                     && t == type
-                                    && "this".equals(scope.getSimpleName())) {
+                                    && scope.getSimpleName().contentEquals("this")) {
                                 // TODO: comparison against "this" is ugly, won't work
                                 // for all possible names for receiver parameter.
+                                // Comparison to Names._this might be a bit faster.
                                 addAnnotation(t, qual);
                             } else if (scope != null
                                     && (scope.getKind() == ElementKind.METHOD)
@@ -929,10 +931,7 @@ public class QualifierDefaults {
                     case IMPLICIT_LOWER_BOUND:
                         {
                             if (isLowerBound
-                                    && boundType.isOneOf(
-                                            BoundType.UNBOUND,
-                                            BoundType.UPPER,
-                                            BoundType.UNKNOWN)) {
+                                    && boundType.isOneOf(BoundType.UNBOUNDED, BoundType.UPPER)) {
                                 addAnnotation(t, qual);
                             }
                             break;
@@ -957,15 +956,14 @@ public class QualifierDefaults {
                     case IMPLICIT_UPPER_BOUND:
                         {
                             if (isUpperBound
-                                    && boundType.isOneOf(BoundType.UNBOUND, BoundType.LOWER)) {
+                                    && boundType.isOneOf(BoundType.UNBOUNDED, BoundType.LOWER)) {
                                 addAnnotation(t, qual);
                             }
                             break;
                         }
                     case EXPLICIT_UPPER_BOUND:
                         {
-                            if (isUpperBound
-                                    && boundType.isOneOf(BoundType.UPPER, BoundType.UNKNOWN)) {
+                            if (isUpperBound && boundType.isOneOf(BoundType.UPPER)) {
                                 addAnnotation(t, qual);
                             }
                             break;
@@ -1001,7 +999,7 @@ public class QualifierDefaults {
                 super.reset();
                 impl.isLowerBound = false;
                 impl.isUpperBound = false;
-                impl.boundType = BoundType.UNBOUND;
+                impl.boundType = BoundType.UNBOUNDED;
             }
 
             // are we currently defaulting the lower bound of a type variable or wildcard
@@ -1011,7 +1009,7 @@ public class QualifierDefaults {
             private boolean isUpperBound = false;
 
             // the bound type of the current wildcard or type variable being defaulted
-            private BoundType boundType = BoundType.UNBOUND;
+            private BoundType boundType = BoundType.UNBOUNDED;
 
             @Override
             public Void visitTypeVariable(AnnotatedTypeVariable type, AnnotationMirror qual) {
@@ -1072,6 +1070,10 @@ public class QualifierDefaults {
         }
     }
 
+    /**
+     * Specifies whether the type variable or wildcard has an explicit upper bound (UPPER), an
+     * explicit lower bound (LOWER), or no explicit bounds (UNBOUNDED).
+     */
     enum BoundType {
 
         /**
@@ -1085,15 +1087,11 @@ public class QualifierDefaults {
         LOWER,
 
         /**
-         * Neither bound is specified, BOTH are implicit
+         * Neither bound is specified, BOTH are implicit. (If a type variable is declared in
+         * bytecode and the type of the upper bound is Object, then the checker assumes that the
+         * bound was not explicitly written in source code.)
          */
-        UNBOUND,
-
-        /**
-         * For bytecode, or trees for which we no longer have the compilation unit.
-         * We treat UNKNOWN bounds as if they are an UPPER bound.
-         */
-        UNKNOWN;
+        UNBOUNDED;
 
         public boolean isOneOf(final BoundType... choices) {
             for (final BoundType choice : choices) {
@@ -1135,7 +1133,7 @@ public class QualifierDefaults {
     }
 
     /**
-     * @return the boundType (UPPER, UNBOUND, or UNKNOWN) of the declaration of typeParamElem
+     * @return the boundType (UPPER or UNBOUNDED) of the declaration of typeParamElem
      */
     // Results are cached in {@link elementToBoundType}.
     private static BoundType getTypeVarBoundType(
@@ -1151,8 +1149,17 @@ public class QualifierDefaults {
         final BoundType boundType;
         if (typeParamDecl == null) {
             // This is not only for elements from binaries, but also
-            // when the compilation unit is no longer available.
-            boundType = BoundType.UNKNOWN;
+            // when the compilation unit is no-longer available.
+            if (typeParamElem.getBounds().size() == 1
+                    && TypesUtils.isObject(typeParamElem.getBounds().get(0))) {
+                // If the bound was Object, then it may or may not have been explicitly written.
+                // Assume that it was not.
+                boundType = BoundType.UNBOUNDED;
+            } else {
+                // The bound is not Object, so it must have been explicitly written and thus the
+                // type variable has an upper bound.
+                boundType = BoundType.UPPER;
+            }
 
         } else {
             if (typeParamDecl.getKind() == Tree.Kind.TYPE_PARAMETER) {
@@ -1162,7 +1169,7 @@ public class QualifierDefaults {
                 if (bnds != null && !bnds.isEmpty()) {
                     boundType = BoundType.UPPER;
                 } else {
-                    boundType = BoundType.UNBOUND;
+                    boundType = BoundType.UNBOUNDED;
                 }
             } else {
                 ErrorReporter.errorAbort(

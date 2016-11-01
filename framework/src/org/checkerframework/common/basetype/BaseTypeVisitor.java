@@ -301,6 +301,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                 checkDefaultConstructor(node);
             }
 
+            // We validate class tree to see if the annotation on it is allowed on type declaration location
+            validateTypeOf(node);
             /* Visit the extends and implements clauses.
              * The superclass also visits them, but only calls visitParameterizedType, which
              * loses a main modifier.
@@ -1408,10 +1410,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             if (enclosing.getKind() == Tree.Kind.METHOD) {
 
                 MethodTree enclosingMethod = TreeUtils.enclosingMethod(getCurrentPath());
-                boolean valid = validateTypeOf(enclosing);
-                if (valid) {
-                    ret = atypeFactory.getMethodReturnType(enclosingMethod, node);
-                }
+                // We don't validate enclosingMethod again, because it's already been validated during visitMethod
+                ret = atypeFactory.getMethodReturnType(enclosingMethod, node);
+
             } else {
                 Pair<AnnotatedDeclaredType, AnnotatedExecutableType> result =
                         atypeFactory.getFnInterfaceFromTree((LambdaExpressionTree) enclosing);
@@ -1718,6 +1719,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
     @Override
     public Void visitInstanceOf(InstanceOfTree node, Void p) {
+        validateTypeOf(node);
         validateTypeOf(node.getType());
         return super.visitInstanceOf(node, p);
     }
@@ -1958,6 +1960,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     : "array initializers are not expected to be null in: " + valueExp;
             checkArrayInitialization(compType, arrayTree.getInitializers());
         }
+        // Causes duplicate warnings on new, instanceof
         if (!validateTypeOf(valueExp)) {
             return;
         }
@@ -3393,7 +3396,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     // Nothing to do for void methods.
                     // Note that for a constructor the AnnotatedExecutableType does
                     // not use void as return type.
-                    return true;
+                    return typeValidator.isValid(type, tree);
                 }
                 break;
             default:

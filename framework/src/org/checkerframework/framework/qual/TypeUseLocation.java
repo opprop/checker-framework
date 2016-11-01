@@ -108,6 +108,40 @@ public enum TypeUseLocation {
     IMPLICIT_UPPER_BOUND,
 
     /**
+     * Apply default annotations to unannotated type declarations:
+     * {@code @HERE class Demo{}}
+     */
+    TYPE_DECLARATION,
+
+    /**
+     * Represents type argument location in parameterized type
+     * {@code List<@TA1 ArrayList<@TA2 String>>}
+     */
+    TYPE_ARGUMENT,
+
+    /**
+     * Represents array component location
+     * {@code @AC2 String [] @AC1 []}
+     */
+    ARRAY_COMPONENT,
+
+    /**
+     * TODO is this documentation correct? Or does it really represent interface extends case?
+     * Represents extends location of a class/interface/enum/annotation type
+     */
+    EXTENDS,
+
+    IMPLEMENTS,
+
+    THROWS,
+
+    INSTANCEOF,
+
+    NEW,
+
+    CAST,
+
+    /**
      * Apply if nothing more concrete is provided.
      * TODO: clarify relation to ALL.
      */

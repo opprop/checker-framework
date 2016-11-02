@@ -1025,6 +1025,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         if (TreeUtils.isClassTree(tree) || tree.getKind() == Tree.Kind.METHOD) {
             // Don't cache VARIABLE
             if (shouldCache) {
+                if (type instanceof AnnotatedDeclaredType) {
+                    // initialize the direct supertypes of a declared type
+                    type.directSuperTypes();
+                }
                 classAndMethodTreeCache.put(tree, type.deepCopy());
             }
         } else {

@@ -190,6 +190,17 @@ class SupertypeFinder {
         private List<AnnotatedDeclaredType> supertypesFromElement(
                 AnnotatedDeclaredType type, TypeElement typeElement) {
             List<AnnotatedDeclaredType> supertypes = new ArrayList<AnnotatedDeclaredType>();
+
+            //first check cache
+            Tree declTree = atypeFactory.declarationFromElement(typeElement);
+            if (declTree != null) {
+                AnnotatedDeclaredType cacheAdt =
+                        (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(declTree);
+                if (cacheAdt != null) {
+                    supertypes.addAll(cacheAdt.directSuperTypes());
+                    return supertypes;
+                }
+            }
             // Find the super types: Start with enums and superclass
             if (typeElement.getKind() == ElementKind.ENUM) {
                 DeclaredType dt = (DeclaredType) typeElement.getSuperclass();
@@ -215,13 +226,6 @@ class SupertypeFinder {
                 AnnotatedDeclaredType dt =
                         (AnnotatedDeclaredType) atypeFactory.toAnnotatedType(superClass, false);
                 supertypes.add(dt);
-                // add computed type annotations to the type arguments of the super type
-                final List<? extends TypeMirror> typeArgs = superClass.getTypeArguments();
-                final List<AnnotatedTypeMirror> annotatedTypeArgs = dt.getTypeArguments();
-                for (int i = 0; i < typeArgs.size(); ++i) {
-                    atypeFactory.addComputedTypeAnnotations(
-                            types.asElement(typeArgs.get(i)), annotatedTypeArgs.get(i));
-                }
             } else if (!ElementUtils.isObject(typeElement)) {
                 supertypes.add(AnnotatedTypeMirror.createTypeOfObject(atypeFactory));
             }

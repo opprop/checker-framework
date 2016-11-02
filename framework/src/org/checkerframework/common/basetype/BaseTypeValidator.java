@@ -104,7 +104,7 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
         // TODO doesn't passin class tree!!!
         //System.out.println("Tree " + tree + " is being checked:");
         //System.out.println("\nEntry: type: " + type + " kind: " + type.getKind() + "\n");
-        //locationValidator.validate(type, tree);
+        locationValidator.validate(type, tree);
         return this.isValid;
     }
 
@@ -653,7 +653,6 @@ class TargetLocationValidator extends AnnotatedTypeScanner<Void, Tree> {
                 checkValidLocation(type, tree, TypeUseLocation.EXCEPTION_PARAMETER);
                 break;
             case PARAMETER:
-                // TODO method receiver and return type
                 if (elt.getSimpleName().contentEquals("this")) {
                     checkValidLocation(type, tree, TypeUseLocation.RECEIVER);
                 } else {
@@ -661,11 +660,12 @@ class TargetLocationValidator extends AnnotatedTypeScanner<Void, Tree> {
                 }
                 break;
             case CONSTRUCTOR:
+                // Temporarily pass all constructors, explicit or implicit
+                /*if (tree.getKind() == Tree.Kind.METHOD) {
+                    checkValidLocation(type, tree, TypeUseLocation.RETURN);
+                }*/
+                break;
             case METHOD:
-                // Upper bound of type parameter declared in generic method after getting
-                // nearest enclosing element is also METHOD element. BUT its tree is no
-                // method tree. So, we add additional restriction: only when the tree is also
-                // method tree, they use is seen to be on method return.
                 if (tree.getKind() == Tree.Kind.METHOD) {
                     checkValidLocation(type, tree, TypeUseLocation.RETURN);
                 }
@@ -674,17 +674,6 @@ class TargetLocationValidator extends AnnotatedTypeScanner<Void, Tree> {
             case INTERFACE:
             case ANNOTATION_TYPE:
             case ENUM:
-                // Not covered since type validator doesn't pass in class tree and a type to validate
-                //System.out.println("@@@tree: " + p);
-                // TODO validate class tree also in BaseTypeVisitor
-                //TODO: we get CLASS element kind for both type parameter tree and annotated type tree.
-                // The two tress are correct, and consistent with type. BUT, the Element gotton from tree
-                // has errors. And we use Element to process each location checking, so there are false
-                // warnings. Originally, these four cases are not supported, so didn't encountered this problem
-                // Update: this isClassTree if statement is basically because for upper bounds trees, it will
-                // extract class_name as element, and its kind is type_declaration. The major reason is that:
-                // getElement() methods returns wrong element for like List<String> as Locations. So, we need
-                // to make sure we are using class trees, to ensure that we are really at type declaration position.
                 if (TreeUtils.isClassTree(tree)) {
                     checkValidLocation(type, tree, TypeUseLocation.TYPE_DECLARATION);
                 }

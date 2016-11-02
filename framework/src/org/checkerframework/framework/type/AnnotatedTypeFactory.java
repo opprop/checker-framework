@@ -1025,10 +1025,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         if (TreeUtils.isClassTree(tree) || tree.getKind() == Tree.Kind.METHOD) {
             // Don't cache VARIABLE
             if (shouldCache) {
-                if (TreeUtils.isClassTree(tree)) {
-                    // initialize the direct supertypes of a declared type
-                    type.directSuperTypes();
-                }
+
+                // initialize the direct supertypes of a declared type
+                type.directSuperTypes();
                 classAndMethodTreeCache.put(tree, type.deepCopy());
             }
         } else {
@@ -1039,10 +1038,19 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return type;
     }
 
-    public boolean isValidInClassAndMethodTreeCache(Tree tree) {
+    protected boolean isValidInClassAndMethodTreeCache(Tree tree) {
         return classAndMethodTreeCache.containsKey(tree) && shouldCache;
     }
 
+    protected AnnotatedTypeMirror getAnnotatedTypeFromClassAndMethodTreeCache(Tree tree) {
+        if (!classAndMethodTreeCache.containsKey(tree) || !shouldCache) {
+            ErrorReporter.errorAbort(
+                    "AnnotatedTypeFactory.getFromClassAndMethodTreeCache: cache doesn't contains this tree"
+                            + "or shouldn't get it from cache!");
+            return null; // dead code
+        }
+        return classAndMethodTreeCache.get(tree);
+    }
     /**
      * Called by {@link BaseTypeVisitor#visitClass(ClassTree, Void)} before the classTree is type
      * checked.

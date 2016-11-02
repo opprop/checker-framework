@@ -173,7 +173,9 @@ class SupertypeFinder {
                 // check cache
                 if (atypeFactory.isValidInClassAndMethodTreeCache(declTree)) {
                     AnnotatedDeclaredType cacheAdt =
-                            (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(declTree);
+                            (AnnotatedDeclaredType)
+                                    atypeFactory.getAnnotatedTypeFromClassAndMethodTreeCache(
+                                            declTree);
                     supertypes.addAll(cacheAdt.directSuperTypes());
 
                 } else {

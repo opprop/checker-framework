@@ -226,6 +226,7 @@ class SupertypeFinder {
                 AnnotatedDeclaredType dt =
                         (AnnotatedDeclaredType) atypeFactory.toAnnotatedType(superClass, false);
                 supertypes.add(dt);
+
             } else if (!ElementUtils.isObject(typeElement)) {
                 supertypes.add(AnnotatedTypeMirror.createTypeOfObject(atypeFactory));
             }

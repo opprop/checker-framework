@@ -164,11 +164,21 @@ class SupertypeFinder {
             }
 
             ClassTree classTree = atypeFactory.trees.getTree(typeElement);
+
             // Testing against enum and annotation. Ideally we can simply use element!
             if (classTree != null) {
                 supertypes.addAll(supertypesFromTree(type, classTree));
             } else {
-                supertypes.addAll(supertypesFromElement(type, typeElement));
+                Tree declTree = atypeFactory.declarationFromElement(typeElement);
+                // check cache
+                if (atypeFactory.isValidInClassAndMethodTreeCache(declTree)) {
+                    AnnotatedDeclaredType cacheAdt =
+                            (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(declTree);
+                    supertypes.addAll(cacheAdt.directSuperTypes());
+
+                } else {
+                    supertypes.addAll(supertypesFromElement(type, typeElement));
+                }
                 // final Element elem = type.getElement() == null ? typeElement : type.getElement();
             }
 
@@ -191,16 +201,6 @@ class SupertypeFinder {
                 AnnotatedDeclaredType type, TypeElement typeElement) {
             List<AnnotatedDeclaredType> supertypes = new ArrayList<AnnotatedDeclaredType>();
 
-            //first check cache
-            Tree declTree = atypeFactory.declarationFromElement(typeElement);
-            if (declTree != null) {
-                AnnotatedDeclaredType cacheAdt =
-                        (AnnotatedDeclaredType) atypeFactory.getAnnotatedType(declTree);
-                if (cacheAdt != null) {
-                    supertypes.addAll(cacheAdt.directSuperTypes());
-                    return supertypes;
-                }
-            }
             // Find the super types: Start with enums and superclass
             if (typeElement.getKind() == ElementKind.ENUM) {
                 DeclaredType dt = (DeclaredType) typeElement.getSuperclass();

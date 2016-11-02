@@ -1039,6 +1039,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return type;
     }
 
+    public boolean isValidInClassAndMethodTreeCache(Tree tree) {
+        return classAndMethodTreeCache.containsKey(tree) && shouldCache;
+    }
+
     /**
      * Called by {@link BaseTypeVisitor#visitClass(ClassTree, Void)} before the classTree is type
      * checked.

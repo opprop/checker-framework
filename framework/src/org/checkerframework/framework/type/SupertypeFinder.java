@@ -172,7 +172,7 @@ class SupertypeFinder {
                 Tree declTree = atypeFactory.declarationFromElement(typeElement);
                 // check cache
                 if (atypeFactory.isValidInClassAndMethodTreeCache(declTree)
-                        && declTree instanceof ClassTree) {
+                        && TreeUtils.isClassTree(declTree)) {
                     AnnotatedDeclaredType cacheAdt =
                             (AnnotatedDeclaredType)
                                     atypeFactory.getAnnotatedTypeFromClassAndMethodTreeCache(

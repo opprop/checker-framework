@@ -7,6 +7,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * A method is called SingleRunDeterministic if it returns the same value
+ * every time it is called with the same parameters and in the same environment
+ * in one execution of the program.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

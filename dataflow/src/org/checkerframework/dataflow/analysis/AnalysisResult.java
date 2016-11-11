@@ -146,7 +146,9 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
                 }
             default:
                 {
-                    assert false;
+                    ErrorReporter.errorAbort(
+                            "AnalysisResult::getStoreAfter: unknown direction: "
+                                    + analysis.getDirection());
                 }
         }
         // dead code

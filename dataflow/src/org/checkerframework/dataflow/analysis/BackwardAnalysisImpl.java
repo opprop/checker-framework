@@ -21,21 +21,16 @@ public class BackwardAnalysisImpl<
                 T extends BackwardTransferFunction<V, S>>
         extends AbstractAnalysis<V, S, T> implements BackwardAnalysis<V, S, T> {
 
-    /**
-     * out stores after every basic block (assumed to be 'no information' if
-     * not present).
-     */
+    /** out stores after every basic block (assumed to be 'no information' if not present). */
     protected IdentityHashMap<Block, S> outStores;
 
     /**
-     * exception store of an Exception Block, propagated by exceptional successors of it's Exception Block,
-     * and merged with the normal TransferResult
+     * exception store of an Exception Block, propagated by exceptional successors of it's Exception
+     * Block, and merged with the normal TransferResult
      */
     protected IdentityHashMap<ExceptionBlock, S> exceptionStores;
 
-    /**
-     * The store before the entry block
-     */
+    /** The store before the entry block */
     protected S storeAtEntry;
 
     public BackwardAnalysisImpl() {
@@ -157,9 +152,7 @@ public class BackwardAnalysisImpl<
         isRunning = false;
     }
 
-    /**
-     * return the TransferInput for Block b
-     */
+    /** return the TransferInput for Block b */
     @Override
     public TransferInput<V, S> getInput(Block b) {
         return inputs.get(b);

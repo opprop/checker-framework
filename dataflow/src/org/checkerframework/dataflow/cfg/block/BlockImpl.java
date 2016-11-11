@@ -8,7 +8,6 @@ import java.util.Set;
  * Base class of the {@link Block} implementation hierarchy.
  *
  * @author Stefan Heule
- *
  */
 public abstract class BlockImpl implements Block {
 
@@ -24,9 +23,7 @@ public abstract class BlockImpl implements Block {
     /** The set of predecessors. */
     protected Set<Block> predecessors;
 
-    /**
-     * @return a fresh identifier
-     */
+    /** @return a fresh identifier */
     private static long uniqueID() {
         return lastId++;
     }
@@ -45,11 +42,16 @@ public abstract class BlockImpl implements Block {
         return type;
     }
 
+<<<<<<< HEAD
     @Override
     /**
      * @return the list of predecessors of this basic block
      */
     public Set<Block> getPredecessors() {
+=======
+    /** @return the list of predecessors of this basic block */
+    public Set<BlockImpl> getPredecessors() {
+>>>>>>> opprop/master
         return Collections.unmodifiableSet(predecessors);
     }
 

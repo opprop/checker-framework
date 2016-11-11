@@ -42,7 +42,6 @@ import org.checkerframework.javacutil.ErrorReporter;
  * Generate a graph description in the DOT language of a control graph.
  *
  * @author Stefan Heule
- *
  */
 public class DOTCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
@@ -60,6 +59,7 @@ public class DOTCFGVisualizer<
     /** Mapping from class/method representation to generated dot file. */
     protected Map<String, String> generated;
 
+    @Override
     public void init(Map<String, Object> args) {
         this.outdir = (String) args.get("outdir");
         {
@@ -82,9 +82,8 @@ public class DOTCFGVisualizer<
         this.sbBlock = new StringBuilder();
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
+    @Override
     public /*@Nullable*/ Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, /*@Nullable*/ Analysis<A, S, T> analysis) {
 
@@ -109,9 +108,7 @@ public class DOTCFGVisualizer<
         return res;
     }
 
-    /**
-     * Generate the dot representation as String.
-     */
+    /** Generate the dot representation as String. */
     protected String generateDotGraph(
             ControlFlowGraph cfg, Block entry, /*@Nullable*/ Analysis<A, S, T> analysis) {
         this.sbDigraph.setLength(0);
@@ -371,10 +368,11 @@ public class DOTCFGVisualizer<
 
     /**
      * visualize transfer input of given {@link Block}
+     *
      * @param bb given block
      * @param analysis corresponding analysis on this block
-     * @param before if true, visualize the transfer input before given Block,
-     *        otherwise visualize the transfer input after given Block
+     * @param before if true, visualize the transfer input before given Block, otherwise visualize
+     *     the transfer input after given Block
      */
     protected void visualizeBlockTransferInput(
             Block bb, Analysis<A, S, T> analysis, boolean before) {
@@ -518,8 +516,8 @@ public class DOTCFGVisualizer<
     }
 
     /**
-     * Write a file {@code methods.txt} that contains a mapping from
-     * source code location to generated dot file.
+     * Write a file {@code methods.txt} that contains a mapping from source code location to
+     * generated dot file.
      */
     @Override
     public void shutdown() {

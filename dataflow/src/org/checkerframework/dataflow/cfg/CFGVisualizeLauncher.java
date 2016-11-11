@@ -11,8 +11,8 @@ import org.checkerframework.dataflow.analysis.TransferFunction;
 
 /**
  * TODO: better name?
- * @author charleszhuochen
  *
+ * @author charleszhuochen
  */
 public class CFGVisualizeLauncher {
 
@@ -75,17 +75,12 @@ public class CFGVisualizeLauncher {
     /**
      * Generate the DOT representation of the CFG for a method.
      *
-     * @param inputFile
-     *            Java source input file.
-     * @param outputDir
-     *            Source output directory.
-     * @param method
-     *            Method name to generate the CFG for.
-     * @param pdf
-     *            Also generate a PDF?
-     * @param analysis
-     *            Analysis to perform befor the visualization (or
-     *            <code>null</code> if no analysis is to be performed).
+     * @param inputFile Java source input file.
+     * @param outputDir Source output directory.
+     * @param method Method name to generate the CFG for.
+     * @param pdf Also generate a PDF?
+     * @param analysis Analysis to perform befor the visualization (or <code>null</code> if no
+     *     analysis is to be performed).
      */
     public static <V extends AbstractValue<V>, S extends Store<S>, T extends TransferFunction<V, S>>
             void generateDOTofCFG(
@@ -114,9 +109,7 @@ public class CFGVisualizeLauncher {
         }
     }
 
-    /**
-     * Invoke DOT to generate a PDF.
-     */
+    /** Invoke DOT to generate a PDF. */
     protected static void producePDF(String file) {
         try {
             String command = "/usr/local/bin/dot -Tpdf \"" + file + "\" -o \"" + file + ".pdf\"";

@@ -24,8 +24,8 @@ import org.checkerframework.javacutil.ElementUtils;
 
 /**
  * Common code base for BackwardAnalysis and ForwardAnalysis
- * @author charleszhuochen
  *
+ * @author charleszhuochen
  * @param <V> AbstractValue
  * @param <S> Store
  * @param <T> TransferFunction
@@ -46,8 +46,8 @@ public abstract class AbstractAnalysis<
     protected T transferFunction;
 
     /**
-     * The transfer inputs of every basic block (assumed to be 'no information' if
-     * not present, inputs before blocks in forward analysis, after blocks in backward analysis).
+     * The transfer inputs of every basic block (assumed to be 'no information' if not present,
+     * inputs before blocks in forward analysis, after blocks in backward analysis).
      */
     protected IdentityHashMap<Block, TransferInput<V, S>> inputs;
 
@@ -61,8 +61,8 @@ public abstract class AbstractAnalysis<
     protected Worklist worklist;
 
     /**
-     * The node that is currently handled in the analysis (if it is running).
-     * The following invariant holds:
+     * The node that is currently handled in the analysis (if it is running). The following
+     * invariant holds:
      *
      * <pre>
      *   !isRunning ==&gt; (currentNode == null)
@@ -71,15 +71,12 @@ public abstract class AbstractAnalysis<
     protected Node currentNode;
 
     /**
-     * The tree that is currently being looked at. The transfer function can set
-     * this tree to make sure that calls to {@code getValue} will not return
-     * information for this given tree.
+     * The tree that is currently being looked at. The transfer function can set this tree to make
+     * sure that calls to {@code getValue} will not return information for this given tree.
      */
     protected Tree currentTree;
 
-    /**
-     * The current transfer input when the analysis is running.
-     */
+    /** The current transfer input when the analysis is running. */
     protected TransferInput<V, S> currentInput;
 
     public AbstractAnalysis(Direction direction) {
@@ -89,8 +86,8 @@ public abstract class AbstractAnalysis<
     protected abstract void initInitialInputs();
 
     /**
-     * Propagate the stores in currentInput to the next block in the direction of analysis, according to the
-     * flowRule.
+     * Propagate the stores in currentInput to the next block in the direction of analysis,
+     * according to the flowRule.
      */
     protected abstract void propagateStoresTo(
             Block nextBlock,
@@ -100,10 +97,9 @@ public abstract class AbstractAnalysis<
             boolean addToWorklistAgain);
 
     /**
-     * Runs the analysis again within the block of {@code node} and returns the
-     * store at the location of {@code node}. If {@code before} is true, then
-     * the store immediately before the {@link Node} {@code node} is returned.
-     * Otherwise, the store after {@code node} is returned.
+     * Runs the analysis again within the block of {@code node} and returns the store at the
+     * location of {@code node}. If {@code before} is true, then the store immediately before the
+     * {@link Node} {@code node} is returned. Otherwise, the store after {@code node} is returned.
      */
     protected abstract S runAnalysisFor(
             Node node, boolean before, TransferInput<V, S> transferInput);
@@ -143,10 +139,9 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * @return the abstract value for {@link Node} {@code n}, or {@code null} if
-     *         no information is available. Note that if the analysis has not
-     *         finished yet, this value might not represent the final value for
-     *         this node.
+     * @return the abstract value for {@link Node} {@code n}, or {@code null} if no information is
+     *     available. Note that if the analysis has not finished yet, this value might not represent
+     *     the final value for this node.
      */
     public /*@Nullable*/ V getValue(Node n) {
         if (isRunning) {
@@ -170,10 +165,9 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * @return the abstract value for {@link Tree} {@code t}, or {@code null} if
-     *         no information is available. Note that if the analysis has not
-     *         finished yet, this value might not represent the final value for
-     *         this node.
+     * @return the abstract value for {@link Tree} {@code t}, or {@code null} if no information is
+     *     available. Note that if the analysis has not finished yet, this value might not represent
+     *     the final value for this node.
      */
     public /*@Nullable*/ V getValue(Tree t) {
         // we do not yet have a org.checkerframework.dataflow fact about the current node
@@ -187,33 +181,30 @@ public abstract class AbstractAnalysis<
         return getValue(nodeCorrespondingToTree);
     }
 
-    /**
-     * Get the {@link Node} for a given {@link Tree}.
-     */
+    /** Get the {@link Node} for a given {@link Tree}. */
     public Node getNodeForTree(Tree t) {
         return cfg.getNodeCorrespondingToTree(t);
     }
 
     /**
-     * Get the {@link MethodTree} of the current CFG if the argument {@link Tree} maps
-     * to a {@link Node} in the CFG or null otherwise.
+     * Get the {@link MethodTree} of the current CFG if the argument {@link Tree} maps to a {@link
+     * Node} in the CFG or null otherwise.
      */
     public /*@Nullable*/ MethodTree getContainingMethod(Tree t) {
         return cfg.getContainingMethod(t);
     }
 
     /**
-     * Get the {@link ClassTree} of the current CFG if the argument {@link Tree} maps
-     * to a {@link Node} in the CFG or null otherwise.
+     * Get the {@link ClassTree} of the current CFG if the argument {@link Tree} maps to a {@link
+     * Node} in the CFG or null otherwise.
      */
     public /*@Nullable*/ ClassTree getContainingClass(Tree t) {
         return cfg.getContainingClass(t);
     }
 
     /**
-     * @return the regular exit store, or {@code null}, if there is no such
-     *         store (because the method cannot exit through the regular exit
-     *         block).
+     * @return the regular exit store, or {@code null}, if there is no such store (because the
+     *     method cannot exit through the regular exit block).
      */
     public /*@Nullable*/ S getRegularExitStore() {
         SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
@@ -231,8 +222,7 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Call the transfer function for node {@code node}, and set that node as
-     * current node first.
+     * Call the transfer function for node {@code node}, and set that node as current node first.
      */
     protected TransferResult<V, S> callTransferFunction(Node node, TransferInput<V, S> store) {
         if (node.isLValue()) {
@@ -276,9 +266,8 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Updates the value of node {@code node} to the value of the
-     * {@code transferResult}. Returns true if the node's value changed, or a
-     * store was updated.
+     * Updates the value of node {@code node} to the value of the {@code transferResult}. Returns
+     * true if the node's value changed, or a store was updated.
      */
     protected boolean updateNodeValues(Node node, TransferResult<V, S> transferResult) {
         V newVal = transferResult.getResultValue();
@@ -294,8 +283,8 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Add a basic block to the worklist. If <code>b</code> is already present,
-     * the method does nothing.
+     * Add a basic block to the worklist. If <code>b</code> is already present, the method does
+     * nothing.
      */
     protected void addToWorklist(Block b) {
         // TODO: use a more efficient way to check if b is already present
@@ -305,16 +294,15 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * A worklist is a priority queue of blocks in which the order is given
-     * by depth-first ordering to place non-loop predecessors ahead of successors.
+     * A worklist is a priority queue of blocks in which the order is given by depth-first ordering
+     * to place non-loop predecessors ahead of successors.
      */
     protected static class Worklist {
 
         /** Map all blocks in the CFG to their depth-first order. */
         protected IdentityHashMap<Block, Integer> depthFirstOrder;
 
-        /** Comparators to allow priority queue to order blocks by their depth-first
-         * order.*/
+        /** Comparators to allow priority queue to order blocks by their depth-first order. */
         public class ForwardDFOComparator implements Comparator<Block> {
             @Override
             public int compare(Block b1, Block b2) {
@@ -371,8 +359,8 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Read the {@link Store} for a particular basic block from a map of stores
-     * (or {@code null} if none exists yet).
+     * Read the {@link Store} for a particular basic block from a map of stores (or {@code null} if
+     * none exists yet).
      */
     protected static <S> /*@Nullable*/ S readFromStore(Map<Block, S> stores, Block b) {
         return stores.get(b);

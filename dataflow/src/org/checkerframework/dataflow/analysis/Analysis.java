@@ -8,16 +8,17 @@ import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
- * General Dataflow Analysis Interface
- * This interface defines general behaviors of a data-flow analysis, given a control flow graph and a transfer function.
- * A data-flow analysis should only has one direction, either forward or backward. The direction of corresponding transfer function
- * should be consistent with the analysis, i.e. a forward analysis should be given a forward transfer function, and a backward analysis
- * should be given a backward transfer function.
- * @author charleszhuochen
+ * General Dataflow Analysis Interface This interface defines general behaviors of a data-flow
+ * analysis, given a control flow graph and a transfer function. A data-flow analysis should only
+ * has one direction, either forward or backward. The direction of corresponding transfer function
+ * should be consistent with the analysis, i.e. a forward analysis should be given a forward
+ * transfer function, and a backward analysis should be given a backward transfer function.
  *
- * @param <V> AbstractValue
- * @param <S> Store
- * @param <T> TransferFunction
+ * @author charleszhuochen
+ * @author Stefan Heule
+ * @param <A> The abstract value type to be tracked by the analysis
+ * @param <S> The store type used in the analysis.
+ * @param <T> The transfer function type that is used to approximated runtime behavior
  */
 public interface Analysis<
         V extends AbstractValue<V>, S extends Store<S>, T extends TransferFunction<V, S>> {

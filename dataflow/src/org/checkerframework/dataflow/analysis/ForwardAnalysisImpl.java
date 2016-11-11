@@ -33,14 +33,9 @@ import org.checkerframework.javacutil.Pair;
  * given a control flow graph and a transfer function.
  *
  * @author Stefan Heule
- *
- * @param <V>
- *            The abstract value type to be tracked by the analysis.
- * @param <S>
- *            The store type used in the analysis.
- * @param <T>
- *            The transfer function type that is used to approximated runtime
- *            behavior.
+ * @param <V> The abstract value type to be tracked by the analysis.
+ * @param <S> The store type used in the analysis.
+ * @param <T> The transfer function type that is used to approximated runtime behavior.
  */
 public class ForwardAnalysisImpl<
                 V extends AbstractValue<V>,
@@ -48,27 +43,18 @@ public class ForwardAnalysisImpl<
                 T extends ForwardTransferFunction<V, S>>
         extends AbstractAnalysis<V, S, T> implements ForwardAnalysis<V, S, T> {
 
-    /**
-     * Then stores before every basic block (assumed to be 'no information' if
-     * not present).
-     */
+    /** Then stores before every basic block (assumed to be 'no information' if not present). */
     protected IdentityHashMap<Block, S> thenStores;
 
-    /**
-     * Else stores before every basic block (assumed to be 'no information' if
-     * not present).
-     */
+    /** Else stores before every basic block (assumed to be 'no information' if not present). */
     protected IdentityHashMap<Block, S> elseStores;
 
-    /**
-     * The stores after every return statement.
-     */
+    /** The stores after every return statement. */
     protected IdentityHashMap<ReturnNode, TransferResult<V, S>> storesAtReturnStatements;
 
     /**
      * Construct an object that can perform a org.checkerframework.dataflow analysis over a control
-     * flow graph. The transfer function is set later using
-     * {@code setTransferFunction}.
+     * flow graph. The transfer function is set later using {@code setTransferFunction}.
      */
     public ForwardAnalysisImpl() {
         super(Direction.FORWARD);
@@ -85,8 +71,7 @@ public class ForwardAnalysisImpl<
 
     @Override
     /**
-     * Perform the actual analysis. Should only be called once after the object
-     * has been created.
+     * Perform the actual analysis. Should only be called once after the object has been created.
      */
     public void performAnalysis(ControlFlowGraph cfg) {
         assert isRunning == false;
@@ -217,8 +202,7 @@ public class ForwardAnalysisImpl<
 
     @Override
     /**
-     * Propagate the stores in currentInput to the successor block, succ, according to the
-     * flowRule.
+     * Propagate the stores in currentInput to the successor block, succ, according to the flowRule.
      */
     protected void propagateStoresTo(
             Block succ,
@@ -287,8 +271,7 @@ public class ForwardAnalysisImpl<
 
     @Override
     /**
-     * Call the transfer function for node {@code node}, and set that node as
-     * current node first.
+     * Call the transfer function for node {@code node}, and set that node as current node first.
      */
     protected TransferResult<V, S> callTransferFunction(Node node, TransferInput<V, S> input) {
         TransferResult<V, S> transferResult = super.callTransferFunction(node, input);
@@ -346,16 +329,16 @@ public class ForwardAnalysisImpl<
 
     @Override
     /**
-     * Read the {@link TransferInput} for a particular basic block (or {@code null} if
-     * none exists yet).
+     * Read the {@link TransferInput} for a particular basic block (or {@code null} if none exists
+     * yet).
      */
     public /*@Nullable*/ TransferInput<V, S> getInput(Block b) {
         return getInputBefore(b);
     }
 
     /**
-     * Add a store before the basic block <code>b</code> by merging with the
-     * existing stores for that location.
+     * Add a store before the basic block <code>b</code> by merging with the existing stores for
+     * that location.
      */
     protected void addStoreBefore(
             Block b, Node node, S s, Store.Kind kind, boolean addBlockToWorklist) {
@@ -427,16 +410,15 @@ public class ForwardAnalysisImpl<
     }
 
     /**
-     * @return the transfer input corresponding to the location right before the basic
-     *         block <code>b</code>.
+     * @return the transfer input corresponding to the location right before the basic block <code>b
+     *     </code>.
      */
     protected /*@Nullable*/ TransferInput<V, S> getInputBefore(Block b) {
         return inputs.get(b);
     }
 
     /**
-     * @return the store corresponding to the location right before the basic
-     *         block <code>b</code>.
+     * @return the store corresponding to the location right before the basic block <code>b</code>.
      */
     protected /*@Nullable*/ S getStoreBefore(Block b, Store.Kind kind) {
         switch (kind) {

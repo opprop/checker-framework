@@ -6,7 +6,6 @@ import java.util.Set;
  * Represents a basic block in a control flow graph.
  *
  * @author Stefan Heule
- *
  */
 public interface Block {
 
@@ -26,14 +25,10 @@ public interface Block {
         EXCEPTION_BLOCK,
     }
 
-    /**
-     * @return the type of this basic block
-     */
+    /** @return the type of this basic block */
     BlockType getType();
 
-    /**
-     * @return the unique identifier of this block
-     */
+    /** @return the unique identifier of this block */
     long getId();
 
     public Set<Block> getPredecessors();

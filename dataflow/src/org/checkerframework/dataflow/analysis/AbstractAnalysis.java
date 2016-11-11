@@ -96,7 +96,6 @@ public abstract class AbstractAnalysis<
             Store.FlowRule flowRule,
             boolean addToWorklistAgain);
 
-
     /** Is the analysis currently running? */
     @Override
     public boolean isRunning() {

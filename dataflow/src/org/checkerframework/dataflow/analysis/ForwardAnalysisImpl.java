@@ -69,7 +69,6 @@ public class ForwardAnalysisImpl<
         this.transferFunction = transfer;
     }
 
-
     /**
      * Perform the actual analysis. Should only be called once after the object has been created.
      */

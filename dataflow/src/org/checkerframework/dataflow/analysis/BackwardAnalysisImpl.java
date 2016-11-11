@@ -159,7 +159,7 @@ public class BackwardAnalysisImpl<
     }
 
     @Override
-    public S getEntrySotre() {
+    public S getEntryStore() {
         return storeAtEntry;
     }
 

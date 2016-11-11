@@ -28,35 +28,42 @@ public interface Analysis<
         BACKWARD
     }
 
-    public Direction getDirection();
+    Direction getDirection();
 
-    public boolean isRunning();
+    boolean isRunning();
 
-    public void performAnalysis(ControlFlowGraph cfg);
+    void performAnalysis(ControlFlowGraph cfg);
 
-    public AnalysisResult<V, S> getResult();
+    AnalysisResult<V, S> getResult();
 
-    public T getTransferFunction();
+    T getTransferFunction();
 
-    public void setTransferFunction(T transferFunction);
+    void setTransferFunction(T transferFunction);
 
-    public Tree getCurrentTree();
+    Tree getCurrentTree();
 
-    public void setCurrentTree(Tree t);
+    void setCurrentTree(Tree t);
 
-    public TransferInput<V, S> getInput(Block b);
+    TransferInput<V, S> getInput(Block b);
 
-    public V getValue(Node n);
+    V getValue(Node n);
 
-    public V getValue(Tree t);
+    V getValue(Tree t);
 
-    public Node getNodeForTree(Tree t);
+    Node getNodeForTree(Tree t);
 
-    public MethodTree getContainingMethod(Tree t);
+    MethodTree getContainingMethod(Tree t);
 
-    public ClassTree getContainingClass(Tree t);
+    ClassTree getContainingClass(Tree t);
 
-    public S getRegularExitStore();
+    S getRegularExitStore();
 
-    public S getExceptionalExitStore();
+    S getExceptionalExitStore();
+
+    /**
+     * Runs the analysis again within the block of {@code node} and returns the store at the
+     * location of {@code node}. If {@code before} is true, then the store immediately before the
+     * {@link Node} {@code node} is returned. Otherwise, the store after {@code node} is returned.
+     */
+    S runAnalysisFor(Node node, boolean before, TransferInput<V, S> transferInput);
 }

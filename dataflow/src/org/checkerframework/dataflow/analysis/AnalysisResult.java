@@ -118,7 +118,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
     /** @return the regular store immediately before a given {@link Block} */
     public S getStoreBefore(Block bb) {
         TransferInput<A, S> transferInput = stores.get(bb);
-        AbstractAnalysis<A, S, ?> analysis = transferInput.analysis;
+        Analysis<A, S, ?> analysis = transferInput.analysis;
         switch (analysis.getDirection()) {
             case FORWARD:
                 {
@@ -155,7 +155,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
     /** @return the regular store immediately after a given {@link Block} */
     public S getStoreAfter(Block bb) {
         TransferInput<A, S> transferInput = stores.get(bb);
-        AbstractAnalysis<A, S, ?> analysis = transferInput.analysis;
+        Analysis<A, S, ?> analysis = transferInput.analysis;
         switch (analysis.getDirection()) {
             case FORWARD:
                 {

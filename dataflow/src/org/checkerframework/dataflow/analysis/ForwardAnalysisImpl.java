@@ -442,7 +442,7 @@ public class ForwardAnalysisImpl<
     }
 
     @Override
-    protected S runAnalysisFor(Node node, boolean before, TransferInput<V, S> transferInput) {
+    public S runAnalysisFor(Node node, boolean before, TransferInput<V, S> transferInput) {
         Block block = node.getBlock();
         Node oldCurrentNode = currentNode;
 

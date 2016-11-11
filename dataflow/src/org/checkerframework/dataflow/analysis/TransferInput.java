@@ -66,7 +66,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * <p>The node-value mapping {@code nodeValues} is provided by the analysis and is only read
      * from within this {@link TransferInput}.
      */
-    public TransferInput(Node n, AbstractAnalysis<A, S, ?> analysis, TransferResult<A, S> to) {
+    public TransferInput(Node n, Analysis<A, S, ?> analysis, TransferResult<A, S> to) {
         node = n;
         this.analysis = analysis;
         if (to.containsTwoStores()) {
@@ -88,7 +88,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * <p>The node-value mapping {@code nodeValues} is provided by the analysis and is only read
      * from within this {@link TransferInput}.
      */
-    public TransferInput(Node n, AbstractAnalysis<A, S, ?> analysis, S s) {
+    public TransferInput(Node n, Analysis<A, S, ?> analysis, S s) {
         node = n;
         this.analysis = analysis;
         store = s;
@@ -101,7 +101,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * <p><em>Aliasing</em>: The two stores {@code s1} and {@code s2} will be stored internally and
      * are not allowed to be used elsewhere. Full control of them is transfered to this object.
      */
-    public TransferInput(Node n, AbstractAnalysis<A, S, ?> analysis, S s1, S s2) {
+    public TransferInput(Node n, Analysis<A, S, ?> analysis, S s1, S s2) {
         node = n;
         this.analysis = analysis;
         thenStore = s1;

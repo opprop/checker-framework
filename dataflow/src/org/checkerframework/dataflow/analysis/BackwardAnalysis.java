@@ -6,5 +6,5 @@ public interface BackwardAnalysis<
                 T extends BackwardTransferFunction<V, S>>
         extends Analysis<V, S, T> {
 
-    public S getEntrySotre();
+    S getEntryStore();
 }

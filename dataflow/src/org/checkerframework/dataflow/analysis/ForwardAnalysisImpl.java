@@ -69,10 +69,11 @@ public class ForwardAnalysisImpl<
         this.transferFunction = transfer;
     }
 
-    @Override
+
     /**
      * Perform the actual analysis. Should only be called once after the object has been created.
      */
+    @Override
     public void performAnalysis(ControlFlowGraph cfg) {
         assert isRunning == false;
         isRunning = true;

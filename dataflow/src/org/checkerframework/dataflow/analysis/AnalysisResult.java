@@ -15,6 +15,7 @@ import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
 import org.checkerframework.dataflow.cfg.block.RegularBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.javacutil.ErrorReporter;
 
 /**
  * An {@link AnalysisResult} represents the result of a org.checkerframework.dataflow analysis by
@@ -183,7 +184,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
                 }
             default:
                 {
-                    assert false;
+                    ErrorReporter.errorAbort("AnalysisResult::getStoreAfter: unknown direction: " + analysis.getDirection());
                 }
         }
         // dead code
@@ -224,7 +225,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
     public static <A extends AbstractValue<A>, S extends Store<S>> S runAnalysisFor(
             Node node, boolean before, TransferInput<A, S> transferInput) {
         if (transferInput.analysis == null) {
-            throw new RuntimeException("transferInput contains null analysis!");
+            ErrorReporter.errorAbort("transferInput contains null analysis!");
         }
         return transferInput.analysis.runAnalysisFor(node, before, transferInput);
     }

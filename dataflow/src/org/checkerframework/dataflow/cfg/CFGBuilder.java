@@ -1451,9 +1451,8 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Extend the list of extended nodes with a node, where <code>node</code> might
-         * throw the exception <code>cause</code>. ======= Extend the list of extended nodes with a
-         * node, where {@code node} might throw the exception {@code cause}. >>>>>>> opprop/master
+         * Extend the list of extended nodes with a node, where {@code node} might throw the
+         * exception {@code cause}.
          *
          * @param node The node to add
          * @param cause An exception that the node might throw.
@@ -1466,10 +1465,8 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Extend the list of extended nodes with a node, where <code>node</code> might
-         * throw any of the exception in <code>causes</code>. ======= Extend the list of extended
-         * nodes with a node, where {@code node} might throw any of the exception in {@code causes}.
-         * >>>>>>> opprop/master
+         * Extend the list of extended nodes with a node, where {@code node} might throw any of the
+         * exception in {@code causes}.
          *
          * @param node The node to add
          * @param causes Set of exceptions that the node might throw.
@@ -1488,10 +1485,8 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Insert <code>node</code> after <code>pred</code> in the list of extended
-         * nodes, or append to the list if <code>pred</code> is not present. ======= Insert {@code
-         * node} after {@code pred} in the list of extended nodes, or append to the list if {@code
-         * pred} is not present. >>>>>>> opprop/master
+         * Insert {@code node} after {@code pred} in the list of extended nodes, or append to the
+         * list if {@code pred} is not present.
          *
          * @param node The node to add
          * @param pred The desired predecessor of node.
@@ -1504,11 +1499,8 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Insert a <code>node</code> that might throw the exception <code>cause</code>
-         * after <code>pred</code> in the list of extended nodes, or append to the list if <code>
-         * pred</code> is not present. ======= Insert a {@code node} that might throw the exception
-         * {@code cause} after {@code pred} in the list of extended nodes, or append to the list if
-         * {@code pred} is not present. >>>>>>> opprop/master
+         * Insert a {@code node} that might throw the exception {@code cause} after {@code pred} in
+         * the list of extended nodes, or append to the list if {@code pred} is not present.
          *
          * @param node The node to add
          * @param causes Set of exceptions that the node might throw.
@@ -1537,10 +1529,8 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Insert <code>n</code> after the node <code>pred</code> in the list of
-         * extended nodes, or append <code>n</code> if <code>pred</code> is not present. =======
          * Insert {@code n} after the node {@code pred} in the list of extended nodes, or append
-         * {@code n} if {@code pred} is not present. >>>>>>> opprop/master
+         * {@code n} if {@code pred} is not present.
          *
          * @param n The extended node
          * @param pred The desired predecessor.
@@ -2446,10 +2436,7 @@ public class CFGBuilder {
         }
 
         /**
-         * <<<<<<< HEAD Note 1: Requires <code>tree</code> to be a field or method access tree.
-         *
-         * <p>Note 2: Visits the receiver and adds all necessary blocks to the CFG. ======= Note 1:
-         * Requires {@code tree} to be a field or method access tree. >>>>>>> opprop/master
+         * Note 1: Requires {@code tree} to be a field or method access tree.
          *
          * <p>Note 2: Visits the receiver and adds all necessary blocks to the CFG.
          *
@@ -3811,15 +3798,10 @@ public class CFGBuilder {
          * Maps a <code>Tree</code> its directly enclosing <code>ParenthesizedTree</code> if one
          * exists.
          *
-         * <p><<<<<<< HEAD This map is used by {@link CFGTranslationPhaseOne#addToLookupMap(Node)}
-         * to associate a <code>ParenthesizedTree</code> with the dataflow <code>Node</code> that
-         * was used during inference. This map is necessary because dataflow does not create a
-         * <code>Node</code> for a <code>ParenthesizedTree.</code> =======
-         *
          * <p>This map is used by {@link CFGTranslationPhaseOne#addToLookupMap(Node)} to associate a
          * {@code ParenthesizedTree} with the dataflow {@code Node} that was used during inference.
          * This map is necessary because dataflow does not create a {@code Node} for a {@code
-         * ParenthesizedTree.} >>>>>>> opprop/master
+         * ParenthesizedTree.}
          */
         private final Map<Tree, ParenthesizedTree> parenMapping = new HashMap<>();
 

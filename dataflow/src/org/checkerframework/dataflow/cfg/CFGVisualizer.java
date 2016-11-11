@@ -29,26 +29,6 @@ public interface CFGVisualizer<
     void init(Map<String, Object> args);
 
     /**
-<<<<<<< HEAD
-     * Output a visualization representing the control flow graph starting
-     * at <code>entry</code>.
-     * The concrete actions are implementation dependent.
-     *
-     * An invocation <code>visualize(cfg, entry, null);</code> does not
-     * output stores at the beginning of basic blocks.
-     *
-     * @param cfg
-     *            The CFG to visualize.
-     * @param entry
-     *            The entry node of the control flow graph to be represented.
-     * @param analysis
-     *            An analysis containing information about the program
-     *            represented by the CFG. The information includes {@link Store}s
-     *            that are valid at the beginning of basic blocks reachable
-     *            from <code>entry</code> and per-node information for value
-     *            producing {@link Node}s. Can also be <code>null</code> to
-     *            indicate that this information should not be output.
-=======
      * Output a visualization representing the control flow graph starting at {@code entry}. The
      * concrete actions are implementation dependent.
      *
@@ -61,7 +41,6 @@ public interface CFGVisualizer<
      *     The information includes {@link Store}s that are valid at the beginning of basic blocks
      *     reachable from {@code entry} and per-node information for value producing {@link Node}s.
      *     Can also be {@code null} to indicate that this information should not be output.
->>>>>>> opprop/master
      * @return possible analysis results, e.g. generated file names.
      */
     /*@Nullable*/ Map<String, Object> visualize(
@@ -76,26 +55,15 @@ public interface CFGVisualizer<
     void visualizeStore(S store);
 
     /**
-<<<<<<< HEAD
-     * Called by a <code>CFAbstractStore</code> to visualize
-     * the class name before calling the
-     * <code>CFAbstractStore#internalVisualize()</code> method.
-=======
      * Called by a {@code CFAbstractStore} to visualize the class name before calling the {@code
      * CFAbstractStore#internalVisualize()} method.
->>>>>>> opprop/master
      *
      * @param classCanonicalName the canonical name of the class
      */
     void visualizeStoreHeader(String classCanonicalName);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * a local variable.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize a local variable.
->>>>>>> opprop/master
      *
      * @param localVar the local variable
      * @param value the value of the local variable
@@ -103,26 +71,16 @@ public interface CFGVisualizer<
     void visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the value of the current object <code>this</code> in this Store.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of the current
      * object {@code this} in this Store.
->>>>>>> opprop/master
      *
      * @param value the value of the current object this
      */
     void visualizeStoreThisVal(A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the value of fields collected by this Store.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of fields
      * collected by this Store.
->>>>>>> opprop/master
      *
      * @param fieldAccess the field
      * @param value the value of the field
@@ -130,13 +88,8 @@ public interface CFGVisualizer<
     void visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the value of arrays collected by this Store.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of arrays
      * collected by this Store.
->>>>>>> opprop/master
      *
      * @param arrayValue the array
      * @param value the value of the array
@@ -144,13 +97,8 @@ public interface CFGVisualizer<
     void visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the value of pure method calls collected by this Store.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of pure method
      * calls collected by this Store.
->>>>>>> opprop/master
      *
      * @param methodCall the pure method call
      * @param value the value of the pure method call
@@ -158,13 +106,8 @@ public interface CFGVisualizer<
     void visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the value of class names collected by this Store.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of class names
      * collected by this Store.
->>>>>>> opprop/master
      *
      * @param className the class name
      * @param value the value of the class name
@@ -172,18 +115,10 @@ public interface CFGVisualizer<
     void visualizeStoreClassVals(FlowExpressions.ClassName className, A value);
 
     /**
-<<<<<<< HEAD
-     * Called by <code>CFAbstractStore#internalVisualize()</code> to visualize
-     * the specific information collected according to the specific kind of Store.
-     * Currently, these Stores call this method: <code>LockStore</code>,
-     * <code>NullnessStore</code>, and <code>InitializationStore</code> to visualize additional
-     * information.
-=======
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the specific information
      * collected according to the specific kind of Store. Currently, these Stores call this method:
      * {@code LockStore}, {@code NullnessStore}, and {@code InitializationStore} to visualize
      * additional information.
->>>>>>> opprop/master
      *
      * @param keyName the name of the specific information to be visualized
      * @param value the value of the specific information to be visualized
@@ -191,20 +126,16 @@ public interface CFGVisualizer<
     void visualizeStoreKeyVal(String keyName, Object value);
 
     /**
-<<<<<<< HEAD
-     * visualize specific information collected according to the specific kind of Store.
-     * Currently, <code>LiveVariableStore</code> use this method to visualize
+     * visualize specific information collected according to the specific kind of Store. Currently,
+     * <code>LiveVariableStore</code> use this method to visualize
+     *
      * @param value the value of the specific information to be visualized
      */
     void visualizeSotreVal(Object value);
 
     /**
-     * Called by <code>CFAbstractStore</code> to visualize
-     * any information after the invocation of <code>CFAbstractStore#internalVisualize()</code>.
-=======
-     * Called by {@code CFAbstractStore} to visualize any information after the invocation of {@code
-     * CFAbstractStore#internalVisualize()}.
->>>>>>> opprop/master
+     * Called by <code>CFAbstractStore</code> to visualize any information after the invocation of
+     * <code>CFAbstractStore#internalVisualize()</code>.
      */
     void visualizeStoreFooter();
 
@@ -239,13 +170,6 @@ public interface CFGVisualizer<
      */
     void visualizeBlockNode(Node t, /*@Nullable*/ Analysis<A, S, T> analysis);
 
-<<<<<<< HEAD
-    /**
-     * Shutdown method called once from the shutdown hook of the
-     * <code>BaseTypeChecker</code>.
-     */
-=======
     /** Shutdown method called once from the shutdown hook of the {@code BaseTypeChecker}. */
->>>>>>> opprop/master
     void shutdown();
 }

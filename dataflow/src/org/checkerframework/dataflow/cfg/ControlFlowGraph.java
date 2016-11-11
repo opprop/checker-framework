@@ -79,14 +79,7 @@ public class ControlFlowGraph {
         this.returnNodes = returnNodes;
     }
 
-<<<<<<< HEAD
-    /**
-     * @return the {@link Node} to which the {@link Tree} <code>t</code>
-     *         corresponds.
-     */
-=======
     /** @return the {@link Node} to which the {@link Tree} {@code t} corresponds. */
->>>>>>> opprop/master
     public Node getNodeCorrespondingToTree(Tree t) {
         if (convertedTreeLookup.containsKey(t)) {
             return convertedTreeLookup.get(t);

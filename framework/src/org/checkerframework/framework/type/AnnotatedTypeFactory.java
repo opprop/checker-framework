@@ -1,37 +1,5 @@
 package org.checkerframework.framework.type;
 
-/*>>>
-import org.checkerframework.checker.interning.qual.*;
-import org.checkerframework.checker.nullness.qual.Nullable;
-*/
-
-// The imports from com.sun, but they are all
-// @jdk.Exported and therefore somewhat safe to use.
-// Try to avoid using non-@jdk.Exported classes.
-
-import com.sun.source.tree.AnnotationTree;
-import com.sun.source.tree.AssignmentTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.ConditionalExpressionTree;
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.LambdaExpressionTree;
-import com.sun.source.tree.MemberReferenceTree;
-import com.sun.source.tree.MethodInvocationTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewArrayTree;
-import com.sun.source.tree.NewClassTree;
-import com.sun.source.tree.ReturnTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.TypeCastTree;
-import com.sun.source.tree.VariableTree;
-import com.sun.source.util.TreePath;
-import com.sun.source.util.Trees;
-import com.sun.tools.javac.code.Symbol.MethodSymbol;
-import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.util.Context;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -65,6 +34,7 @@ import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic.Kind;
+
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.reflection.DefaultReflectionResolver;
@@ -119,6 +89,39 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.checkerframework.javacutil.trees.DetachedVarSymbol;
+
+/*>>>
+import org.checkerframework.checker.interning.qual.*;
+import org.checkerframework.checker.nullness.qual.Nullable;
+*/
+
+// The imports from com.sun, but they are all
+// @jdk.Exported and therefore somewhat safe to use.
+// Try to avoid using non-@jdk.Exported classes.
+
+import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ConditionalExpressionTree;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.LambdaExpressionTree;
+import com.sun.source.tree.MemberReferenceTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewArrayTree;
+import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.ReturnTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
+import com.sun.source.util.Trees;
+import com.sun.tools.javac.code.Symbol.MethodSymbol;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.processing.JavacProcessingEnvironment;
+import com.sun.tools.javac.util.Context;
 
 /**
  * The methods of this class take an element or AST node, and return the annotated type as an {@link
@@ -1305,7 +1308,18 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
         addComputedTypeAnnotations(element, type);
         if (withCombineConstraints) {
-            vputil.combineTypeWithType(owner, type, this);
+            AnnotatedTypeMirror decltype = this.fromElement(element);
+            AnnotatedTypeMirror combinedType = vputil.combineTypeWithType(owner, decltype, this);
+            type.replaceAnnotation(vputil.getAnnotation(combinedType, this));
+            if (type.getKind() == TypeKind.DECLARED && combinedType.getKind() == TypeKind.DECLARED) {
+                AnnotatedDeclaredType Type = (AnnotatedDeclaredType) type;
+                AnnotatedDeclaredType CombinedType = (AnnotatedDeclaredType) combinedType;
+                Type.setTypeArguments(CombinedType.getTypeArguments());
+            } else if (type.getKind() == TypeKind.ARRAY && combinedType.getKind() == TypeKind.ARRAY) {
+                AnnotatedArrayType arrayType = (AnnotatedArrayType) type;
+                AnnotatedArrayType arrayCombinedType = (AnnotatedArrayType) combinedType;
+                arrayType.setComponentType(arrayCombinedType.getComponentType());
+            }
         }
     }
 
@@ -1488,14 +1502,17 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         for (AnnotatedTypeMirror atm : tvars) {
             AnnotatedTypeVariable atv = (AnnotatedTypeVariable) atm;
-            AnnotatedTypeMirror upper = typeVarSubstitutor.substitute(mapping, atv.getUpperBound());
+            AnnotatedTypeMirror upper = atv.getUpperBound();
             if (withCombineConstraints) {
-                vputil.combineTypeWithType(type, upper, this);
+                upper = vputil.combineTypeWithType(type, upper, this);
             }
-            AnnotatedTypeMirror lower = typeVarSubstitutor.substitute(mapping, atv.getLowerBound());
+            upper = typeVarSubstitutor.substitute(mapping, upper);
+            AnnotatedTypeMirror lower = atv.getLowerBound();
             if (withCombineConstraints) {
-                vputil.combineTypeWithType(type, lower, this);
+                lower = vputil.combineTypeWithType(type, lower, this);
             }
+            lower = typeVarSubstitutor.substitute(mapping, lower);
+
             res.add(new AnnotatedTypeParameterBounds(upper, lower));
         }
         return res;
@@ -1930,21 +1947,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         ExecutableElement methodElt = TreeUtils.elementFromUse(tree);
         AnnotatedTypeMirror receiverType = getReceiverType(tree);
 
-        final AnnotatedExecutableType methodOfReceiver = AnnotatedTypes.asMemberOf(types, this, receiverType, methodElt);
-        AnnotatedTypeMirror returnType = methodOfReceiver.getReturnType();
-        List<AnnotatedTypeMirror> parameterTypes = methodOfReceiver.getParameterTypes();
-        List<AnnotatedTypeVariable> typeVariables = methodOfReceiver.getTypeVariables();
-
-        if (withCombineConstraints) {
-            vputil.combineTypeWithType(receiverType, returnType, this);
-            for (AnnotatedTypeMirror parameterType : parameterTypes) {
-                vputil.combineTypeWithType(receiverType, parameterType, this);
-            }
-            for (AnnotatedTypeVariable typeVariable: typeVariables) {
-                vputil.combineTypeWithType(receiverType, typeVariable, this);
-            }
-        }
-
         Pair<AnnotatedExecutableType, List<AnnotatedTypeMirror>> mfuPair =
                 methodFromUse(tree, methodElt, receiverType);
         if (checker.shouldResolveReflection()
@@ -1959,6 +1961,41 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         AnnotatedExecutableType methodType =
                 AnnotatedTypes.asMemberOf(types, this, receiverType, methodElt);
+
+        if (withCombineConstraints) {
+            AnnotatedExecutableType declMethodType = this.fromElement(methodElt);
+            this.addComputedTypeAnnotations(methodElt, declMethodType);
+            AnnotatedTypeMirror returnType = declMethodType.getReturnType();
+            List<AnnotatedTypeMirror> parameterTypes = declMethodType.getParameterTypes();
+            List<AnnotatedTypeVariable> typeVariables = declMethodType.getTypeVariables();
+
+            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new HashMap<>();
+
+
+            if (returnType.getKind() != TypeKind.VOID) {
+                AnnotatedTypeMirror r = vputil.combineTypeWithType(receiverType, returnType, this);
+                mappings.put(returnType, r);
+            }
+            for (AnnotatedTypeMirror parameterType : parameterTypes) {
+                AnnotatedTypeMirror p = vputil.combineTypeWithType(receiverType, parameterType, this);
+                mappings.put(parameterType, p);
+            }
+            for (AnnotatedTypeVariable typeVariable: typeVariables) {
+                AnnotatedTypeMirror ub = vputil.combineTypeWithType(receiverType, typeVariable.getUpperBound(), this);
+                mappings.put(typeVariable.getUpperBound(), ub);
+                AnnotatedTypeMirror lb = vputil.combineTypeWithType(receiverType, typeVariable.getLowerBound(), this);
+                mappings.put(typeVariable.getLowerBound(), lb);
+            }
+
+            declMethodType = (AnnotatedExecutableType) AnnotatedTypeReplacer.replace(declMethodType, mappings);
+
+            // Because we can't viewpoint adapt asMemberOf result, we adapt the declared method first, and sets the
+            // corresponding parts to asMemberOf result
+            methodType.setReturnType(declMethodType.getReturnType());
+            methodType.setParameterTypes(declMethodType.getParameterTypes());
+            methodType.setTypeVariables(declMethodType.getTypeVariables());
+        }
+
         List<AnnotatedTypeMirror> typeargs = new LinkedList<AnnotatedTypeMirror>();
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =
@@ -2084,14 +2121,20 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         List<AnnotatedTypeMirror> parameterTypes = con.getParameterTypes();
         List<AnnotatedTypeVariable> typeVariables = con.getTypeVariables();
+
         if (withCombineConstraints) {
+            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new HashMap<>();
             for (AnnotatedTypeMirror parameterType : parameterTypes) {
-                vputil.combineTypeWithType(type, parameterType, this);
+                AnnotatedTypeMirror p = vputil.combineTypeWithType(type, parameterType, this);
+                mappings.put(parameterType, p);
             }
             for (AnnotatedTypeMirror typeVariable : typeVariables) {
-                vputil.combineTypeWithType(type, typeVariable, this);
+                AnnotatedTypeMirror tv = vputil.combineTypeWithType(type, typeVariable, this);
+                mappings.put(typeVariable, tv);
             }
+            con = (AnnotatedExecutableType) AnnotatedTypeReplacer.replace(con, mappings);
         }
+
         List<AnnotatedTypeMirror> typeargs = new LinkedList<AnnotatedTypeMirror>();
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =

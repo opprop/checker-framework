@@ -16,7 +16,7 @@ import org.checkerframework.dataflow.cfg.node.Node;
  *
  * @author charleszhuochen
  * @author Stefan Heule
- * @param <A> The abstract value type to be tracked by the analysis
+ * @param <V> The abstract value type to be tracked by the analysis
  * @param <S> The store type used in the analysis.
  * @param <T> The transfer function type that is used to approximated runtime behavior
  */

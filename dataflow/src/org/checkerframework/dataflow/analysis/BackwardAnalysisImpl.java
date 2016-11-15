@@ -14,6 +14,7 @@ import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock.SpecialBlockType;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
+import org.checkerframework.javacutil.ErrorReporter;
 
 public class BackwardAnalysisImpl<
                 V extends AbstractValue<V>,
@@ -44,7 +45,11 @@ public class BackwardAnalysisImpl<
 
     @Override
     public void performAnalysis(ControlFlowGraph cfg) {
-        assert isRunning == false;
+        if (isRunning) {
+            ErrorReporter.errorAbort(
+                    "BackwardAnalysisImpl::performAnalysis() doesn't expected get called when analysis is running!");
+        }
+
         isRunning = true;
 
         init(cfg);
@@ -145,12 +150,17 @@ public class BackwardAnalysisImpl<
                     }
 
                 default:
-                    assert false;
+                    ErrorReporter.errorAbort(
+                            "BackwardAnalysisImpl::performAnalysis() unexpected block type: "
+                                    + block.getType());
                     break;
             }
         }
 
-        assert isRunning == true;
+        if (!isRunning) {
+            ErrorReporter.errorAbort(
+                    "BackwardAnalysisImpl::performAnalysis() when just finished the analysis loop on worklist, isRunning flag is expected to be true!");
+        }
         isRunning = false;
     }
 
@@ -179,9 +189,11 @@ public class BackwardAnalysisImpl<
         SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
         SpecialBlock exceptionExitBlock = cfg.getExceptionalExitBlock();
 
-        assert worklist.depthFirstOrder.get(regularExitBlock) != null
-                        || worklist.depthFirstOrder.get(exceptionExitBlock) != null
-                : "regularExitBlock and exceptionExitBlock should never both be null at the same time.";
+        if (worklist.depthFirstOrder.get(regularExitBlock) == null
+                && worklist.depthFirstOrder.get(exceptionExitBlock) == null) {
+            ErrorReporter.errorAbort(
+                    "regularExitBlock and exceptionExitBlock should never both be null at the same time.");
+        }
 
         UnderlyingAST underlyingAST = cfg.getUnderlyingAST();
         List<ReturnNode> returnNodes = cfg.getReturnNodes();
@@ -206,9 +218,15 @@ public class BackwardAnalysisImpl<
             outStores.put(exceptionExitBlock, exceptionalInitialStore);
         }
 
-        assert !worklist.isEmpty() : "worklist should has at least one exit block as start point.";
-        assert inputs.size() > 0 && outStores.size() > 0
-                : "should has at least one input and outStore at beginning";
+        if (worklist.isEmpty()) {
+            ErrorReporter.errorAbort(
+                    "BackwardAnalysisImpl::initInitialInputs() worklist should has at least one exit block as start point.");
+        }
+
+        if (inputs.size() <= 0 || outStores.size() <= 0) {
+            ErrorReporter.errorAbort(
+                    "BackwardAnalysisImpl::initInitialInputs() should has at least one input and outStore at beginning");
+        }
     }
 
     @Override
@@ -218,8 +236,11 @@ public class BackwardAnalysisImpl<
             TransferInput<V, S> currentInput,
             FlowRule flowRule,
             boolean addToWorklistAgain) {
-        assert flowRule == FlowRule.EACH_TO_EACH
-                : "backward analysis always propagate EACH to EACH, because there is no control flow.";
+        if (flowRule != FlowRule.EACH_TO_EACH) {
+            ErrorReporter.errorAbort(
+                    "backward analysis always propagate EACH to EACH, because there is no control flow.");
+        }
+
         addStoreAfter(pred, node, currentInput.getRegularStore(), addToWorklistAgain);
     }
 
@@ -307,14 +328,23 @@ public class BackwardAnalysisImpl<
                         }
                         // This point should never be reached. If the block of 'node' is
                         // 'block', then 'node' must be part of the contents of 'block'.
-                        assert false;
+                        ErrorReporter.errorAbort(
+                                "BackwardAnalysisImpl::runAnalysisFor() This point should never be reached!");
                         return null;
                     }
 
                 case EXCEPTION_BLOCK:
                     {
                         ExceptionBlock eBlock = (ExceptionBlock) block;
-                        assert eBlock.getNode() == node;
+
+                        if (eBlock.getNode() != node) {
+                            ErrorReporter.errorAbort(
+                                    "BackwardAnalysisImpl::runAnalysisFor() it is expected node is equal to the node"
+                                            + "in excetion block, but get: node: "
+                                            + node
+                                            + "\teBlock.getNode(): "
+                                            + eBlock.getNode());
+                        }
 
                         if (!before) {
                             return transferInput.getRegularStore();
@@ -333,7 +363,9 @@ public class BackwardAnalysisImpl<
 
                     // Only regular blocks and exceptional blocks can hold nodes.
                 default:
-                    assert false;
+                    ErrorReporter.errorAbort(
+                            "BackwardAnalysisImpl::runAnalysisFor() unexpected block type: "
+                                    + block.getType());
                     return null;
             }
 

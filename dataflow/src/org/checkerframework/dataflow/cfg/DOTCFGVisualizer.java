@@ -402,7 +402,7 @@ public class DOTCFGVisualizer<
             isTwoStores = false;
             regularStore = analysis.getResult().getStoreBefore(bb);
         } else {
-            assert false;
+            ErrorReporter.errorAbort("this point should never be reached!");
         }
 
         // split input representation to two lines

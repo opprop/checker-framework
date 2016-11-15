@@ -145,9 +145,13 @@ public abstract class AbstractAnalysis<
                     || (currentTree != null && currentTree == n.getTree())) {
                 return null;
             }
+
+            if (n.isLValue()) {
+                ErrorReporter.errorAbort("Did not expect an lvalue, but got " + n);
+            }
+
             // check that 'n' is a subnode of 'node'. Check immediate operands
             // first for efficiency.
-            assert !n.isLValue() : "Did not expect an lvalue, but got " + n;
             if (!(currentNode != n
                     && (currentNode.getOperands().contains(n)
                             || currentNode.getTransitiveOperands().contains(n)))) {
@@ -371,7 +375,7 @@ public abstract class AbstractAnalysis<
             } else if (direction == Direction.BACKWARD) {
                 queue = new PriorityQueue<Block>(11, new BackwardDFOComparator());
             } else {
-                assert false : "Unexpected Direction meet: " + direction.name();
+                ErrorReporter.errorAbort("Unexpected Direction meet: " + direction.name());
             }
         }
 

@@ -26,6 +26,7 @@ import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
+import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 
 /**
@@ -74,7 +75,10 @@ public class ForwardAnalysisImpl<
      */
     @Override
     public void performAnalysis(ControlFlowGraph cfg) {
-        assert isRunning == false;
+        if (isRunning) {
+            ErrorReporter.errorAbort(
+                    "ForwardAnalysisImpl::performAnalysis() doesn't expected get called when analysis is running!");
+        }
         isRunning = true;
 
         init(cfg);
@@ -103,8 +107,12 @@ public class ForwardAnalysisImpl<
 
                         // propagate store to successors
                         Block succ = rb.getSuccessor();
-                        assert succ != null
-                                : "regular basic block without non-exceptional successor unexpected";
+
+                        if (succ == null) {
+                            ErrorReporter.errorAbort(
+                                    "regular basic block without non-exceptional successor unexpected");
+                        }
+
                         propagateStoresTo(
                                 succ, lastNode, currentInput, rb.getFlowRule(), addToWorklistAgain);
                         break;
@@ -191,12 +199,17 @@ public class ForwardAnalysisImpl<
                     }
 
                 default:
-                    assert false;
+                    ErrorReporter.errorAbort(
+                            "ForwardAnalysisImpl::performAnalysis() unexpected block type: "
+                                    + b.getType());
                     break;
             }
         }
 
-        assert isRunning == true;
+        if (!isRunning) {
+            ErrorReporter.errorAbort(
+                    "ForwardAnalysisImpl::performAnalysis() when just finished the analysis loop on worklist, isRunning flag is expected to be true!");
+        }
         isRunning = false;
     }
 
@@ -249,7 +262,8 @@ public class ForwardAnalysisImpl<
                         }
                         // This point should never be reached. If the block of 'node' is
                         // 'block', then 'node' must be part of the contents of 'block'.
-                        assert false;
+                        ErrorReporter.errorAbort(
+                                "ForwardAnalysisImpl::runAnalysisFor() this point should never be reached!");
                         return null;
                     }
 
@@ -258,7 +272,15 @@ public class ForwardAnalysisImpl<
                         ExceptionBlock eb = (ExceptionBlock) block;
 
                         // apply transfer function to content
-                        assert eb.getNode() == node;
+                        if (eb.getNode() != node) {
+                            ErrorReporter.errorAbort(
+                                    "ForwardAnalysisImpl::runAnalysisFor() it is expected node is equal to the node"
+                                            + "in excetion block, but get: node: "
+                                            + node
+                                            + "\teBlock.getNode(): "
+                                            + eb.getNode());
+                        }
+
                         if (before) {
                             return transferInput.getRegularStore();
                         }
@@ -271,7 +293,9 @@ public class ForwardAnalysisImpl<
 
                 default:
                     // Only regular blocks and exceptional blocks can hold nodes.
-                    assert false;
+                    ErrorReporter.errorAbort(
+                            "ForwardAnalysisImpl::runAnalysisFor() unexpected block type: "
+                                    + block.getType());
                     break;
             }
 
@@ -494,7 +518,7 @@ public class ForwardAnalysisImpl<
             case ELSE:
                 return readFromStore(elseStores, b);
             default:
-                assert false;
+                ErrorReporter.errorAbort("unexpected Store Kind: " + kind);
                 return null;
         }
     }

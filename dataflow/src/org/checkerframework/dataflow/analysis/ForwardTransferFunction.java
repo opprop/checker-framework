@@ -10,13 +10,14 @@ import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
- * Interface of a transfer function for the abstract interpretation used for the flow analysis.
+ * General interface of a forward transfer function for the abstract interpretation used for the
+ * forward flow analysis.
  *
- * <p>A transfer function consists of the following components:
+ * <p>A forward transfer function consists of the following components:
  *
  * <ul>
  *   <li>A method {@code initialStore} that determines which initial store should be used in the
- *       org.checkerframework.dataflow analysis.
+ *       org.checkerframework.dataflow forward analysis.
  *   <li>A function for every {@link Node} type that determines the behavior of the
  *       org.checkerframework.dataflow analysis in that case. This method takes a {@link Node} and
  *       an incoming store, and produces a {@link RegularTransferResult}.
@@ -27,6 +28,8 @@ import org.checkerframework.dataflow.cfg.node.Node;
  * caller to that function.
  *
  * @author Stefan Heule
+ * @author charleszhuochen
+ * @param <V> The abstract value.
  * @param <S> The {@link Store} used to keep track of intermediate results.
  */
 public interface ForwardTransferFunction<V extends AbstractValue<V>, S extends Store<S>>

@@ -1,9 +1,5 @@
 package org.checkerframework.dataflow.analysis;
 
-/*>>>
-import org.checkerframework.checker.nullness.qual.Nullable;
-*/
-
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.NodeVisitor;
 
@@ -13,12 +9,16 @@ import org.checkerframework.dataflow.cfg.node.NodeVisitor;
  * <p>A transfer function consists of the following components:
  *
  * <ul>
- *   <li>A method {@code initialStore} that determines which initial store should be used in the
+ *   <li>Initial store method(s) that determines which initial store should be used in the
  *       org.checkerframework.dataflow analysis.
  *   <li>A function for every {@link Node} type that determines the behavior of the
  *       org.checkerframework.dataflow analysis in that case. This method takes a {@link Node} and
  *       an incoming store, and produces a {@link RegularTransferResult}.
  * </ul>
+ *
+ * <p><em>Note</em>: Initial store method(s) is different between forward and backward transfer
+ * function. Thus, in this general interface it doesn't define any intial store method(s), and leave
+ * this to sub-interface {@link ForwardTransferFunction} and {@link BackwardTransferFunction}.
  *
  * <p><em>Important</em>: The individual transfer functions ( {@code visit*}) are allowed to use
  * (and modify) the stores contained in the argument passed; the ownership is transfered from the

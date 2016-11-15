@@ -126,8 +126,8 @@ public interface CFGVisualizer<
     void visualizeStoreKeyVal(String keyName, Object value);
 
     /**
-     * Called by <code>CFAbstractStore</code> to visualize any information after the invocation of
-     * <code>CFAbstractStore#internalVisualize()</code>.
+     * Called by {@code CFAbstractStore} to visualize any information after the invocation of {@code
+     * CFAbstractStore#internalVisualize()}.
      */
     void visualizeStoreFooter();
 

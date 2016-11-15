@@ -1,5 +1,9 @@
 package org.checkerframework.dataflow.analysis;
 
+/*>>>
+import org.checkerframework.checker.nullness.qual.Nullable;
+*/
+
 import java.util.List;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.Node;

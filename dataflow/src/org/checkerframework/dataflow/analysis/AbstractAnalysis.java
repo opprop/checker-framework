@@ -21,6 +21,7 @@ import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.ErrorReporter;
 
 /**
  * Common code base for BackwardAnalysis and ForwardAnalysis
@@ -83,6 +84,7 @@ public abstract class AbstractAnalysis<
         this.direction = direction;
     }
 
+    /** Initialized the transfer inputs of every basic block before performing the analysis. */
     protected abstract void initInitialInputs();
 
     /**
@@ -102,39 +104,38 @@ public abstract class AbstractAnalysis<
         return isRunning;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Direction getDirection() {
         return this.direction;
     }
 
+    /** {@inheritDoc} */
     @Override
     public AnalysisResult<V, S> getResult() {
-        assert !isRunning;
+        if (isRunning) {
+            ErrorReporter.errorAbort(
+                    "AbstractAnalysis::getResult() should not be called when analysis is running!");
+            return null; //dead code
+        }
         IdentityHashMap<Tree, Node> treeLookup = cfg.getTreeLookup();
         return new AnalysisResult<V, S>(nodeValues, inputs, treeLookup, finalLocalValues);
     }
 
+    /** {@inheritDoc} */
+    @Override
     public void setTransferFunction(T transfer) {
         this.transferFunction = transfer;
     }
 
+    /** {@inheritDoc} */
+    @Override
     public T getTransferFunction() {
         return transferFunction;
     }
 
-    public Tree getCurrentTree() {
-        return currentTree;
-    }
-
-    public void setCurrentTree(Tree currentTree) {
-        this.currentTree = currentTree;
-    }
-
-    /**
-     * @return the abstract value for {@link Node} {@code n}, or {@code null} if no information is
-     *     available. Note that if the analysis has not finished yet, this value might not represent
-     *     the final value for this node.
-     */
+    /** {@inheritDoc} */
+    @Override
     public /*@Nullable*/ V getValue(Node n) {
         if (isRunning) {
             // we do not yet have a org.checkerframework.dataflow fact about the current node
@@ -156,7 +157,59 @@ public abstract class AbstractAnalysis<
         return nodeValues.get(n);
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public /*@Nullable*/ S getRegularExitStore() {
+        SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
+        if (inputs.containsKey(regularExitBlock)) {
+            S regularExitStore = inputs.get(regularExitBlock).getRegularStore();
+            return regularExitStore;
+        } else {
+            return null;
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public /*@Nullable*/ S getExceptionalExitStore() {
+        SpecialBlock exceptionalExitBlock = cfg.getExceptionalExitBlock();
+        if (inputs.containsKey(exceptionalExitBlock)) {
+            S exceptionalExitStore = inputs.get(exceptionalExitBlock).getRegularStore();
+            return exceptionalExitStore;
+        }
+        return null;
+    }
+
     /**
+     * Get the {@link Node} for a given {@link Tree}.
+     *
+     * @param t a {@link Tree}
+     * @return the corresponding {@link Node} for this tree
+     */
+    public Node getNodeForTree(Tree t) {
+        return cfg.getNodeCorrespondingToTree(t);
+    }
+
+    /**
+     * @return the tree that is currently being looked at. The transfer function can set this tree
+     *     to make sure that calls to {@code getValue} will not return information for this given
+     *     tree.
+     */
+    public Tree getCurrentTree() {
+        return currentTree;
+    }
+
+    /**
+     * Set the tree that is currently being looked at.
+     *
+     * @param t
+     */
+    public void setCurrentTree(Tree currentTree) {
+        this.currentTree = currentTree;
+    }
+
+    /**
+     * @param t a {@link Tree}
      * @return the abstract value for {@link Tree} {@code t}, or {@code null} if no information is
      *     available. Note that if the analysis has not finished yet, this value might not represent
      *     the final value for this node.
@@ -173,14 +226,12 @@ public abstract class AbstractAnalysis<
         return getValue(nodeCorrespondingToTree);
     }
 
-    /** Get the {@link Node} for a given {@link Tree}. */
-    public Node getNodeForTree(Tree t) {
-        return cfg.getNodeCorrespondingToTree(t);
-    }
-
     /**
-     * Get the {@link MethodTree} of the current CFG if the argument {@link Tree} maps to a {@link
-     * Node} in the CFG or null otherwise.
+     * Get the {@link MethodTree} of the current CFG.
+     *
+     * @param t
+     * @return the {@link MethodTree} of current CFG if the argument {@link Tree} maps to a {@link
+     *     Node} in the CFG or null otherwise.
      */
     public /*@Nullable*/ MethodTree getContainingMethod(Tree t) {
         return cfg.getContainingMethod(t);
@@ -192,25 +243,6 @@ public abstract class AbstractAnalysis<
      */
     public /*@Nullable*/ ClassTree getContainingClass(Tree t) {
         return cfg.getContainingClass(t);
-    }
-
-    /**
-     * @return the regular exit store, or {@code null}, if there is no such store (because the
-     *     method cannot exit through the regular exit block).
-     */
-    public /*@Nullable*/ S getRegularExitStore() {
-        SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
-        if (inputs.containsKey(regularExitBlock)) {
-            S regularExitStore = inputs.get(regularExitBlock).getRegularStore();
-            return regularExitStore;
-        } else {
-            return null;
-        }
-    }
-
-    public S getExceptionalExitStore() {
-        S exceptionalExitStore = inputs.get(cfg.getExceptionalExitBlock()).getRegularStore();
-        return exceptionalExitStore;
     }
 
     /**
@@ -249,6 +281,12 @@ public abstract class AbstractAnalysis<
         initInitialInputs();
     }
 
+    /**
+     * Initialize class fields based on a given control flow graph. Sub-class may override this
+     * method to initialize customized fields.
+     *
+     * @param cfg a given control flow graph
+     */
     protected void initFields(ControlFlowGraph cfg) {
         this.cfg = cfg;
         inputs = new IdentityHashMap<>();
@@ -272,6 +310,14 @@ public abstract class AbstractAnalysis<
         }
 
         return nodeValueChanged || transferResult.storeChanged();
+    }
+
+    /**
+     * Read the {@link Store} for a particular basic block from a map of stores (or {@code null} if
+     * none exists yet).
+     */
+    protected static <S> /*@Nullable*/ S readFromStore(Map<Block, S> stores, Block b) {
+        return stores.get(b);
     }
 
     /**
@@ -348,13 +394,5 @@ public abstract class AbstractAnalysis<
         public String toString() {
             return "Worklist(" + queue + ")";
         }
-    }
-
-    /**
-     * Read the {@link Store} for a particular basic block from a map of stores (or {@code null} if
-     * none exists yet).
-     */
-    protected static <S> /*@Nullable*/ S readFromStore(Map<Block, S> stores, Block b) {
-        return stores.get(b);
     }
 }

@@ -41,6 +41,7 @@ public abstract class AbstractAnalysis<
     /** The control flow graph to perform the analysis on. */
     protected ControlFlowGraph cfg;
 
+    /** The direction of this analysis. **/
     protected final Direction direction;
 
     /** The transfer function for regular nodes. */

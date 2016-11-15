@@ -538,9 +538,4 @@ public class DOTCFGVisualizer<
                     e);
         }
     }
-
-    @Override
-    public void visualizeSotreVal(Object value) {
-        this.sbStore.append("  " + prepareString(value.toString()) + "\\n");
-    }
 }

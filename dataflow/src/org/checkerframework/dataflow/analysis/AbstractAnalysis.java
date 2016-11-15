@@ -41,7 +41,7 @@ public abstract class AbstractAnalysis<
     /** The control flow graph to perform the analysis on. */
     protected ControlFlowGraph cfg;
 
-    /** The direction of this analysis. **/
+    /** The direction of this analysis. */
     protected final Direction direction;
 
     /** The transfer function for regular nodes. */
@@ -203,7 +203,7 @@ public abstract class AbstractAnalysis<
     /**
      * Set the tree that is currently being looked at.
      *
-     * @param t
+     * @param currentTree the tree that should be currently looked at
      */
     public void setCurrentTree(Tree currentTree) {
         this.currentTree = currentTree;

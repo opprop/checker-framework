@@ -74,7 +74,7 @@ public interface Analysis<
     /**
      * get the transfer input of a given {@link Block} b
      *
-     * @param b
+     * @param b a given Block
      * @return the transfer input of this Block
      */
     TransferInput<V, S> getInput(Block b);

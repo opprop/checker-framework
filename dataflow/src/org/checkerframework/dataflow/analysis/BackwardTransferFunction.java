@@ -31,8 +31,8 @@ import org.checkerframework.dataflow.cfg.node.ReturnNode;
  *
  * @author Stefan Heule
  * @author charleszhuochen
- * @param <V>
- * @param <S>
+ * @param <V> The abstract value.
+ * @param <S> The {@link Store} used to keep track of intermediate results.
  */
 public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends Store<S>>
         extends TransferFunction<V, S> {
@@ -54,7 +54,7 @@ public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends 
      * underlying AST of a control flow graph.
      *
      * @param underlyingAST the underlying AST of the given control flow graph.
-     * @return
+     * @return the initial store that should be used at the exceptional exit block
      */
     S initialExceptionalExitStore(UnderlyingAST underlyingAST);
 }

@@ -234,7 +234,7 @@ public abstract class AbstractAnalysis<
     /**
      * Get the {@link MethodTree} of the current CFG.
      *
-     * @param t
+     * @param t a {@link Tree} that maps to a {@link Node} in the CFG
      * @return the {@link MethodTree} of current CFG if the argument {@link Tree} maps to a {@link
      *     Node} in the CFG or null otherwise.
      */

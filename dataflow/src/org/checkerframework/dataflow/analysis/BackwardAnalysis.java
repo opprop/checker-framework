@@ -1,5 +1,7 @@
 package org.checkerframework.dataflow.analysis;
 
+import org.checkerframework.dataflow.cfg.block.SpecialBlock;
+
 /**
  * General dataflow backward analysis interface. This sub-interface of {@link Analysis} defines the
  * general behaviors of a backward analysis, given a control flow graph and a backward transfer

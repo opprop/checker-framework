@@ -1,0 +1,45 @@
+import org.checkerframework.dataflow.qual.*;
+
+package java.lang;
+
+class System {
+  @NonDeterministic public static int identityHashCode(Object x);
+}
+
+class Object {
+  @NonDeterministic public int hashCode();
+}
+
+class Integer {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Boolean {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Byte {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Character {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Short {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Long {
+   @MultipleRunDeterministic public int hashCode();
+}
+
+class Float {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+class Double {
+  @MultipleRunDeterministic public int hashCode();
+}
+
+//TODO: ARRAYS

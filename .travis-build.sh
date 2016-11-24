@@ -35,15 +35,15 @@ export SHELLOPTS
 # command to rebuild it again.
 
 if [[ "${GROUP}" == "junit" || "${GROUP}" == "all" ]]; then
-  (cd checker && ant junit-tests-nojtreg-nobuild)
+  (cd framework && ant -e -find build.xml flow-tests)
 fi
 
 if [[ "${GROUP}" == "nonjunit" || "${GROUP}" == "all" ]]; then
-  (cd checker && ant nonjunit-tests-nojtreg-nobuild jtreg-tests)
+  (cd framework && ant -e -find build.xml flow-tests)
 
   # It's cheaper to run the demos test here than to trigger the
   # checker-framework-demos job, which has to build the whole Checker Framework.
-  (cd checker && ant check-demos)
+  #(cd checker && ant check-demos)
   # Here's a more verbose way to do the same thing as "ant check-demos":
   # (cd .. && git clone --depth 1 https://github.com/typetools/checker-framework.demos.git)
   # (cd ../checker-framework.demos && ant -Djsr308.home=$ROOT)

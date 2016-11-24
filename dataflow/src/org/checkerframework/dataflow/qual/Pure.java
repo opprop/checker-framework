@@ -25,6 +25,13 @@ public @interface Pure {
         SIDE_EFFECT_FREE,
 
         /** The method returns exactly the same value when called in the same environment. */
-        DETERMINISTIC
+        // TODO: REMOVE
+        DETERMINISTIC,
+
+        SINGLE_RUN_DETERMINISTIC,
+
+        MULTI_RUN_DETERMINISTIC,
+
+        NON_DETERMINISTIC
     }
 }

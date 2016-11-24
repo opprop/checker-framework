@@ -49,7 +49,8 @@ if [[ "${GROUP}" == "nonjunit" || "${GROUP}" == "all" ]]; then
   # (cd ../checker-framework.demos && ant -Djsr308.home=$ROOT)
 fi
 
-if [[ "${GROUP}" == "downstream" || "${GROUP}" == "all" ]]; then
+
+#if [[ "${GROUP}" == "downstream" || "${GROUP}" == "all" ]]; then
   ## downstream tests:  projects that depend on the the Checker Framework.
   ## These are here so they can be run by pull requests.  (Pull requests
   ## currently don't trigger downstream jobs.)
@@ -59,22 +60,22 @@ if [[ "${GROUP}" == "downstream" || "${GROUP}" == "all" ]]; then
   ##  * daikon-typecheck: (takes 2 hours)
 
   # checker-framework-inference: 18 minutes
-  (cd .. && git clone --depth 1 https://github.com/typetools/checker-framework-inference.git)
-  export AFU=`pwd`/../annotation-tools/annotation-file-utilities
-  export PATH=$AFU/scripts:$PATH
-  (cd ../checker-framework-inference && gradle dist && ant -f tests.xml run-tests)
+  #(cd .. && git clone --depth 1 https://github.com/typetools/checker-framework-inference.git)
+  #export AFU=`pwd`/../annotation-tools/annotation-file-utilities
+  #export PATH=$AFU/scripts:$PATH
+  #(cd ../checker-framework-inference && gradle dist && ant -f tests.xml run-tests)
 
   # plume-lib-typecheck: 30 minutes
-  (cd .. && git clone https://github.com/mernst/plume-lib.git)
-  export CHECKERFRAMEWORK=`pwd`
-  (cd ../plume-lib/java && make check-types)
+  #(cd .. && git clone https://github.com/mernst/plume-lib.git)
+  #export CHECKERFRAMEWORK=`pwd`
+  #(cd ../plume-lib/java && make check-types)
 
   # sparta: 1 minute, but the command is "true"!
   # TODO: requires Android installation (and at one time, it caused weird
   # Travis hangs if enabled without Android installation).
   # (cd .. && git clone --depth 1 https://github.com/typetools/sparta.git)
   # (cd ../sparta && ant jar all-tests)
-fi
+#fi
 
 if [[ "${GROUP}" == "misc" || "${GROUP}" == "all" ]]; then
   ## jdkany tests: miscellaneous tests that shouldn't depend on JDK version.

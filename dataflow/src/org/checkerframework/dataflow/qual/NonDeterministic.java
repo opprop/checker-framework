@@ -5,6 +5,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 
 //TODO: Do we need this annotation?
 
@@ -13,6 +14,7 @@ import java.lang.annotation.Target;
  * that may change at different calls to the method
  */
 @Documented
+@DefaultQualifierInHierarchy
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface NonDeterministic {}

@@ -33,6 +33,7 @@ public class PurityUtils {
         return !getPurityKinds(provider, methodElement).isEmpty();
     }
 
+    // TODO: Remove
     /** Is the method {@code tree} deterministic? */
     public static boolean isDeterministic(AnnotationProvider provider, MethodTree tree) {
         Element methodElement = InternalUtils.symbol(tree);
@@ -43,6 +44,30 @@ public class PurityUtils {
     public static boolean isDeterministic(AnnotationProvider provider, Element methodElement) {
         List<Kind> kinds = getPurityKinds(provider, methodElement);
         return kinds.contains(Kind.DETERMINISTIC);
+    }
+
+    /** Is the method {@code tree} single run deterministic? */
+    public static boolean isSingleDeterministic(AnnotationProvider provider, MethodTree tree) {
+        Element methodElement = InternalUtils.symbol(tree);
+        return isSingleDeterministic(provider, methodElement);
+    }
+
+    /** Is the method {@code methodElement} single run deterministic? */
+    public static boolean isSingleDeterministic(AnnotationProvider provider, Element methodElement) {
+        List<Kind> kinds = getPurityKinds(provider, methodElement);
+        return kinds.contains(Kind.SINGLE_RUN_DETERMINISTIC);
+    }
+
+    /** Is the method {@code tree} multiple run deterministic? */
+    public static boolean isMultiDeterministic(AnnotationProvider provider, MethodTree tree) {
+        Element methodElement = InternalUtils.symbol(tree);
+        return isMultiDeterministic(provider, methodElement);
+    }
+
+    /** Is the method {@code methodElement} multiple run deterministic? */
+    public static boolean isMultiDeterministic(AnnotationProvider provider, Element methodElement) {
+        List<Kind> kinds = getPurityKinds(provider, methodElement);
+        return kinds.contains(Kind.MULTI_RUN_DETERMINISTIC);
     }
 
     /** Is the method {@code tree} side-effect-free? */
@@ -74,6 +99,10 @@ public class PurityUtils {
                 provider.getDeclAnnotation(methodElement, SideEffectFree.class);
         AnnotationMirror detAnnotation =
                 provider.getDeclAnnotation(methodElement, Deterministic.class);
+        AnnotationMirror sdetAnnotation =
+                provider.getDeclAnnotation(methodElement, SingleRunDeterministic.class);
+        AnnotationMIrror mdetAnnotation =
+                provider.getDeclAnnotation(methodElement, MultipleRunDeterministic.class);
 
         List<Pure.Kind> kinds = new ArrayList<>();
         if (pureAnnotation != null) {
@@ -85,6 +114,13 @@ public class PurityUtils {
         }
         if (detAnnotation != null) {
             kinds.add(Kind.DETERMINISTIC);
+        }
+        if (sdetAnnotation != null) {
+            kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
+        }
+        if (mdetAnnotation != null) {
+            kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
+            kinds.add(Kind.MULTI_RUN_DETERMINISTIC);
         }
         return kinds;
     }

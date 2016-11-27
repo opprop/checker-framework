@@ -1,5 +1,6 @@
 import org.checkerframework.dataflow.qual.*;
-import org.checkerframework.checker.tests.deterministic.*;
+import org.checkerframework.framework.test.*;
+import tests.util.*;
 
 class BasicTest {
   BasicObject Object = new BasicObject();

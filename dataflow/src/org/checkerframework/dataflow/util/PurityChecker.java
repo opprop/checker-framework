@@ -96,12 +96,16 @@ public class PurityChecker {
         protected final List<Pair<Tree, String>> notSeFreeReasons;
         protected final List<Pair<Tree, String>> notDetReasons;
         protected final List<Pair<Tree, String>> notBothReasons;
+        protected final List<Pair<Tree, String>> notSingleDetReasons;
+        protected final List<Pair<Tree, String>> notMultiDetReasons;
         protected EnumSet<Pure.Kind> types;
 
         public PurityResult() {
             notSeFreeReasons = new ArrayList<>();
             notDetReasons = new ArrayList<>();
             notBothReasons = new ArrayList<>();
+            notSingleDetReasons = new ArrayList<>();
+            notMultiDetReasons = new ArrayList<>();
             types = EnumSet.allOf(Pure.Kind.class);
         }
 
@@ -125,15 +129,40 @@ public class PurityChecker {
             types.remove(Kind.SIDE_EFFECT_FREE);
         }
 
+        // TODO: Remove
         /** Get the {@code reason}s why the method is not deterministic. */
         public List<Pair<Tree, String>> getNotDetReasons() {
             return notDetReasons;
         }
 
+        // TODO: Remove
         /** Add {@code reason} as a reason why the method is not deterministic. */
         public void addNotDetReason(Tree t, String msgId) {
             notDetReasons.add(Pair.of(t, msgId));
             types.remove(Kind.DETERMINISTIC);
+        }
+
+        /** Get the {@code reason}s why the method is not single run deterministic. */
+        public List<Pair<Tree, String>> getNotSingleDetReasons() {
+            return notSingleDetReasons;
+        }
+
+        /** Add {@code reason} as a reason why the method is not single run deterministic. */
+        public void addNotSingleDetReason(Tree t, String msgId) {
+            notDetReasons.add(Pair.of(t, msgId));
+            types.remove(Kind.SINGLE_RUN_DETERMINISTIC);
+            types.remove(Kind.MULTI_RUN_DETERMINISTIC);
+        }
+
+        /** Get the {@code reason}s why the method is not multiple run deterministic. */
+        public List<Pair<Tree, String>> getNotMultiDetReasons() {
+            return notMultiDetReasons;
+        }
+
+        /** Add {@code reason} as a reason why the method is not multiple run deterministic. */
+        public void addNotMultiDetReason(Tree t, String msgId) {
+            notDetReasons.add(Pair.of(t, msgId));
+            types.remove(Kind.MULTI_RUN_DETERMINISTIC);
         }
 
         /**
@@ -152,6 +181,8 @@ public class PurityChecker {
             types.remove(Kind.DETERMINISTIC);
             types.remove(Kind.SIDE_EFFECT_FREE);
         }
+
+
     }
 
     /**
@@ -350,6 +381,9 @@ public class PurityChecker {
                 p.addNotBothReason(node, reason);
             } else {
                 boolean det = PurityUtils.isDeterministic(annoProvider, elt);
+                boolean sdet =
+                        (PurityUtils.isSingleDeterministic(annoProvider, elt) || PurityUtils.isMultiDeterministic(annoProvider, elt));
+                boolean mdet = PurityUtils.isMultiDeterministic(annoProvider, elt);
                 boolean seFree =
                         (assumeSideEffectFree || PurityUtils.isSideEffectFree(annoProvider, elt));
                 if (!det && !seFree) {
@@ -358,6 +392,10 @@ public class PurityChecker {
                     p.addNotDetReason(node, reason);
                 } else if (!seFree) {
                     p.addNotSeFreeReason(node, reason);
+                } else if (!sdet) {
+                    p.addNotSingleDetReason(node, reason);
+                } else if (!mdet) {
+                    p.addNotMultiDetReason(node, reason);
                 }
             }
             PurityResult r = scan(node.getMethodSelect(), p);

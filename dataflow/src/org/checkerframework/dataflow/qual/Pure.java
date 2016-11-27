@@ -30,7 +30,7 @@ public @interface Pure {
 
         SINGLE_RUN_DETERMINISTIC,
 
-        MULTI_RUN_DETERMINISTIC,
+        MULTIPLE_RUN_DETERMINISTIC,
 
         NON_DETERMINISTIC
     }

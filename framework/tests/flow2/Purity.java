@@ -1,6 +1,8 @@
 import org.checkerframework.dataflow.qual.Deterministic;
+import org.checkerframework.dataflow.qual.MultipleRunDeterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.checkerframework.dataflow.qual.SingleRunDeterministic;
 import org.checkerframework.framework.test.*;
 import tests.util.*;
 
@@ -24,6 +26,19 @@ class Purity {
     private static class SEClass {
         @SideEffectFree
         public SEClass() {}
+    }
+
+    // sample test checking for deterministic
+    @MultipleRunDeterministic
+    void mdet() {}
+
+    @SingleRunDeterministic
+    void sdet() {}
+
+    @SingleRunDeterministic
+    void bad() {
+        //:: error: (purity.not.singlerundeterminisitic.call)
+        mdet();
     }
 
     // a method that is not pure (no annotation)

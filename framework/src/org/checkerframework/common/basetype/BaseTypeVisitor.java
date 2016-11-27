@@ -564,21 +564,22 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                 }
             }
         }
-        if (t.contains(Pure.Kind.MULTI_RUN_DETERMINISTIC)) {
-            for (Pair<Tree, String> r : result.getNotMultiDetReasons()) {
-                @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg = "purity.non.multiplerundeterministic." + r.second;
-                checker.report(Result.failure(msg), r.first);
-            }
-        }
         if (t.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC)) {
             for (Pair<Tree, String> r : result.getNotSingleDetReasons()) {
                 @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg = "purity.non.singlerundeterminisitic." + r.second;
+                /*@CompilerMessageKey*/ String msg =
+                        "purity.not.singlerundeterminisitic." + r.second;
                 checker.report(Result.failure(msg), r.first);
             }
         }
-
+        if (t.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC)) {
+            for (Pair<Tree, String> r : result.getNotMultiDetReasons()) {
+                @SuppressWarnings("CompilerMessages")
+                /*@CompilerMessageKey*/ String msg =
+                        "purity.not.multiplerundeterministic." + r.second;
+                checker.report(Result.failure(msg), r.first);
+            }
+        }
     }
 
     /**
@@ -2670,7 +2671,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     resolveContracts(superPost, overridden);
             Set<Pair<Receiver, AnnotationMirror>> subPost2 = resolveContracts(subPost, overrider);
             @SuppressWarnings("CompilerMessages")
-            /*@CompilerMessageKey*/ String postmsg = "contracts.postcondition." + msgKey + ".invalid";
+            /*@CompilerMessageKey*/ String postmsg =
+                    "contracts.postcondition." + msgKey + ".invalid";
             checkContractsSubset(
                     overriderMeth,
                     overriderTyp,

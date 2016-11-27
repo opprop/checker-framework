@@ -52,8 +52,8 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import javax.lang.model.element.Element;
-import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.*;
+import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.Pure.Kind;
 import org.checkerframework.dataflow.qual.SideEffectFree;
@@ -142,27 +142,26 @@ public class PurityChecker {
             types.remove(Kind.DETERMINISTIC);
         }
 
-        /** Get the {@code reason}s why the method is not single run deterministic. */
+        /** Get the {@code reason}s why the method is not deterministic. */
         public List<Pair<Tree, String>> getNotSingleDetReasons() {
             return notSingleDetReasons;
         }
 
-        /** Add {@code reason} as a reason why the method is not single run deterministic. */
+        /** Add {@code reason} as a reason why the method is not deterministic. */
         public void addNotSingleDetReason(Tree t, String msgId) {
             notDetReasons.add(Pair.of(t, msgId));
             types.remove(Kind.SINGLE_RUN_DETERMINISTIC);
-            types.remove(Kind.MULTI_RUN_DETERMINISTIC);
         }
 
-        /** Get the {@code reason}s why the method is not multiple run deterministic. */
+        /** Get the {@code reason}s why the method is not deterministic. */
         public List<Pair<Tree, String>> getNotMultiDetReasons() {
             return notMultiDetReasons;
         }
 
-        /** Add {@code reason} as a reason why the method is not multiple run deterministic. */
+        /** Add {@code reason} as a reason why the method is not deterministic. */
         public void addNotMultiDetReason(Tree t, String msgId) {
             notDetReasons.add(Pair.of(t, msgId));
-            types.remove(Kind.MULTI_RUN_DETERMINISTIC);
+            types.remove(Kind.MULTIPLE_RUN_DETERMINISTIC);
         }
 
         /**
@@ -181,8 +180,6 @@ public class PurityChecker {
             types.remove(Kind.DETERMINISTIC);
             types.remove(Kind.SIDE_EFFECT_FREE);
         }
-
-
     }
 
     /**
@@ -381,8 +378,7 @@ public class PurityChecker {
                 p.addNotBothReason(node, reason);
             } else {
                 boolean det = PurityUtils.isDeterministic(annoProvider, elt);
-                boolean sdet =
-                        (PurityUtils.isSingleDeterministic(annoProvider, elt) || PurityUtils.isMultiDeterministic(annoProvider, elt));
+                boolean sdet = PurityUtils.isSingleDeterministic(annoProvider, elt);
                 boolean mdet = PurityUtils.isMultiDeterministic(annoProvider, elt);
                 boolean seFree =
                         (assumeSideEffectFree || PurityUtils.isSideEffectFree(annoProvider, elt));

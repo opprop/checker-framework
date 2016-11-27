@@ -6,9 +6,11 @@ import java.util.List;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import org.checkerframework.dataflow.qual.Deterministic;
+import org.checkerframework.dataflow.qual.MultipleRunDeterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.Pure.Kind;
 import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.checkerframework.dataflow.qual.SingleRunDeterministic;
 import org.checkerframework.javacutil.AnnotationProvider;
 import org.checkerframework.javacutil.InternalUtils;
 
@@ -46,28 +48,29 @@ public class PurityUtils {
         return kinds.contains(Kind.DETERMINISTIC);
     }
 
-    /** Is the method {@code tree} single run deterministic? */
+    /** Is the method {@code tree} deterministic? */
     public static boolean isSingleDeterministic(AnnotationProvider provider, MethodTree tree) {
         Element methodElement = InternalUtils.symbol(tree);
         return isSingleDeterministic(provider, methodElement);
     }
 
-    /** Is the method {@code methodElement} single run deterministic? */
-    public static boolean isSingleDeterministic(AnnotationProvider provider, Element methodElement) {
+    /** Is the method {@code methodElement} deterministic? */
+    public static boolean isSingleDeterministic(
+            AnnotationProvider provider, Element methodElement) {
         List<Kind> kinds = getPurityKinds(provider, methodElement);
         return kinds.contains(Kind.SINGLE_RUN_DETERMINISTIC);
     }
 
-    /** Is the method {@code tree} multiple run deterministic? */
+    /** Is the method {@code tree} deterministic? */
     public static boolean isMultiDeterministic(AnnotationProvider provider, MethodTree tree) {
         Element methodElement = InternalUtils.symbol(tree);
         return isMultiDeterministic(provider, methodElement);
     }
 
-    /** Is the method {@code methodElement} multiple run deterministic? */
+    /** Is the method {@code methodElement} deterministic? */
     public static boolean isMultiDeterministic(AnnotationProvider provider, Element methodElement) {
         List<Kind> kinds = getPurityKinds(provider, methodElement);
-        return kinds.contains(Kind.MULTI_RUN_DETERMINISTIC);
+        return kinds.contains(Kind.MULTIPLE_RUN_DETERMINISTIC);
     }
 
     /** Is the method {@code tree} side-effect-free? */
@@ -101,7 +104,7 @@ public class PurityUtils {
                 provider.getDeclAnnotation(methodElement, Deterministic.class);
         AnnotationMirror sdetAnnotation =
                 provider.getDeclAnnotation(methodElement, SingleRunDeterministic.class);
-        AnnotationMIrror mdetAnnotation =
+        AnnotationMirror mdetAnnotation =
                 provider.getDeclAnnotation(methodElement, MultipleRunDeterministic.class);
 
         List<Pure.Kind> kinds = new ArrayList<>();
@@ -119,8 +122,7 @@ public class PurityUtils {
             kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
         }
         if (mdetAnnotation != null) {
-            kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
-            kinds.add(Kind.MULTI_RUN_DETERMINISTIC);
+            kinds.add(Kind.MULTIPLE_RUN_DETERMINISTIC);
         }
         return kinds;
     }

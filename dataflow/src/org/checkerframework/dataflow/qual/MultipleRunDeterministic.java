@@ -7,9 +7,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
-* A method is called MultipleRunDeterministic if it returns the same value
-* every time it is called with the same parameters and in the same environment
-* in any execution of the program.
+ * A method is called MultipleRunDeterministic if it returns the same value every time it is called
+ * with the same parameters and in the same environment in any execution of the program.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

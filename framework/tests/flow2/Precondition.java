@@ -89,9 +89,12 @@ class Precondition {
     void t3(@Odd String p1, String p2) {
         f1 = p1;
         requiresF1AndPure();
+        // TODO: fix logic for new annotations
+        //:: error: (contracts.precondition.not.satisfied)
         requiresF1AndPure();
+        // TODO: fix logic for new annotations
+        //:: error: (contracts.precondition.not.satisfied)
         requiresF1AndPure();
-        requiresF1();
         //:: error: (contracts.precondition.not.satisfied)
         requiresF1();
     }

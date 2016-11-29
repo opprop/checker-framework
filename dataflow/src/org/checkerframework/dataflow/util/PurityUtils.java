@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
-import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.MultipleRunDeterministic;
+import org.checkerframework.dataflow.qual.NonDeterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.Pure.Kind;
 import org.checkerframework.dataflow.qual.SideEffectFree;
@@ -35,19 +35,6 @@ public class PurityUtils {
         return !getPurityKinds(provider, methodElement).isEmpty();
     }
 
-    // TODO: Remove
-    /** Is the method {@code tree} deterministic? */
-    public static boolean isDeterministic(AnnotationProvider provider, MethodTree tree) {
-        Element methodElement = InternalUtils.symbol(tree);
-        return isDeterministic(provider, methodElement);
-    }
-
-    /** Is the method {@code methodElement} deterministic? */
-    public static boolean isDeterministic(AnnotationProvider provider, Element methodElement) {
-        List<Kind> kinds = getPurityKinds(provider, methodElement);
-        return kinds.contains(Kind.DETERMINISTIC);
-    }
-
     /** Is the method {@code tree} deterministic? */
     public static boolean isSingleDeterministic(AnnotationProvider provider, MethodTree tree) {
         Element methodElement = InternalUtils.symbol(tree);
@@ -71,6 +58,18 @@ public class PurityUtils {
     public static boolean isMultiDeterministic(AnnotationProvider provider, Element methodElement) {
         List<Kind> kinds = getPurityKinds(provider, methodElement);
         return kinds.contains(Kind.MULTIPLE_RUN_DETERMINISTIC);
+    }
+
+    /** Is the method {@code tree} deterministic? */
+    public static boolean isNonDeterministic(AnnotationProvider provider, MethodTree tree) {
+        Element methodElement = InternalUtils.symbol(tree);
+        return isNonDeterministic(provider, methodElement);
+    }
+
+    /** Is the method {@code methodElement} deterministic? */
+    public static boolean isNonDeterministic(AnnotationProvider provider, Element methodElement) {
+        List<Kind> kinds = getPurityKinds(provider, methodElement);
+        return kinds.contains(Kind.NON_DETERMINISTIC);
     }
 
     /** Is the method {@code tree} side-effect-free? */
@@ -97,31 +96,29 @@ public class PurityUtils {
      */
     public static List<Pure.Kind> getPurityKinds(
             AnnotationProvider provider, Element methodElement) {
-        AnnotationMirror pureAnnotation = provider.getDeclAnnotation(methodElement, Pure.class);
         AnnotationMirror sefAnnotation =
                 provider.getDeclAnnotation(methodElement, SideEffectFree.class);
-        AnnotationMirror detAnnotation =
-                provider.getDeclAnnotation(methodElement, Deterministic.class);
         AnnotationMirror sdetAnnotation =
                 provider.getDeclAnnotation(methodElement, SingleRunDeterministic.class);
         AnnotationMirror mdetAnnotation =
                 provider.getDeclAnnotation(methodElement, MultipleRunDeterministic.class);
+        AnnotationMirror ndetAnnotation =
+                provider.getDeclAnnotation(methodElement, NonDeterministic.class);
 
         List<Pure.Kind> kinds = new ArrayList<>();
-        if (pureAnnotation != null) {
-            kinds.add(Kind.DETERMINISTIC);
-            kinds.add(Kind.SIDE_EFFECT_FREE);
-        }
         if (sefAnnotation != null) {
             kinds.add(Kind.SIDE_EFFECT_FREE);
         }
-        if (detAnnotation != null) {
-            kinds.add(Kind.DETERMINISTIC);
+        if (mdetAnnotation != null) {
+            kinds.add(Kind.MULTIPLE_RUN_DETERMINISTIC);
         }
         if (sdetAnnotation != null) {
             kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
+            kinds.add(Kind.MULTIPLE_RUN_DETERMINISTIC);
         }
-        if (mdetAnnotation != null) {
+        if (ndetAnnotation != null) {
+            kinds.add(Kind.NON_DETERMINISTIC);
+            kinds.add(Kind.SINGLE_RUN_DETERMINISTIC);
             kinds.add(Kind.MULTIPLE_RUN_DETERMINISTIC);
         }
         return kinds;

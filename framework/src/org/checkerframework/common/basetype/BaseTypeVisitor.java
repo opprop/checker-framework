@@ -426,7 +426,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     // check "no" purity
                     List<Pure.Kind> kinds = PurityUtils.getPurityKinds(atypeFactory, node);
                     // @Deterministic makes no sense for a void method or constructor
-                    boolean isDeterministic = kinds.contains(Pure.Kind.DETERMINISTIC);
+                    boolean isDeterministic =
+                            kinds.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC)
+                                    || kinds.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC);
                     if (isDeterministic) {
                         if (TreeUtils.isConstructor(node)) {
                             checker.report(
@@ -447,33 +449,24 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     if (!r.isPure(kinds)) {
                         reportPurityErrors(r, node, kinds);
                     }
-
-                    // Issue a warning if the method is pure, but not annotated
-                    // as such (if the feature is activated).
-                    if (checkPurityAlways) {
-                        Collection<Pure.Kind> additionalKinds = new HashSet<>(r.getTypes());
-                        additionalKinds.removeAll(kinds);
-                        if (TreeUtils.isConstructor(node)) {
-                            additionalKinds.remove(Pure.Kind.DETERMINISTIC);
-                        }
-                        if (!additionalKinds.isEmpty()) {
-                            if (additionalKinds.size() == 2) {
-                                checker.report(
-                                        Result.warning("purity.more.pure", node.getName()), node);
-                            } else if (additionalKinds.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-                                checker.report(
-                                        Result.warning(
-                                                "purity.more.sideeffectfree", node.getName()),
-                                        node);
-                            } else if (additionalKinds.contains(Pure.Kind.DETERMINISTIC)) {
-                                checker.report(
-                                        Result.warning("purity.more.deterministic", node.getName()),
-                                        node);
-                            } else {
-                                assert false : "BaseTypeVisitor reached undesirable state";
-                            }
-                        }
-                    }
+                    /**
+                     * // Issue a warning if the method is pure, but not annotated // as such (if
+                     * the feature is activated). if (checkPurityAlways) { Collection<Pure.Kind>
+                     * additionalKinds = new HashSet<>(r.getTypes());
+                     * additionalKinds.removeAll(kinds); if (TreeUtils.isConstructor(node)) {
+                     * additionalKinds.remove(Pure.Kind.SINGLE_RUN_DETERMINISTIC);
+                     * additionalKinds.remove(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC); } if
+                     * (!additionalKinds.isEmpty()) { if (additionalKinds.size() == 2) {
+                     * checker.report( Result.warning("purity.more.pure", node.getName()), node); }
+                     * else if (additionalKinds.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+                     * checker.report( Result.warning( "purity.more.sideeffectfree",
+                     * node.getName()), node); } else if
+                     * (additionalKinds.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC) ||
+                     * additionalKinds.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC)) {
+                     * checker.report( Result.warning("purity.more.deterministic", node.getName()),
+                     * node); } else { assert false : "BaseTypeVisitor reached undesirable state"; }
+                     * } }
+                     */
                 }
             }
 
@@ -537,31 +530,11 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         assert !result.isPure(expectedTypes);
         Collection<Pure.Kind> t = EnumSet.copyOf(expectedTypes);
         t.removeAll(result.getTypes());
-        if (t.contains(Pure.Kind.DETERMINISTIC) || t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-            String msgPrefix = "purity.not.deterministic.not.sideeffectfree.";
-            if (!t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-                msgPrefix = "purity.not.deterministic.";
-            } else if (!t.contains(Pure.Kind.DETERMINISTIC)) {
-                msgPrefix = "purity.not.sideeffectfree.";
-            }
-            for (Pair<Tree, String> r : result.getNotBothReasons()) {
+        if (t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+            for (Pair<Tree, String> r : result.getNotSeFreeReasons()) {
                 @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg = msgPrefix + r.second;
+                /*@CompilerMessageKey*/ String msg = "purity.not.sideeffectfree." + r.second;
                 checker.report(Result.failure(msg), r.first);
-            }
-            if (t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-                for (Pair<Tree, String> r : result.getNotSeFreeReasons()) {
-                    @SuppressWarnings("CompilerMessages")
-                    /*@CompilerMessageKey*/ String msg = "purity.not.sideeffectfree." + r.second;
-                    checker.report(Result.failure(msg), r.first);
-                }
-            }
-            if (t.contains(Pure.Kind.DETERMINISTIC)) {
-                for (Pair<Tree, String> r : result.getNotDetReasons()) {
-                    @SuppressWarnings("CompilerMessages")
-                    /*@CompilerMessageKey*/ String msg = "purity.not.deterministic." + r.second;
-                    checker.report(Result.failure(msg), r.first);
-                }
             }
         }
         if (t.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC)) {

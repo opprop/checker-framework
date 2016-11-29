@@ -156,7 +156,8 @@ public class FlowExpressions {
                 }
             }
 
-            if (PurityUtils.isDeterministic(provider, invokedMethod)
+            if (PurityUtils.isSingleDeterministic(provider, invokedMethod)
+                    || PurityUtils.isMultiDeterministic(provider, invokedMethod)
                     || allowNonDeterministic
                     || considerDeterministic) {
                 List<Receiver> parameters = new ArrayList<>();

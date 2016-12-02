@@ -22,5 +22,9 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 )
 @SubtypeOf({ArrayLen.class, BoolVal.class, DoubleVal.class, IntVal.class, StringVal.class})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.TYPE_ARGUMENT
+})
 public @interface BottomVal {}

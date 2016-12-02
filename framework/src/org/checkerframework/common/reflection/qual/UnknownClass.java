@@ -20,6 +20,22 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 @InvisibleQualifier
 @SubtypeOf({})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.TYPE_DECLARATION,
+    TypeUseLocation.RETURN,
+    TypeUseLocation.NEW,
+    TypeUseLocation.THROWS,
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.CAST,
+    TypeUseLocation.PARAMETER,
+    TypeUseLocation.FIELD,
+    TypeUseLocation.ARRAY_COMPONENT,
+    TypeUseLocation.TYPE_ARGUMENT,
+    TypeUseLocation.EXCEPTION_PARAMETER,
+    TypeUseLocation.EXTENDS,
+    TypeUseLocation.RECEIVER
+})
 @DefaultQualifierInHierarchy
 public @interface UnknownClass {}

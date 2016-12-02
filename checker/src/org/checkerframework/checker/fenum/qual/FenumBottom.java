@@ -19,7 +19,11 @@ import org.checkerframework.framework.qual.TypeUseLocation;
  * @checker_framework.manual #propkey-checker Property File Checker
  */
 @Documented
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.TYPE_ARGUMENT
+})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf({}) // subtype relationships are set up by passing this class as a bottom
 // to the multigraph hierarchy constructor

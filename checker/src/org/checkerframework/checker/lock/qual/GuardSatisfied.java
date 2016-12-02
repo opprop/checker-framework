@@ -37,7 +37,17 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 @SubtypeOf(GuardedByUnknown.class) // TODO: Should @GuardSatisfied be in its own hierarchy?
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@TargetLocations({TypeUseLocation.RECEIVER, TypeUseLocation.PARAMETER, TypeUseLocation.RETURN})
+@TargetLocations({
+    TypeUseLocation.RECEIVER,
+    TypeUseLocation.PARAMETER,
+    TypeUseLocation.RETURN,
+    TypeUseLocation.FIELD,
+    TypeUseLocation.ARRAY_COMPONENT,
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.CAST,
+    TypeUseLocation.TYPE_DECLARATION
+})
 @Target(ElementType.TYPE_USE)
 public @interface GuardSatisfied {
     /**

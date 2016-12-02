@@ -22,5 +22,24 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 @SubtypeOf({})
 @DefaultQualifierInHierarchy
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.TYPE_DECLARATION,
+    TypeUseLocation.PARAMETER,
+    TypeUseLocation.ARRAY_COMPONENT,
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.NEW,
+    TypeUseLocation.THROWS,
+    TypeUseLocation.EXCEPTION_PARAMETER,
+    TypeUseLocation.RETURN,
+    TypeUseLocation.TYPE_ARGUMENT,
+    TypeUseLocation.CAST,
+    TypeUseLocation.EXTENDS,
+    TypeUseLocation.FIELD,
+    TypeUseLocation.INSTANCEOF,
+    TypeUseLocation.IMPLEMENTS,
+    TypeUseLocation.RECEIVER,
+    TypeUseLocation.RESOURCE_VARIABLE
+})
 public @interface I18nUnknownFormat {}

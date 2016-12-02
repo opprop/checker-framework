@@ -20,5 +20,11 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.ARRAY_COMPONENT,
+    TypeUseLocation.RESOURCE_VARIABLE
+})
 public @interface FenumTop {}

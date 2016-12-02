@@ -17,7 +17,11 @@ import org.checkerframework.framework.qual.TypeUseLocation;
  */
 @SubtypeOf({Format.class, InvalidFormat.class})
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({
+    TypeUseLocation.EXPLICIT_LOWER_BOUND,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.ARRAY_COMPONENT
+})
 @ImplicitFor(
     literals = {LiteralKind.NULL},
     typeNames = {java.lang.Void.class}

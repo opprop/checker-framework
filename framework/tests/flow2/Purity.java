@@ -2,7 +2,7 @@ import org.checkerframework.dataflow.qual.MultipleRunDeterministic;
 import org.checkerframework.dataflow.qual.NonDeterministic;
 import org.checkerframework.dataflow.qual.SingleRunDeterministic;
 import org.checkerframework.framework.test.*;
-import tests.util.*;
+import testlib.util.*;
 
 // various tests for the @Pure annotation
 class Purity {

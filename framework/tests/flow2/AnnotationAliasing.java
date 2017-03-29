@@ -25,14 +25,14 @@ class AnnotationAliasing {
 
     @Pure
     String t1() {
-        //: error: (purity.not.deterministic.not.sideeffectfree.call)
+        //:: error: (purity.not.deterministic.not.sideeffectfree.call)
         nonpure();
         return "";
     }
 
     @org.jmlspecs.annotation.Pure
     String t2() {
-        //: error: (purity.not.deterministic.not.sideeffectfree.call)
+        //:: error: (purity.not.deterministic.not.sideeffectfree.call)
         nonpure();
         return "";
     }
@@ -42,12 +42,8 @@ class AnnotationAliasing {
         f1 = p1;
         @Odd String l2 = f1;
         pure1();
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l3 = f1;
         pure2();
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l4 = f1;
     }
 }

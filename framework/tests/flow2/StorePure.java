@@ -45,12 +45,8 @@ class StorePure {
     void t1(@Odd String p1, String p2, boolean b1) {
         String l0 = "";
         if (pure1() == p1) {
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure1();
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure1();
             //:: error: (assignment.type.incompatible)
             @Odd String l2 = pure1b();
@@ -63,8 +59,6 @@ class StorePure {
     // check that it only works for deterministic methods
     void t1b(@Odd String p1, String p2, boolean b1) {
         if (pure1c() == p1) {
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure1c();
         }
     }
@@ -72,12 +66,8 @@ class StorePure {
     void t2(@Odd String p1, String p2, boolean b1) {
         String l0 = "";
         if (pure1() == p1) {
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure1();
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure1();
             //:: error: (assignment.type.incompatible)
             @Odd String l2 = pure1b();
@@ -92,12 +82,8 @@ class StorePure {
         if (pure2(1) == p1) {
             //:: error: (assignment.type.incompatible)
             @Odd String l4 = pure2(0);
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure2(1);
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure2(1);
             nonpure(); // non-pure method call might change the return value of pure2
             //:: error: (assignment.type.incompatible)
@@ -110,12 +96,8 @@ class StorePure {
         if (pure2(1) == p1) {
             //:: error: (assignment.type.incompatible)
             @Odd String l4 = pure2(0);
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure2(1);
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure2(1);
             f1 = ""; // field update might change the return value of pure2
             //:: error: (assignment.type.incompatible)
@@ -128,12 +110,8 @@ class StorePure {
         if (pure3(true) == p1) {
             //:: error: (assignment.type.incompatible)
             @Odd String l4 = pure3(false);
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure3(true);
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure3(true);
             nonpure(); // non-pure method call might change the return value of pure2
             //:: error: (assignment.type.incompatible)
@@ -146,12 +124,8 @@ class StorePure {
         if (pure3(true) == p1) {
             //:: error: (assignment.type.incompatible)
             @Odd String l4 = pure3(false);
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure3(true);
             l0 = "a"; // does not remove information
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1b = pure3(true);
             f1 = ""; // field update might change the return value of pure2
             //:: error: (assignment.type.incompatible)
@@ -165,8 +139,6 @@ class StorePure {
         if (pure4(l0) == p1) {
             //:: error: (assignment.type.incompatible)
             @Odd String l4 = pure4("jk");
-            // TODO: fix logic for new annotations
-            //:: error: (assignment.type.incompatible)
             @Odd String l1 = pure4(l0);
             l0 = "a"; // remove information (!)
             //:: error: (assignment.type.incompatible)

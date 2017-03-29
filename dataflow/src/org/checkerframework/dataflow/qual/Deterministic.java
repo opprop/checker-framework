@@ -54,7 +54,6 @@ import java.lang.annotation.Target;
  *   return 0;
  * }
  * }</pre>
- *
  * </ol>
  *
  * A constructor can be {@code @Pure}, but a constructor <em>invocation</em> is not deterministic

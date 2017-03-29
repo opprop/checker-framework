@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import javax.lang.model.element.Element;
+import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.Pure.Kind;
 import org.checkerframework.dataflow.qual.SideEffectFree;
@@ -92,16 +93,14 @@ public class PurityChecker {
     public static class PurityResult {
 
         protected final List<Pair<Tree, String>> notSeFreeReasons;
-        protected final List<Pair<Tree, String>> notSingleDetReasons;
-        protected final List<Pair<Tree, String>> notMultiDetReasons;
-        protected final List<Pair<Tree, String>> notNonDetReasons;
+        protected final List<Pair<Tree, String>> notDetReasons;
+        protected final List<Pair<Tree, String>> notBothReasons;
         protected EnumSet<Pure.Kind> types;
 
         public PurityResult() {
             notSeFreeReasons = new ArrayList<>();
-            notSingleDetReasons = new ArrayList<>();
-            notMultiDetReasons = new ArrayList<>();
-            notNonDetReasons = new ArrayList<>();
+            notDetReasons = new ArrayList<>();
+            notBothReasons = new ArrayList<>();
             types = EnumSet.allOf(Pure.Kind.class);
         }
 
@@ -109,9 +108,6 @@ public class PurityChecker {
             return types;
         }
 
-        /**
-         * TODO: Change this method to return true only if SideEffectFree and not NonDeterministic
-         */
         /** Is the method pure w.r.t. a given set of types? */
         public boolean isPure(Collection<Kind> kinds) {
             return types.containsAll(kinds);
@@ -128,27 +124,32 @@ public class PurityChecker {
             types.remove(Kind.SIDE_EFFECT_FREE);
         }
 
-        /** Get the {@code reason}s why the method is not single run deterministic. */
-        public List<Pair<Tree, String>> getNotSingleDetReasons() {
-            return notSingleDetReasons;
+        /** Get the {@code reason}s why the method is not deterministic. */
+        public List<Pair<Tree, String>> getNotDetReasons() {
+            return notDetReasons;
         }
 
-        /** Add {@code reason} as a reason why the method is not single run deterministic. */
-        public void addNotSingleDetReason(Tree t, String msgId) {
-            notSingleDetReasons.add(Pair.of(t, msgId));
-            types.remove(Kind.SINGLE_RUN_DETERMINISTIC);
-            types.remove(Kind.MULTIPLE_RUN_DETERMINISTIC);
+        /** Add {@code reason} as a reason why the method is not deterministic. */
+        public void addNotDetReason(Tree t, String msgId) {
+            notDetReasons.add(Pair.of(t, msgId));
+            types.remove(Kind.DETERMINISTIC);
         }
 
-        /** Get the {@code reason}s why the method is not multiple run deterministic. */
-        public List<Pair<Tree, String>> getNotMultiDetReasons() {
-            return notMultiDetReasons;
+        /**
+         * Get the {@code reason}s why the method is not both side-effect-free and deterministic.
+         */
+        public List<Pair<Tree, String>> getNotBothReasons() {
+            return notBothReasons;
         }
 
-        /** Add {@code reason} as a reason why the method is not multiple run deterministic. */
-        public void addNotMultiDetReason(Tree t, String msgId) {
-            notMultiDetReasons.add(Pair.of(t, msgId));
-            types.remove(Kind.MULTIPLE_RUN_DETERMINISTIC);
+        /**
+         * Add {@code reason} as a reason why the method is not both side-effect free and
+         * deterministic.
+         */
+        public void addNotBothReason(Tree t, String msgId) {
+            notBothReasons.add(Pair.of(t, msgId));
+            types.remove(Kind.DETERMINISTIC);
+            types.remove(Kind.SIDE_EFFECT_FREE);
         }
     }
 
@@ -285,8 +286,7 @@ public class PurityChecker {
 
         @Override
         public PurityResult visitCatch(CatchTree node, PurityResult p) {
-            p.addNotSingleDetReason(node, "catch");
-            p.addNotMultiDetReason(node, "catch");
+            p.addNotDetReason(node, "catch");
             PurityResult r = scan(node.getParameter(), p);
             r = scan(node.getBlock(), r);
             return r;
@@ -346,18 +346,17 @@ public class PurityChecker {
             Element elt = TreeUtils.elementFromUse(node);
             String reason = "call";
             if (!PurityUtils.hasPurityAnnotation(annoProvider, elt)) {
-
+                p.addNotBothReason(node, reason);
             } else {
-                boolean sdet = PurityUtils.isSingleDeterministic(annoProvider, elt);
-                boolean mdet = PurityUtils.isMultiDeterministic(annoProvider, elt);
+                boolean det = PurityUtils.isDeterministic(annoProvider, elt);
                 boolean seFree =
                         (assumeSideEffectFree || PurityUtils.isSideEffectFree(annoProvider, elt));
-                if (!seFree) {
+                if (!det && !seFree) {
+                    p.addNotBothReason(node, reason);
+                } else if (!det) {
+                    p.addNotDetReason(node, reason);
+                } else if (!seFree) {
                     p.addNotSeFreeReason(node, reason);
-                } else if (!mdet) {
-                    p.addNotMultiDetReason(node, reason);
-                } else if (!sdet) {
-                    p.addNotSingleDetReason(node, reason);
                 }
             }
             PurityResult r = scan(node.getMethodSelect(), p);
@@ -372,10 +371,9 @@ public class PurityChecker {
                     (assumeSideEffectFree
                             || PurityUtils.isSideEffectFree(annoProvider, methodElement));
             if (sideEffectFree) {
-                p.addNotSingleDetReason(node, "object.creation");
-                p.addNotMultiDetReason(node, "object.creation");
+                p.addNotDetReason(node, "object.creation");
             } else {
-
+                p.addNotBothReason(node, "object.creation");
             }
             PurityResult r = scan(node.getEnclosingExpression(), p);
             r = scan(node.getArguments(), r);
@@ -414,14 +412,10 @@ public class PurityChecker {
         protected PurityResult assignmentCheck(PurityResult p, ExpressionTree variable) {
             if (TreeUtils.isFieldAccess(variable)) {
                 // rhs is a field access
-                p.addNotSeFreeReason(variable, "assign.field");
-                p.addNotSingleDetReason(variable, "assign.field");
-                p.addNotMultiDetReason(variable, "assign.field");
+                p.addNotBothReason(variable, "assign.field");
             } else if (variable instanceof ArrayAccessTree) {
                 // rhs is array access
-                p.addNotSeFreeReason(variable, "assign.array");
-                p.addNotSingleDetReason(variable, "assign.array");
-                p.addNotMultiDetReason(variable, "assign.array");
+                p.addNotBothReason(variable, "assign.array");
             } else {
                 // rhs is a local variable
                 assert isLocalVariable(variable);

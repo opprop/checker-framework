@@ -98,8 +98,6 @@ class MethodCallFlowExpr {
         e1();
         //:: error: (assignment.type.incompatible)
         @Odd String l2 = p1(2);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l3 = p1(1);
     }
 
@@ -111,8 +109,6 @@ class MethodCallFlowExpr {
         @Odd String l2 = p1("def");
         //:: error: (assignment.type.incompatible)
         @Odd String l2b = p1(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l3 = p1("abc");
     }
 
@@ -124,8 +120,6 @@ class MethodCallFlowExpr {
         @Odd String l2 = p2("abc", 2L, p1(2));
         //:: error: (assignment.type.incompatible)
         @Odd String l2b = p2("abc", 1L, p1(1));
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l3 = p2("abc", 2L, p1(1));
     }
 
@@ -159,8 +153,6 @@ class MethodCallFlowExpr {
         e0();
         //:: error: (assignment.type.incompatible)
         @Odd String l2 = p1c("def");
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l3 = p1c("abc");
     }
 
@@ -173,11 +165,7 @@ class MethodCallFlowExpr {
         @Odd String l1c = this.p1d(1);
         e7a();
         @Odd String l2 = p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2b = MethodCallFlowExpr.p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2c = this.p1d(1);
     }
 
@@ -190,11 +178,7 @@ class MethodCallFlowExpr {
         @Odd String l1c = this.p1d(1);
         e7b();
         @Odd String l2 = p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2b = MethodCallFlowExpr.p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2c = this.p1d(1);
     }
 
@@ -207,11 +191,7 @@ class MethodCallFlowExpr {
         @Odd String l1c = this.p1d(1);
         e7c();
         @Odd String l2 = p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2b = MethodCallFlowExpr.p1d(1);
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2c = this.p1d(1);
     }
 }

@@ -33,8 +33,6 @@ class Postcondition {
     }
 
     @EnsuresQualifier(expression = "p.p1()", qualifier = Odd.class)
-    // TODO: fix logic for new annotations
-    //:: error: (contracts.postcondition.not.satisfied)
     void oddF1_3() {
         if (p.p1() == null) {
             return;

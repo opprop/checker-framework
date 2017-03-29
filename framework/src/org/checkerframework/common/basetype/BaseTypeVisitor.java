@@ -137,12 +137,12 @@ import org.checkerframework.javacutil.TypesUtils;
  * <p>This implementation does the following checks:
  *
  * <ol>
- *   <li> <b>Assignment and Pseudo-Assignment Check</b>: It verifies that any assignment
- *       type-checks, using {@code TypeHierarchy.isSubtype} method. This includes method invocation
- *       and method overriding checks.
- *   <li> <b>Type Validity Check</b>: It verifies that any user-supplied type is a valid type, using
+ *   <li><b>Assignment and Pseudo-Assignment Check</b>: It verifies that any assignment type-checks,
+ *       using {@code TypeHierarchy.isSubtype} method. This includes method invocation and method
+ *       overriding checks.
+ *   <li><b>Type Validity Check</b>: It verifies that any user-supplied type is a valid type, using
  *       {@code isValidUse} method.
- *   <li> <b>(Re-)Assignability Check</b>: It verifies that any assignment is valid, using {@code
+ *   <li><b>(Re-)Assignability Check</b>: It verifies that any assignment is valid, using {@code
  *       Checker.isAssignable} method.
  * </ol>
  *
@@ -388,9 +388,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
      * <p>The override rule specifies that a method, m1, may override a method m2 only if:
      *
      * <ul>
-     *   <li> m1 return type is a subtype of m2
-     *   <li> m1 receiver type is a supertype of m2
-     *   <li> m1 parameters are supertypes of corresponding m2 parameters
+     *   <li>m1 return type is a subtype of m2
+     *   <li>m1 receiver type is a supertype of m2
+     *   <li>m1 parameters are supertypes of corresponding m2 parameters
      * </ul>
      *
      * Also, it issues a "missing.this" error for static method annotated receivers.
@@ -426,9 +426,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     // check "no" purity
                     List<Pure.Kind> kinds = PurityUtils.getPurityKinds(atypeFactory, node);
                     // @Deterministic makes no sense for a void method or constructor
-                    boolean isDeterministic =
-                            kinds.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC)
-                                    || kinds.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC);
+                    boolean isDeterministic = kinds.contains(Pure.Kind.DETERMINISTIC);
                     if (isDeterministic) {
                         if (TreeUtils.isConstructor(node)) {
                             checker.report(
@@ -449,24 +447,33 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
                     if (!r.isPure(kinds)) {
                         reportPurityErrors(r, node, kinds);
                     }
-                    /**
-                     * // Issue a warning if the method is pure, but not annotated // as such (if
-                     * the feature is activated). if (checkPurityAlways) { Collection<Pure.Kind>
-                     * additionalKinds = new HashSet<>(r.getTypes());
-                     * additionalKinds.removeAll(kinds); if (TreeUtils.isConstructor(node)) {
-                     * additionalKinds.remove(Pure.Kind.SINGLE_RUN_DETERMINISTIC);
-                     * additionalKinds.remove(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC); } if
-                     * (!additionalKinds.isEmpty()) { if (additionalKinds.size() == 2) {
-                     * checker.report( Result.warning("purity.more.pure", node.getName()), node); }
-                     * else if (additionalKinds.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-                     * checker.report( Result.warning( "purity.more.sideeffectfree",
-                     * node.getName()), node); } else if
-                     * (additionalKinds.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC) ||
-                     * additionalKinds.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC)) {
-                     * checker.report( Result.warning("purity.more.deterministic", node.getName()),
-                     * node); } else { assert false : "BaseTypeVisitor reached undesirable state"; }
-                     * } }
-                     */
+
+                    // Issue a warning if the method is pure, but not annotated
+                    // as such (if the feature is activated).
+                    if (checkPurityAlways) {
+                        Collection<Pure.Kind> additionalKinds = new HashSet<>(r.getTypes());
+                        additionalKinds.removeAll(kinds);
+                        if (TreeUtils.isConstructor(node)) {
+                            additionalKinds.remove(Pure.Kind.DETERMINISTIC);
+                        }
+                        if (!additionalKinds.isEmpty()) {
+                            if (additionalKinds.size() == 2) {
+                                checker.report(
+                                        Result.warning("purity.more.pure", node.getName()), node);
+                            } else if (additionalKinds.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+                                checker.report(
+                                        Result.warning(
+                                                "purity.more.sideeffectfree", node.getName()),
+                                        node);
+                            } else if (additionalKinds.contains(Pure.Kind.DETERMINISTIC)) {
+                                checker.report(
+                                        Result.warning("purity.more.deterministic", node.getName()),
+                                        node);
+                            } else {
+                                assert false : "BaseTypeVisitor reached undesirable state";
+                            }
+                        }
+                    }
                 }
             }
 
@@ -530,27 +537,31 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         assert !result.isPure(expectedTypes);
         Collection<Pure.Kind> t = EnumSet.copyOf(expectedTypes);
         t.removeAll(result.getTypes());
-        if (t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
-            for (Pair<Tree, String> r : result.getNotSeFreeReasons()) {
+        if (t.contains(Pure.Kind.DETERMINISTIC) || t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+            String msgPrefix = "purity.not.deterministic.not.sideeffectfree.";
+            if (!t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+                msgPrefix = "purity.not.deterministic.";
+            } else if (!t.contains(Pure.Kind.DETERMINISTIC)) {
+                msgPrefix = "purity.not.sideeffectfree.";
+            }
+            for (Pair<Tree, String> r : result.getNotBothReasons()) {
                 @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg = "purity.not.sideeffectfree." + r.second;
+                /*@CompilerMessageKey*/ String msg = msgPrefix + r.second;
                 checker.report(Result.failure(msg), r.first);
             }
-        }
-        if (t.contains(Pure.Kind.SINGLE_RUN_DETERMINISTIC)) {
-            for (Pair<Tree, String> r : result.getNotSingleDetReasons()) {
-                @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg =
-                        "purity.not.singlerundeterminisitic." + r.second;
-                checker.report(Result.failure(msg), r.first);
+            if (t.contains(Pure.Kind.SIDE_EFFECT_FREE)) {
+                for (Pair<Tree, String> r : result.getNotSeFreeReasons()) {
+                    @SuppressWarnings("CompilerMessages")
+                    /*@CompilerMessageKey*/ String msg = "purity.not.sideeffectfree." + r.second;
+                    checker.report(Result.failure(msg), r.first);
+                }
             }
-        }
-        if (t.contains(Pure.Kind.MULTIPLE_RUN_DETERMINISTIC)) {
-            for (Pair<Tree, String> r : result.getNotMultiDetReasons()) {
-                @SuppressWarnings("CompilerMessages")
-                /*@CompilerMessageKey*/ String msg =
-                        "purity.not.multiplerundeterministic." + r.second;
-                checker.report(Result.failure(msg), r.first);
+            if (t.contains(Pure.Kind.DETERMINISTIC)) {
+                for (Pair<Tree, String> r : result.getNotDetReasons()) {
+                    @SuppressWarnings("CompilerMessages")
+                    /*@CompilerMessageKey*/ String msg = "purity.not.deterministic." + r.second;
+                    checker.report(Result.failure(msg), r.first);
+                }
             }
         }
     }
@@ -922,9 +933,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
      * <p>An invocation of a method, m, on the receiver, r is valid only if:
      *
      * <ul>
-     *   <li> passed arguments are subtypes of corresponding m parameters
-     *   <li> r is a subtype of m receiver type
-     *   <li> if m is generic, passed type arguments are subtypes of m type variables
+     *   <li>passed arguments are subtypes of corresponding m parameters
+     *   <li>r is a subtype of m receiver type
+     *   <li>if m is generic, passed type arguments are subtypes of m type variables
      * </ul>
      */
     @Override
@@ -1270,8 +1281,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
      * <p>An invocation of a constructor, c, is valid only if:
      *
      * <ul>
-     *   <li> passed arguments are subtypes of corresponding c parameters
-     *   <li> if c is generic, passed type arguments are subtypes of c type variables
+     *   <li>passed arguments are subtypes of corresponding c parameters
+     *   <li>if c is generic, passed type arguments are subtypes of c type variables
      * </ul>
      */
     @Override

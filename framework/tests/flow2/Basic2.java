@@ -132,8 +132,6 @@ class Basic2 {
 
         c1.f1 = p1;
         pure();
-        // TODO: fix logic for new annotations
-        //:: error: (assignment.type.incompatible)
         @Odd String l2 = c1.f1;
     }
 

@@ -789,7 +789,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     protected final Set<Class<? extends Annotation>> getBundledTypeQualifiersWithPolyAll(
             Class<? extends Annotation>... explicitlyListedAnnotations) {
         Set<Class<? extends Annotation>> annotations =
-                loadTypeAnnotationsFromQualDir(explicitlyListedAnnotations);
+                getBundledTypeQualifiersWithoutPolyAll(explicitlyListedAnnotations);
         boolean addPolyAll = false;
         for (Class<? extends Annotation> annotationClass : annotations) {
             if (annotationClass.getAnnotation(PolymorphicQualifier.class) != null) {
@@ -840,6 +840,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     @SuppressWarnings("varargs")
     private final Set<Class<? extends Annotation>> loadTypeAnnotationsFromQualDir(
             Class<? extends Annotation>... explicitlyListedAnnotations) {
+        // load bundled annotations
+        loader.loadBundledAnnotationClasses();
         // add the loaded annotations to the annotation set
         Set<Class<? extends Annotation>> annotations = loader.getLoadedAnnotationClasses();
 

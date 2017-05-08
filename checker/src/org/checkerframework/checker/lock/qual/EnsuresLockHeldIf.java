@@ -12,8 +12,6 @@ import org.checkerframework.framework.qual.InheritedAnnotation;
  * Indicates that the given expressions are held if the method terminates successfully and returns
  * the given result (either true or false).
  *
- * <p>
- *
  * @see EnsuresLockHeld
  * @checker_framework.manual #lock-checker Lock Checker
  * @checker_framework.manual #ensureslockheld-examples Example use of @EnsuresLockHeldIf
@@ -27,9 +25,8 @@ public @interface EnsuresLockHeldIf {
     /**
      * Java expressions whose values are held after the method returns the given result.
      *
-     * @see <a
-     *     href="http://types.cs.washington.edu/checker-framework/current/checker-framework-manual.html#java-expressions-as-arguments">Syntax
-     *     of Java expressions</a>
+     * @see <a href="https://checkerframework.org/manual/#java-expressions-as-arguments">Syntax of
+     *     Java expressions</a>
      */
     String[] expression();
 

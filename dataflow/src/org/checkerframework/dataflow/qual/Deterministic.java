@@ -12,6 +12,10 @@ import java.lang.annotation.Target;
  * include the receiver, and the environment includes all of the Java heap (that is, all fields of
  * all objects and all static variables).
  *
+ * <p>Determinism refers to the return value during a non-exceptional execution. If a method throws
+ * an exception, the Throwable does not have to be exactly the same object on each invocation (and
+ * generally should not be, to capture the correct stack trace).
+ *
  * <p>This annotation is important to pluggable type-checking because, after a call to a
  * {@code @Deterministic} method, flow-sensitive type refinement can assume that anything learned
  * about the first invocation is true about subsequent invocations (so long as no
@@ -25,9 +29,9 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * <p>Note that {@code @Deterministic} guarantees that the result is identical according to {@code
- * ==}, <b>not</b> equal according to {@code equals}. This means that writing {@code @Deterministic}
- * on a method that returns a reference is often erroneous unless the returned value is cached or
- * interned.
+ * ==}, <b>not</b> just equal according to {@code equals()}. This means that writing <code>
+ * {@literal @}Deterministic</code> on a method that returns a reference (including a String) is
+ * often erroneous unless the returned value is cached or interned.
  *
  * <p>Also see {@link Pure}, which means both deterministic and {@link SideEffectFree}.
  *
@@ -54,7 +58,6 @@ import java.lang.annotation.Target;
  *   return 0;
  * }
  * }</pre>
- *
  * </ol>
  *
  * A constructor can be {@code @Pure}, but a constructor <em>invocation</em> is not deterministic

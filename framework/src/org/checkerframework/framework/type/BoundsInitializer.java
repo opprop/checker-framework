@@ -1,5 +1,8 @@
 package org.checkerframework.framework.type;
 
+import com.sun.tools.javac.code.Symtab;
+import com.sun.tools.javac.processing.JavacProcessingEnvironment;
+import com.sun.tools.javac.util.Context;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -526,7 +529,7 @@ public class BoundsInitializer {
          * that of sourceType
          */
         @SuppressWarnings("serial")
-        private class ReferenceMap extends LinkedHashMap<BoundPath, AnnotatedTypeVariable> {
+        private static class ReferenceMap extends LinkedHashMap<BoundPath, AnnotatedTypeVariable> {
             //TODO: EXPLAINED LINK DUE TO TYPEVAR SLED
         }
 
@@ -575,7 +578,7 @@ public class BoundsInitializer {
 
             for (final Entry<BoundPath, AnnotatedTypeVariable> pathToRef : refMap.entrySet()) {
                 final BoundPath path = pathToRef.getKey();
-                final AnnotatedTypeVariable replacement = pathToRef.getValue();
+                final AnnotatedTypeVariable replacement = pathToRef.getValue().asUse();
 
                 AnnotatedTypeMirror parent = traverseToParent(type, path);
                 BoundPathNode terminus = path.getLast();
@@ -600,15 +603,22 @@ public class BoundsInitializer {
         final AnnotatedTypeMirror upperBound =
                 AnnotatedTypeMirror.createType(
                         typeVar.getUnderlyingType().getUpperBound(), typeVar.atypeFactory, false);
-        typeVar.setUpperBoundField(upperBound);
+        typeVar.setUpperBound(upperBound);
         return upperBound;
     }
 
     private static AnnotatedTypeMirror createAndSetLowerBound(final AnnotatedTypeVariable typeVar) {
+        TypeMirror lb = typeVar.getUnderlyingType().getLowerBound();
+        if (lb == null) {
+            // Use bottom type to ensure there is a lower bound.
+            Context context =
+                    ((JavacProcessingEnvironment) typeVar.atypeFactory.processingEnv).getContext();
+            Symtab syms = Symtab.instance(context);
+            lb = syms.botType;
+        }
         final AnnotatedTypeMirror lowerBound =
-                AnnotatedTypeMirror.createType(
-                        typeVar.getUnderlyingType().getLowerBound(), typeVar.atypeFactory, false);
-        typeVar.setLowerBoundField(lowerBound);
+                AnnotatedTypeMirror.createType(lb, typeVar.atypeFactory, false);
+        typeVar.setLowerBound(lowerBound);
         return lowerBound;
     }
 
@@ -826,7 +836,7 @@ public class BoundsInitializer {
 
         @Override
         public void setType(AnnotatedTypeMirror parent, AnnotatedTypeVariable replacement) {
-            ((AnnotatedTypeVariable) parent).setUpperBoundField(replacement);
+            ((AnnotatedTypeVariable) parent).setUpperBound(replacement);
         }
 
         @Override
@@ -856,7 +866,7 @@ public class BoundsInitializer {
 
         @Override
         public void setType(AnnotatedTypeMirror parent, AnnotatedTypeVariable replacement) {
-            ((AnnotatedTypeVariable) parent).setLowerBoundField(replacement);
+            ((AnnotatedTypeVariable) parent).setLowerBound(replacement);
         }
 
         @Override

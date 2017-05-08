@@ -22,9 +22,6 @@ import java.util.regex.Pattern;
  * <p>NOTE: There are multiple copies of this file in the following projects/locations:
  *
  * <pre>
- * maven-plugin/
- *     org.checkerframework.mavenplugin.PluginUtil
- *
  * checker-framework-eclipse-plugin/
  *     org.checkerframework.eclipse.util.PluginUtil
  *
@@ -63,7 +60,7 @@ public class PluginUtil {
      * the filepath used is the absolute filepath
      *
      * @param destination the fofn file we are writing. This file will contain newline separated
-     *     list of absolute file paths
+     *     list of absolute file paths.
      * @param files the files to write to the destination file
      */
     public static void writeFofn(final File destination, final List<File> files)
@@ -87,7 +84,7 @@ public class PluginUtil {
      * the filepath used is the absolute filepath
      *
      * @param destination the fofn file we are writing. This file will contain newline separated
-     *     list of absolute file paths
+     *     list of absolute file paths.
      * @param files the files to write to the destination file
      */
     public static void writeFofn(final File destination, final File... files) throws IOException {

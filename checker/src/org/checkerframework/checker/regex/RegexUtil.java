@@ -17,8 +17,8 @@ import java.util.regex.PatternSyntaxException;
  * expression.
  *
  * <p>For an example of intended use, see section <a
- * href="http://types.cs.washington.edu/checker-framework/current/checker-framework-manual.html#regexutil-methods">Testing
- * whether a string is a regular expression</a> in the Checker Framework manual.
+ * href="https://checkerframework.org/manual/#regexutil-methods">Testing whether a string is a
+ * regular expression</a> in the Checker Framework manual.
  *
  * <p><b>Runtime Dependency</b>: Using this class introduces a runtime dependency. This means that
  * you need to distribute (or link to) the Checker Framework, along with your binaries. To eliminate
@@ -153,7 +153,7 @@ public final class RegexUtil {
      *
      * @param s string to check for being a regular expression
      * @param groups number of groups expected
-     * @return true iff s is a regular expression with groups groups
+     * @return true iff s is a regular expression with {@code groups} groups
      */
     @SuppressWarnings({"regex", "deterministic"}) // RegexUtil; for purity, catches an exception
     /*@Pure*/

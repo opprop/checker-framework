@@ -2,7 +2,7 @@ This document describes how to write and run tests for the Checker
 Framework.  Writing and running tests is useful for bug submitters,
 checker writers, and Checker Framework maintainers.  Users of the Checker
 Framework and of the checkers packaged with it should read the manual
-instead; see file ../manual/manual.html .
+instead; see file ../../docs/manual/manual.html .
 
 
 How to run all the tests for the Checker Framework
@@ -55,7 +55,7 @@ Writing new tests for an existing checker
 
 To create a new test case, just place a Java file in the test directory,
 whose name usually corresponds to the checker name, such as
-checker-framework/checker/tests/nullness/ . Unless the README file in
+checker-framework/checker/tests/nullness/ .  Unless the README file in
 the test directory specifies otherwise, then the Java file must
 1. Not issue any javac errors.
 2. Not declare a class with the same (fully qualfied) name as any other class in
@@ -148,6 +148,14 @@ format:
 The number between the colons is the line number of the expected error
 message.  This format is harder to maintain, and we suggest using the
 in-line comment format.
+
+By convention, when a test is about an issue in the issue tracker, we write
+a comment at the top of the file, in this format:
+
+  // Test case for issue 266:
+  // https://github.com/typetools/checker-framework/issues/266
+
+  // @skip-test until the issue is fixed
 
 
 Writing tests for a new checker or with different command-line arguments

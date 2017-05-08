@@ -25,7 +25,6 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.Elements;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
@@ -54,6 +53,7 @@ import org.checkerframework.framework.type.typeannotator.ImplicitsTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.DependentTypes;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.javacutil.AnnotationUtils;
@@ -103,7 +103,7 @@ public class NullnessAnnotatedTypeFactory
         addAliasedAnnotation(
                 org.checkerframework.checker.nullness.qual.LazyNonNull.class, MONOTONIC_NONNULL);
 
-        // If you update the following, also update ../../../manual/nullness-checker.tex .
+        // If you update the following, also update ../../../../../docs/manual/nullness-checker.tex .
         // Aliases for @Nonnull:
         addAliasedAnnotation(com.sun.istack.internal.NotNull.class, NONNULL);
         addAliasedAnnotation(edu.umd.cs.findbugs.annotations.NonNull.class, NONNULL);
@@ -117,7 +117,6 @@ public class NullnessAnnotatedTypeFactory
         addAliasedAnnotation(org.jmlspecs.annotation.NonNull.class, NONNULL);
         addAliasedAnnotation(android.annotation.NonNull.class, NONNULL);
         addAliasedAnnotation(android.support.annotation.NonNull.class, NONNULL);
-
         // Aliases for @Nullable:
         addAliasedAnnotation(com.sun.istack.internal.Nullable.class, NULLABLE);
         addAliasedAnnotation(edu.umd.cs.findbugs.annotations.CheckForNull.class, NULLABLE);
@@ -387,7 +386,7 @@ public class NullnessAnnotatedTypeFactory
      *
      * <p>Would this be valid to move into CommitmentTreeAnnotator.
      */
-    protected class NullnessPropagationAnnotator extends PropagationTreeAnnotator {
+    protected static class NullnessPropagationAnnotator extends PropagationTreeAnnotator {
 
         public NullnessPropagationAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);
@@ -508,8 +507,24 @@ public class NullnessAnnotatedTypeFactory
 
     @Override
     public AnnotationMirror getFieldInvariantAnnotation() {
-        Elements elements = processingEnv.getElementUtils();
-        return AnnotationUtils.fromClass(elements, NonNull.class);
+        return NONNULL;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>In other words, is the lower bound @NonNull?
+     *
+     * @param field field that might have invariant annotation
+     * @return whether or not field has the invariant annotation
+     */
+    @Override
+    protected boolean hasFieldInvariantAnnotation(VariableTree field) {
+        AnnotationMirror invariant = getFieldInvariantAnnotation();
+        AnnotatedTypeMirror type = getAnnotatedType(field);
+        Set<AnnotationMirror> lowerBounds =
+                AnnotatedTypes.findEffectiveLowerBoundAnnotations(qualHierarchy, type);
+        return AnnotationUtils.containsSame(lowerBounds, invariant);
     }
 
     @Override
@@ -524,11 +539,11 @@ public class NullnessAnnotatedTypeFactory
         }
 
         @Override
-        public boolean isSubtype(AnnotationMirror rhs, AnnotationMirror lhs) {
-            if (isInitializationAnnotation(rhs) || isInitializationAnnotation(lhs)) {
-                return this.isSubtypeInitialization(rhs, lhs);
+        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
+            if (isInitializationAnnotation(subAnno) || isInitializationAnnotation(superAnno)) {
+                return this.isSubtypeInitialization(subAnno, superAnno);
             }
-            return super.isSubtype(rhs, lhs);
+            return super.isSubtype(subAnno, superAnno);
         }
 
         @Override

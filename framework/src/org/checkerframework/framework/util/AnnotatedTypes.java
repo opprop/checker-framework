@@ -102,22 +102,22 @@ public class AnnotatedTypes {
      * same type) of the underlying type of {@code superType}. Except for these cases:
      *
      * <ul>
-     *   <li> If {@code type} is a primitive, then the boxed type of {@code type} must be subtype of
+     *   <li>If {@code type} is a primitive, then the boxed type of {@code type} must be subtype of
      *       {@code superType}.
-     *   <li> If {@code superType} is a primitive, then {@code type} must be convertible to {@code
+     *   <li>If {@code superType} is a primitive, then {@code type} must be convertible to {@code
      *       superType}.
-     *   <li> If {@code superType} is a type variable or wildcard without a lower bound, then {@code
+     *   <li>If {@code superType} is a type variable or wildcard without a lower bound, then {@code
      *       type} must be a subtype of the upper bound of {@code superType}. (This relaxed rule is
      *       used during type argument inference where the type variable or wildcard is the type
      *       argument that was inferred.)
-     *   <li> If {@code superType} is a wildcard with a lower bound, then {@code type} must be a
+     *   <li>If {@code superType} is a wildcard with a lower bound, then {@code type} must be a
      *       subtype of the lower bound of {@code superType}.
      * </ul>
      *
      * <p>Postconditions: {@code type} and {@code superType} are not modified.
      *
      * @param atypeFactory {@link AnnotatedTypeFactory}
-     * @param type Type from which to copy annotations
+     * @param type type from which to copy annotations
      * @param superType a type whose erased Java type is a supertype of {@code type}'s erased Java
      *     type.
      * @return {@code superType} with annotations copied from {@code type} and type variables
@@ -308,7 +308,7 @@ public class AnnotatedTypes {
         }
 
         if (!mappings.isEmpty()) {
-            return atypeFactory.getTypeVarSubstitutor().substitute(mappings, memberType);
+            memberType = atypeFactory.getTypeVarSubstitutor().substitute(mappings, memberType);
         }
 
         return memberType;
@@ -326,13 +326,6 @@ public class AnnotatedTypes {
         AnnotatedDeclaredType enclosingType = atypeFactory.getAnnotatedType(enclosingClassOfElem);
         AnnotatedDeclaredType base =
                 (AnnotatedDeclaredType) asOuterSuper(types, atypeFactory, t, enclosingType);
-
-        if (base == null) {
-            // asSuper should not return null, but currently does in some cases.
-            // See Issue 717
-            // https://github.com/typetools/checker-framework/issues/717
-            return;
-        }
 
         final List<AnnotatedTypeVariable> ownerParams =
                 new ArrayList<>(enclosingType.getTypeArguments().size());
@@ -714,7 +707,7 @@ public class AnnotatedTypes {
      *     return
      * @param index position of parameter type to return
      * @return if that parameter is a varArgs, return the component of the var args and NOT the
-     *     array type. Otherwise, return the exact type of the parameter in the index position
+     *     array type. Otherwise, return the exact type of the parameter in the index position.
      */
     public static AnnotatedTypeMirror getAnnotatedTypeMirrorOfParameter(
             AnnotatedExecutableType methodType, int index) {
@@ -955,7 +948,7 @@ public class AnnotatedTypes {
             }
             n++;
             AnnotationMirror top = qualifierHierarchy.getTopAnnotation(anno);
-            if (seenTops.contains(top)) {
+            if (AnnotationUtils.containsSame(seenTops, top)) {
                 return false;
             }
             seenTops.add(top);

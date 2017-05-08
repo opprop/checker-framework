@@ -4,8 +4,61 @@ package org.checkerframework.dataflow.cfg;
 import org.checkerframework.checker.nullness.qual.Nullable;
 */
 
-import com.sun.source.tree.*;
+import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ArrayAccessTree;
+import com.sun.source.tree.ArrayTypeTree;
+import com.sun.source.tree.AssertTree;
+import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.BreakTree;
+import com.sun.source.tree.CaseTree;
+import com.sun.source.tree.CatchTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.CompoundAssignmentTree;
+import com.sun.source.tree.ConditionalExpressionTree;
+import com.sun.source.tree.ContinueTree;
+import com.sun.source.tree.DoWhileLoopTree;
+import com.sun.source.tree.EmptyStatementTree;
+import com.sun.source.tree.EnhancedForLoopTree;
+import com.sun.source.tree.ErroneousTree;
+import com.sun.source.tree.ExpressionStatementTree;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.ForLoopTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.IfTree;
+import com.sun.source.tree.ImportTree;
+import com.sun.source.tree.InstanceOfTree;
+import com.sun.source.tree.LabeledStatementTree;
+import com.sun.source.tree.LambdaExpressionTree;
+import com.sun.source.tree.LiteralTree;
+import com.sun.source.tree.MemberReferenceTree;
+import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.NewArrayTree;
+import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.ParameterizedTypeTree;
+import com.sun.source.tree.ParenthesizedTree;
+import com.sun.source.tree.PrimitiveTypeTree;
+import com.sun.source.tree.ReturnTree;
+import com.sun.source.tree.StatementTree;
+import com.sun.source.tree.SwitchTree;
+import com.sun.source.tree.SynchronizedTree;
+import com.sun.source.tree.ThrowTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.TryTree;
+import com.sun.source.tree.TypeCastTree;
+import com.sun.source.tree.TypeParameterTree;
+import com.sun.source.tree.UnaryTree;
+import com.sun.source.tree.UnionTypeTree;
+import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.WhileLoopTree;
+import com.sun.source.tree.WildcardTree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
@@ -52,7 +105,75 @@ import org.checkerframework.dataflow.cfg.block.RegularBlockImpl;
 import org.checkerframework.dataflow.cfg.block.SingleSuccessorBlockImpl;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock.SpecialBlockType;
 import org.checkerframework.dataflow.cfg.block.SpecialBlockImpl;
-import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.cfg.node.ArrayAccessNode;
+import org.checkerframework.dataflow.cfg.node.ArrayCreationNode;
+import org.checkerframework.dataflow.cfg.node.ArrayTypeNode;
+import org.checkerframework.dataflow.cfg.node.AssertionErrorNode;
+import org.checkerframework.dataflow.cfg.node.AssignmentNode;
+import org.checkerframework.dataflow.cfg.node.BitwiseAndNode;
+import org.checkerframework.dataflow.cfg.node.BitwiseComplementNode;
+import org.checkerframework.dataflow.cfg.node.BitwiseOrNode;
+import org.checkerframework.dataflow.cfg.node.BitwiseXorNode;
+import org.checkerframework.dataflow.cfg.node.BooleanLiteralNode;
+import org.checkerframework.dataflow.cfg.node.CaseNode;
+import org.checkerframework.dataflow.cfg.node.CharacterLiteralNode;
+import org.checkerframework.dataflow.cfg.node.ClassNameNode;
+import org.checkerframework.dataflow.cfg.node.ConditionalAndNode;
+import org.checkerframework.dataflow.cfg.node.ConditionalNotNode;
+import org.checkerframework.dataflow.cfg.node.ConditionalOrNode;
+import org.checkerframework.dataflow.cfg.node.DoubleLiteralNode;
+import org.checkerframework.dataflow.cfg.node.EqualToNode;
+import org.checkerframework.dataflow.cfg.node.ExplicitThisLiteralNode;
+import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
+import org.checkerframework.dataflow.cfg.node.FloatLiteralNode;
+import org.checkerframework.dataflow.cfg.node.FloatingDivisionNode;
+import org.checkerframework.dataflow.cfg.node.FloatingRemainderNode;
+import org.checkerframework.dataflow.cfg.node.FunctionalInterfaceNode;
+import org.checkerframework.dataflow.cfg.node.GreaterThanNode;
+import org.checkerframework.dataflow.cfg.node.GreaterThanOrEqualNode;
+import org.checkerframework.dataflow.cfg.node.ImplicitThisLiteralNode;
+import org.checkerframework.dataflow.cfg.node.InstanceOfNode;
+import org.checkerframework.dataflow.cfg.node.IntegerDivisionNode;
+import org.checkerframework.dataflow.cfg.node.IntegerLiteralNode;
+import org.checkerframework.dataflow.cfg.node.IntegerRemainderNode;
+import org.checkerframework.dataflow.cfg.node.LeftShiftNode;
+import org.checkerframework.dataflow.cfg.node.LessThanNode;
+import org.checkerframework.dataflow.cfg.node.LessThanOrEqualNode;
+import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
+import org.checkerframework.dataflow.cfg.node.LongLiteralNode;
+import org.checkerframework.dataflow.cfg.node.MarkerNode;
+import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
+import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.NarrowingConversionNode;
+import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.NotEqualNode;
+import org.checkerframework.dataflow.cfg.node.NullChkNode;
+import org.checkerframework.dataflow.cfg.node.NullLiteralNode;
+import org.checkerframework.dataflow.cfg.node.NumericalAdditionNode;
+import org.checkerframework.dataflow.cfg.node.NumericalMinusNode;
+import org.checkerframework.dataflow.cfg.node.NumericalMultiplicationNode;
+import org.checkerframework.dataflow.cfg.node.NumericalPlusNode;
+import org.checkerframework.dataflow.cfg.node.NumericalSubtractionNode;
+import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
+import org.checkerframework.dataflow.cfg.node.PackageNameNode;
+import org.checkerframework.dataflow.cfg.node.ParameterizedTypeNode;
+import org.checkerframework.dataflow.cfg.node.PrimitiveTypeNode;
+import org.checkerframework.dataflow.cfg.node.ReturnNode;
+import org.checkerframework.dataflow.cfg.node.SignedRightShiftNode;
+import org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode;
+import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
+import org.checkerframework.dataflow.cfg.node.StringConversionNode;
+import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
+import org.checkerframework.dataflow.cfg.node.SuperNode;
+import org.checkerframework.dataflow.cfg.node.SynchronizedNode;
+import org.checkerframework.dataflow.cfg.node.TernaryExpressionNode;
+import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
+import org.checkerframework.dataflow.cfg.node.ThrowNode;
+import org.checkerframework.dataflow.cfg.node.TypeCastNode;
+import org.checkerframework.dataflow.cfg.node.UnsignedRightShiftNode;
+import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
+import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
+import org.checkerframework.dataflow.cfg.node.WideningConversionNode;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.checkerframework.dataflow.util.MostlySingleton;
 import org.checkerframework.javacutil.AnnotationProvider;
@@ -580,7 +701,7 @@ public class CFGBuilder {
     }
 
     /** A TryFinallyFrame applies to exceptions of any type */
-    protected class TryFinallyFrame implements TryFrame {
+    protected static class TryFinallyFrame implements TryFrame {
         protected Label finallyLabel;
 
         public TryFinallyFrame(Label finallyLabel) {
@@ -672,7 +793,7 @@ public class CFGBuilder {
         /**
          * Perform phase three on the control flow graph {@code cfg}.
          *
-         * @param cfg The control flow graph. Ownership is transfered to this method and the caller
+         * @param cfg the control flow graph. Ownership is transfered to this method and the caller
          *     is not allowed to read or modify {@code cfg} after the call to {@code process} any
          *     more.
          * @return the resulting control flow graph
@@ -763,10 +884,10 @@ public class CFGBuilder {
          * and going both forward and backwards. Furthermore, compute the predecessors of these
          * empty blocks ({@code predecessors} ), and their single successor (return value).
          *
-         * @param start The starting point of the search (an empty, regular basic block)
-         * @param empty An empty set to be filled by this method with all empty basic blocks found
+         * @param start the starting point of the search (an empty, regular basic block)
+         * @param empty an empty set to be filled by this method with all empty basic blocks found
          *     (including {@code start}).
-         * @param predecessors An empty set to be filled by this method with all predecessors
+         * @param predecessors an empty set to be filled by this method with all predecessors
          * @return the single successor of the set of the empty basic blocks
          */
         protected static BlockImpl computeNeighborhoodOfEmptyBlock(
@@ -801,10 +922,10 @@ public class CFGBuilder {
          * and looking only backwards in the control flow graph. Furthermore, compute the
          * predecessors of these empty blocks ( {@code predecessors}).
          *
-         * @param start The starting point of the search (an empty, regular basic block)
-         * @param empty A set to be filled by this method with all empty basic blocks found
+         * @param start the starting point of the search (an empty, regular basic block)
+         * @param empty a set to be filled by this method with all empty basic blocks found
          *     (including {@code start}).
-         * @param predecessors A set to be filled by this method with all predecessors
+         * @param predecessors a set to be filled by this method with all predecessors
          */
         protected static void computeNeighborhoodOfEmptyBlockBackwards(
                 RegularBlockImpl start,
@@ -971,7 +1092,7 @@ public class CFGBuilder {
         /**
          * Perform phase two of the translation.
          *
-         * @param in The result of phase one
+         * @param in the result of phase one
          * @return a control flow graph that might still contain degenerate basic block (such as
          *     empty regular basic blocks or conditional blocks with the same block as 'then' and
          *     'else' sucessor)
@@ -1394,7 +1515,7 @@ public class CFGBuilder {
         /**
          * Add a node to the lookup map if it not already present.
          *
-         * @param node The node to add to the lookup map
+         * @param node the node to add to the lookup map
          */
         protected void addToLookupMap(Node node) {
             Tree tree = node.getTree();
@@ -1417,7 +1538,7 @@ public class CFGBuilder {
          * Tree should already be in the pre-conversion lookup map. This method is used to update
          * the Tree-Node mapping with conversion nodes.
          *
-         * @param node The node to add to the lookup map
+         * @param node the node to add to the lookup map
          */
         protected void addToConvertedLookupMap(Node node) {
             Tree tree = node.getTree();
@@ -1429,8 +1550,8 @@ public class CFGBuilder {
          * pre-conversion lookup map. This method is used to update the Tree-Node mapping with
          * conversion nodes.
          *
-         * @param tree The tree used as a key in the map
-         * @param node The node to add to the lookup map.
+         * @param tree the tree used as a key in the map
+         * @param node the node to add to the lookup map
          */
         protected void addToConvertedLookupMap(Tree tree, Node node) {
             assert tree != null;
@@ -1441,7 +1562,7 @@ public class CFGBuilder {
         /**
          * Extend the list of extended nodes with a node.
          *
-         * @param node The node to add
+         * @param node the node to add
          * @return the same node (for convenience)
          */
         protected <T extends Node> T extendWithNode(T node) {
@@ -1454,8 +1575,8 @@ public class CFGBuilder {
          * Extend the list of extended nodes with a node, where {@code node} might throw the
          * exception {@code cause}.
          *
-         * @param node The node to add
-         * @param cause An exception that the node might throw.
+         * @param node the node to add
+         * @param cause an exception that the node might throw
          * @return the node holder
          */
         protected NodeWithExceptionsHolder extendWithNodeWithException(
@@ -1468,8 +1589,8 @@ public class CFGBuilder {
          * Extend the list of extended nodes with a node, where {@code node} might throw any of the
          * exception in {@code causes}.
          *
-         * @param node The node to add
-         * @param causes Set of exceptions that the node might throw.
+         * @param node the node to add
+         * @param causes set of exceptions that the node might throw
          * @return the node holder
          */
         protected NodeWithExceptionsHolder extendWithNodeWithExceptions(
@@ -1488,8 +1609,8 @@ public class CFGBuilder {
          * Insert {@code node} after {@code pred} in the list of extended nodes, or append to the
          * list if {@code pred} is not present.
          *
-         * @param node The node to add
-         * @param pred The desired predecessor of node.
+         * @param node the node to add
+         * @param pred the desired predecessor of node
          * @return the node holder
          */
         protected <T extends Node> T insertNodeAfter(T node, Node pred) {
@@ -1502,9 +1623,9 @@ public class CFGBuilder {
          * Insert a {@code node} that might throw the exception {@code cause} after {@code pred} in
          * the list of extended nodes, or append to the list if {@code pred} is not present.
          *
-         * @param node The node to add
-         * @param causes Set of exceptions that the node might throw.
-         * @param pred The desired predecessor of node
+         * @param node the node to add
+         * @param causes set of exceptions that the node might throw
+         * @param pred the desired predecessor of node
          * @return the node holder
          */
         protected NodeWithExceptionsHolder insertNodeWithExceptionsAfter(
@@ -1522,7 +1643,7 @@ public class CFGBuilder {
         /**
          * Extend the list of extended nodes with an extended node.
          *
-         * @param n The extended node
+         * @param n the extended node
          */
         protected void extendWithExtendedNode(ExtendedNode n) {
             nodeList.add(n);
@@ -1532,8 +1653,8 @@ public class CFGBuilder {
          * Insert {@code n} after the node {@code pred} in the list of extended nodes, or append
          * {@code n} if {@code pred} is not present.
          *
-         * @param n The extended node
-         * @param pred The desired predecessor.
+         * @param n the extended node
+         * @param pred the desired predecessor
          */
         protected void insertExtendedNodeAfter(ExtendedNode n, Node pred) {
             int index = -1;
@@ -2001,7 +2122,7 @@ public class CFGBuilder {
          * @param method an ExecutableElement representing a method to be called
          * @param actualExprs a List of argument expressions to a call
          * @return a List of {@link Node}s representing arguments after conversions required by a
-         *     call to this method.
+         *     call to this method
          */
         protected List<Node> convertCallArguments(
                 ExecutableElement method, List<? extends ExpressionTree> actualExprs) {

@@ -60,10 +60,10 @@ public class AnnotatedTypeCopier
      * AnnotatedTypeCopier provides two major properties in its copies:
      *
      * <ol>
-     *   <li> Structure preservation -- the exact structure of the original AnnotatedTypeMirror is
+     *   <li>Structure preservation -- the exact structure of the original AnnotatedTypeMirror is
      *       preserved in the copy including all component types.
-     *   <li> Annotation preservation -- All of the annotations from the original
-     *       AnnotatedTypeMirror and its components have been copied to the new type.
+     *   <li>Annotation preservation -- All of the annotations from the original AnnotatedTypeMirror
+     *       and its components have been copied to the new type.
      * </ol>
      *
      * If copyAnnotations is set to false, the second property, annotation preservation, is removed.
@@ -117,7 +117,7 @@ public class AnnotatedTypeCopier
             copy.setWasRaw();
         }
 
-        if (copy.enclosingType != null) {
+        if (original.enclosingType != null) {
             copy.enclosingType =
                     (AnnotatedDeclaredType) visit(original.enclosingType, originalToCopy);
         }
@@ -287,11 +287,13 @@ public class AnnotatedTypeCopier
         originalToCopy.put(original, copy);
 
         if (original.getUpperBoundField() != null) {
-            copy.setUpperBoundField(visit(original.getUpperBoundField(), originalToCopy));
+            // TODO: figure out why asUse is needed here and remove it.
+            copy.setUpperBound(visit(original.getUpperBoundField(), originalToCopy).asUse());
         }
 
         if (original.getLowerBoundField() != null) {
-            copy.setLowerBoundField(visit(original.getLowerBoundField(), originalToCopy));
+            // TODO: figure out why asUse is needed here and remove it.
+            copy.setLowerBound(visit(original.getLowerBoundField(), originalToCopy).asUse());
         }
 
         return copy;
@@ -332,19 +334,19 @@ public class AnnotatedTypeCopier
                                 original.getUnderlyingType(),
                                 original.atypeFactory,
                                 original.isDeclaration());
-        if (original.isTypeArgHack()) {
-            copy.setTypeArgHack();
+        if (original.isUninferredTypeArgument()) {
+            copy.setUninferredTypeArgument();
         }
 
         maybeCopyPrimaryAnnotations(original, copy);
         originalToCopy.put(original, copy);
 
         if (original.getExtendsBoundField() != null) {
-            copy.setExtendsBound(visit(original.getExtendsBoundField(), originalToCopy));
+            copy.setExtendsBound(visit(original.getExtendsBoundField(), originalToCopy).asUse());
         }
 
         if (original.getSuperBoundField() != null) {
-            copy.setSuperBound(visit(original.getSuperBoundField(), originalToCopy));
+            copy.setSuperBound(visit(original.getSuperBoundField(), originalToCopy).asUse());
         }
 
         return copy;
@@ -362,7 +364,7 @@ public class AnnotatedTypeCopier
      * @param original a reference to a type to copy
      * @param originalToCopy a mapping of previously encountered references to the copies made for
      *     those references
-     * @param <T> The type of original copy, this is a shortcut to avoid having to insert casts all
+     * @param <T> the type of original copy, this is a shortcut to avoid having to insert casts all
      *     over the visitor
      * @return a copy of original
      */

@@ -174,7 +174,7 @@ public class AnnotationClassLoader {
         // won't be a resourceURL since there isn't a qual directory
 
         // each path from the set of classpaths will be checked to see if it
-        // contains the qual directory of a checker, if so, the the first
+        // contains the qual directory of a checker, if so, the first
         // directory or jar that contains the package will be used as the source
         // for loading classes from the qual package
 
@@ -282,7 +282,7 @@ public class AnnotationClassLoader {
      * dot)
      *
      * <p>Each step of the recursion checks to see if there's a subdirectory in the current
-     * directory which has a name matching the package name segment, if so, it recursively descends
+     * directory that has a name matching the package name segment, if so, it recursively descends
      * into that subdirectory to check the next package name segment
      *
      * <p>If there's no more segments left, then we've found the qual directory of interest
@@ -378,9 +378,9 @@ public class AnnotationClassLoader {
      * <p>The classpaths will be obtained in the order of:
      *
      * <ol>
-     *   <li> extension paths (from java.ext.dirs)
-     *   <li> classpaths (set in {@code CLASSPATH}, or through {@code -classpath} and {@code -cp})
-     *   <li> paths accessible and examined by the classloader
+     *   <li>extension paths (from java.ext.dirs)
+     *   <li>classpaths (set in {@code CLASSPATH}, or through {@code -classpath} and {@code -cp})
+     *   <li>paths accessible and examined by the classloader
      * </ol>
      *
      * In each of these paths, the order of the paths as specified in the command line options or
@@ -611,7 +611,7 @@ public class AnnotationClassLoader {
      *     root directory
      * @param fileExtension a file extension suffix that a file must have to be considered an
      *     annotation file, normally either {@link #CLASS_SUFFIX} or {@link #JAVA_SUFFIX} is passed
-     *     in as its value.
+     *     in as its value
      * @return a set of strings where each string is the fully qualified class name of an annotation
      *     in the root directory or its sub-directories
      */
@@ -726,7 +726,7 @@ public class AnnotationClassLoader {
      *
      * @param fullyQualifiedAnnoNames a set of strings where each string is a single annotation
      *     class's fully qualified name
-     * @return a set of loaded annotation classes.
+     * @return a set of loaded annotation classes
      * @see #loadAnnotationClass(String)
      */
     private final Set<Class<? extends Annotation>> loadAnnotationClasses(

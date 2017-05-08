@@ -2,7 +2,7 @@ package org.checkerframework.checker.signedness;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import org.checkerframework.checker.signedness.qual.*;
+import org.checkerframework.checker.signedness.qual.Unsigned;
 
 /**
  * Provides static utility methods for unsigned values. Some re-implement functionality in JDK 8,
@@ -12,6 +12,15 @@ public final class SignednessUtil {
 
     private SignednessUtil() {
         throw new Error("Do not instantiate");
+    }
+
+    /**
+     * Gets an unsigned int from the ByteBuffer b. Wraps {@link java.nio.ByteBuffer#getInt()
+     * getInt()}, but assumes that the result should be interpreted as unsigned.
+     */
+    @SuppressWarnings("signedness")
+    public static @Unsigned int getUnsignedInt(ByteBuffer b) {
+        return b.getInt();
     }
 
     /**

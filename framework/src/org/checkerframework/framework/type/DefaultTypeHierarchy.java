@@ -116,6 +116,12 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
     // passing annotations to qualifierHierarchy.
     protected AnnotationMirror currentTop;
 
+    /**
+     * Whether to ignore uninferred type arguments. This is a temporary flag to work around Issue
+     * 979.
+     */
+    protected final boolean ignoreUninferredTypeArguments;
+
     public DefaultTypeHierarchy(
             final BaseTypeChecker checker,
             final QualifierHierarchy qualifierHierarchy,
@@ -146,6 +152,8 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
         this.ignoreRawTypes = ignoreRawTypes;
         this.invariantArrayComponents = invariantArrayComponents;
         this.covariantTypeArgs = covariantTypeArgs;
+
+        ignoreUninferredTypeArguments = !checker.hasOption("conservativeUninferredTypeArguments");
     }
 
     /**
@@ -188,7 +196,7 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
      * Calls is subtype pair-wise on the elements of the subtypes/supertypes Iterable.
      *
      * @return true if for each pair, the subtype element is a subtype of the supertype element. An
-     *     exception will be thrown if the iterables are of different sizes
+     *     exception will be thrown if the iterables are of different sizes.
      */
     public boolean areSubtypes(
             final Iterable<? extends AnnotatedTypeMirror> subtypes,
@@ -401,9 +409,19 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
             return true;
         }
 
-        if (outside.getKind() == TypeKind.WILDCARD) {
+        if (ignoreUninferredTypeArguments && inside.getKind() == TypeKind.WILDCARD) {
+            final AnnotatedWildcardType insideWc = (AnnotatedWildcardType) inside;
+            if (insideWc.isUninferredTypeArgument()) {
+                return true;
+            }
+        }
 
+        if (outside.getKind() == TypeKind.WILDCARD) {
             final AnnotatedWildcardType outsideWc = (AnnotatedWildcardType) outside;
+
+            if (!checkAndSubtype(outsideWc.getSuperBound(), inside, visited)) {
+                return false;
+            }
 
             AnnotatedTypeMirror outsideWcUB = outsideWc.getExtendsBound();
             if (inside.getKind() == TypeKind.WILDCARD) {
@@ -411,11 +429,12 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
                         checker.getTypeFactory()
                                 .widenToUpperBound(outsideWcUB, (AnnotatedWildcardType) inside);
             }
+            while (outsideWcUB.getKind() == TypeKind.WILDCARD) {
+                outsideWcUB = ((AnnotatedWildcardType) outsideWcUB).getExtendsBound();
+            }
 
-            boolean aboveSuperBound = checkAndSubtype(outsideWc.getSuperBound(), inside, visited);
-            boolean belowExtendsBound = checkAndSubtype(inside, outsideWcUB, visited);
-            return belowExtendsBound && aboveSuperBound;
-
+            AnnotatedTypeMirror castedInside = castedAsSuper(inside, outsideWcUB);
+            return checkAndSubtype(castedInside, outsideWcUB, visited);
         } else { //TODO: IF WE NEED TO COMPARE A WILDCARD TO A CAPTURE OF A WILDCARD WE FAIL IN ARE_EQUAL -> DO CAPTURE CONVERSION
             return areEqualInHierarchy(inside, outside, currentTop);
         }
@@ -547,18 +566,11 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
             VisitHistory visited) {
 
         if (subtypeRaw || supertypeRaw) {
-            if (!rawnessComparer.isValidInHierarchy(subTypeArg, superTypeArg, currentTop, visited)
-                    && !isContainedBy(subTypeArg, superTypeArg, visited, this.covariantTypeArgs)) {
-                return false;
-            }
-
+            return rawnessComparer.isValidInHierarchy(subTypeArg, superTypeArg, currentTop, visited)
+                    || isContainedBy(subTypeArg, superTypeArg, visited, this.covariantTypeArgs);
         } else {
-            if (!isContainedBy(subTypeArg, superTypeArg, visited, this.covariantTypeArgs)) {
-                return false;
-            }
+            return isContainedBy(subTypeArg, superTypeArg, visited, this.covariantTypeArgs);
         }
-
-        return true;
     }
 
     @Override
@@ -983,7 +995,7 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
 
     protected boolean visitWildcardSupertype(
             AnnotatedTypeMirror subtype, AnnotatedWildcardType supertype, VisitHistory visited) {
-        if (supertype.isTypeArgHack()) { //TODO: REMOVE WHEN WE FIX TYPE ARG INFERENCE
+        if (supertype.isUninferredTypeArgument()) { //TODO: REMOVE WHEN WE FIX TYPE ARG INFERENCE
             return isSubtype(subtype, supertype.getExtendsBound());
         }
         return isSubtype(subtype, supertype.getSuperBound(), visited);
@@ -1033,7 +1045,7 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
      *
      * @param subtype subtype to be transformed to supertype
      * @param supertype supertype that subtype is transformed to
-     * @param <T> The type of supertype and return type
+     * @param <T> the type of supertype and return type
      * @return subtype as an instance of supertype
      */
     @SuppressWarnings("unchecked")
@@ -1041,6 +1053,15 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Visit
             final AnnotatedTypeMirror subtype, final T supertype) {
         final Types types = subtype.atypeFactory.getProcessingEnv().getTypeUtils();
         final Elements elements = subtype.atypeFactory.getProcessingEnv().getElementUtils();
+
+        if (subtype.getKind() == TypeKind.NULL) {
+            // Make a copy of the supertype so that if supertype is a composite type, the
+            // returned type will be fully annotated.  (For example, if sub is @C null and super is
+            // @A List<@B String>, then the returned type is @C List<@B String>.)
+            T copy = (T) supertype.deepCopy();
+            copy.replaceAnnotations(subtype.getAnnotations());
+            return copy;
+        }
 
         final T asSuperType = AnnotatedTypes.asSuper(subtype.atypeFactory, subtype, supertype);
 

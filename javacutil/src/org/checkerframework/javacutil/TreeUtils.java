@@ -10,6 +10,7 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompoundAssignmentTree;
+import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
@@ -23,6 +24,7 @@ import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -30,15 +32,19 @@ import com.sun.source.util.Trees;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.tree.JCTree;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 
 /** A utility class made for helping to analyze a given {@code Tree}. */
@@ -252,9 +258,9 @@ public final class TreeUtils {
     }
 
     /**
-     * Gets the enclosing class of the tree node defined by the given {@code {@link TreePath}}. It
-     * returns a {@link Tree}, from which {@code checkers.types.AnnotatedTypeMirror} or {@link
-     * Element} can be obtained.
+     * Gets the enclosing class of the tree node defined by the given {@link TreePath}. It returns a
+     * {@link Tree}, from which {@code checkers.types.AnnotatedTypeMirror} or {@link Element} can be
+     * obtained.
      *
      * @param path the path defining the tree node
      * @return the enclosing class (or interface) as given by the path, or null if one does not
@@ -275,9 +281,9 @@ public final class TreeUtils {
     }
 
     /**
-     * Gets the enclosing method of the tree node defined by the given {@code {@link TreePath}}. It
-     * returns a {@link Tree}, from which an {@code checkers.types.AnnotatedTypeMirror} or {@link
-     * Element} can be obtained.
+     * Gets the enclosing method of the tree node defined by the given {@link TreePath}. It returns
+     * a {@link Tree}, from which an {@code checkers.types.AnnotatedTypeMirror} or {@link Element}
+     * can be obtained.
      *
      * @param path the path defining the tree node
      * @return the enclosing method as given by the path, or null if one does not exist
@@ -307,7 +313,9 @@ public final class TreeUtils {
      */
     public static ExpressionTree skipParens(final ExpressionTree tree) {
         ExpressionTree t = tree;
-        while (t.getKind() == Tree.Kind.PARENTHESIZED) t = ((ParenthesizedTree) t).getExpression();
+        while (t.getKind() == Tree.Kind.PARENTHESIZED) {
+            t = ((ParenthesizedTree) t).getExpression();
+        }
         return t;
     }
 
@@ -315,8 +323,8 @@ public final class TreeUtils {
      * Returns the tree with the assignment context for the treePath leaf node. (Does not handle
      * pseudo-assignment of an argument to a parameter or a receiver expression to a receiver.)
      *
-     * <p>The assignment context for the {@code treePath} is the leaf of its parent, if the leaf is
-     * one of the following trees:
+     * <p>The assignment context for the {@code treePath} is the leaf of its parent, if the parent
+     * is one of the following trees:
      *
      * <ul>
      *   <li>AssignmentTree
@@ -328,7 +336,12 @@ public final class TreeUtils {
      *   <li>VariableTree
      * </ul>
      *
-     * If the leaf is a ConditionalExpressionTree or ParenthesizedTree, then recur on the leaf.
+     * If the parent is a ConditionalExpressionTree we need to distinguish two cases: If the leaf is
+     * either the then or else branch of the ConditionalExpressionTree, then recurse on the parent.
+     * If the leaf is the condition of the ConditionalExpressionTree, then return null to not
+     * consider this assignment context.
+     *
+     * <p>If the leaf is a ParenthesizedTree, then recurse on the parent.
      *
      * <p>Otherwise, null is returned.
      *
@@ -344,7 +357,15 @@ public final class TreeUtils {
         Tree parent = parentPath.getLeaf();
         switch (parent.getKind()) {
             case PARENTHESIZED:
+                return getAssignmentContext(parentPath);
             case CONDITIONAL_EXPRESSION:
+                ConditionalExpressionTree cet = (ConditionalExpressionTree) parent;
+                if (cet.getCondition() == treePath.getLeaf()) {
+                    // The assignment context for the condition is simply boolean.
+                    // No point in going on.
+                    return null;
+                }
+                // Otherwise use the context of the ConditionalExpressionTree.
                 return getAssignmentContext(parentPath);
             case ASSIGNMENT:
             case METHOD_INVOCATION:
@@ -676,18 +697,7 @@ public final class TreeUtils {
         }
         MethodInvocationTree methInvok = (MethodInvocationTree) tree;
         ExecutableElement invoked = TreeUtils.elementFromUse(methInvok);
-        return isMethod(invoked, method, env);
-    }
-
-    /** Returns true if the given element is, or overrides, method. */
-    private static boolean isMethod(
-            ExecutableElement questioned, ExecutableElement method, ProcessingEnvironment env) {
-        return (questioned.equals(method)
-                || env.getElementUtils()
-                        .overrides(
-                                questioned,
-                                method,
-                                (TypeElement) questioned.getEnclosingElement()));
+        return ElementUtils.isMethod(invoked, method, env);
     }
 
     /**
@@ -699,13 +709,28 @@ public final class TreeUtils {
      */
     public static ExecutableElement getMethod(
             String typeName, String methodName, int params, ProcessingEnvironment env) {
-        TypeElement mapElt = env.getElementUtils().getTypeElement(typeName);
-        for (ExecutableElement exec : ElementFilter.methodsIn(mapElt.getEnclosedElements())) {
+        TypeElement typeElt = env.getElementUtils().getTypeElement(typeName);
+        for (ExecutableElement exec : ElementFilter.methodsIn(typeElt.getEnclosedElements())) {
             if (exec.getSimpleName().contentEquals(methodName)
-                    && exec.getParameters().size() == params) return exec;
+                    && exec.getParameters().size() == params) {
+                return exec;
+            }
         }
         ErrorReporter.errorAbort("TreeUtils.getMethod: shouldn't be here!");
         return null; // dead code
+    }
+
+    public static List<ExecutableElement> getMethodList(
+            String typeName, String methodName, int params, ProcessingEnvironment env) {
+        List<ExecutableElement> methods = new ArrayList<>();
+        TypeElement typeElement = env.getElementUtils().getTypeElement(typeName);
+        for (ExecutableElement exec : ElementFilter.methodsIn(typeElement.getEnclosedElements())) {
+            if (exec.getSimpleName().contentEquals(methodName)
+                    && exec.getParameters().size() == params) {
+                methods.add(exec);
+            }
+        }
+        return methods;
     }
 
     /**
@@ -943,5 +968,53 @@ public final class TreeUtils {
                         .toString();
         return ownerName.equals("java.lang.Object")
                 && declarationElement.getSimpleName().toString().equals("getClass");
+    }
+
+    /**
+     * Returns whether or not the leaf of the tree path is in a static scope.
+     *
+     * @param path TreePath whose leaf may or may not be in static scope
+     * @return returns whether or not the leaf of the tree path is in a static scope
+     */
+    public static boolean isTreeInStaticScope(TreePath path) {
+        MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+
+        if (enclosingMethod != null) {
+            return enclosingMethod.getModifiers().getFlags().contains(Modifier.STATIC);
+        }
+        // no enclosing method, check for static or initializer block
+        BlockTree block = enclosingTopLevelBlock(path);
+        if (block != null) {
+            return block.isStatic();
+        }
+
+        // check if its in a variable initializer
+        Tree t = enclosingVariable(path);
+        if (t != null) {
+            return ((VariableTree) t).getModifiers().getFlags().contains((Modifier.STATIC));
+        }
+        ClassTree classTree = enclosingClass(path);
+        if (classTree != null) {
+            return classTree.getModifiers().getFlags().contains((Modifier.STATIC));
+        }
+        return false;
+    }
+
+    /**
+     * Returns whether or not tree is an access of array length.
+     *
+     * @param tree tree to check
+     * @return true if tree is an access of array length
+     */
+    public static boolean isArrayLengthAccess(Tree tree) {
+        if (tree.getKind() == Kind.MEMBER_SELECT
+                && isFieldAccess(tree)
+                && getFieldName(tree).equals("length")) {
+            ExpressionTree expressionTree = ((MemberSelectTree) tree).getExpression();
+            if (InternalUtils.typeOf(expressionTree).getKind() == TypeKind.ARRAY) {
+                return true;
+            }
+        }
+        return false;
     }
 }

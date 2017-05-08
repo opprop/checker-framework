@@ -59,7 +59,7 @@ public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         this.INTERNED = AnnotationUtils.fromClass(elements, Interned.class);
         this.TOP = AnnotationUtils.fromClass(elements, UnknownInterned.class);
 
-        // If you update the following, also update ../../../manual/interning-checker.tex .
+        // If you update the following, also update ../../../../../docs/manual/interning-checker.tex .
         addAliasedAnnotation(com.sun.istack.internal.Interned.class, INTERNED);
 
         this.postInit();
@@ -156,8 +156,8 @@ public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     /**
-     * Unbox type and replace any interning type annotations with @Interned since all all primitives
-     * can safely use ==. See case 4 in the class comments.
+     * Unbox type and replace any interning type annotations with @Interned since all primitives can
+     * safely use ==. See case 4 in the class comments.
      */
     @Override
     public AnnotatedPrimitiveType getUnboxedType(AnnotatedDeclaredType type) {

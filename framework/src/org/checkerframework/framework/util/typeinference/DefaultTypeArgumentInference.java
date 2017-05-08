@@ -26,6 +26,7 @@ import org.checkerframework.framework.type.GeneralAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.framework.util.AnnotationMirrorSet;
 import org.checkerframework.framework.util.PluginUtil;
 import org.checkerframework.framework.util.typeinference.constraint.A2F;
 import org.checkerframework.framework.util.typeinference.constraint.A2FReducer;
@@ -58,14 +59,14 @@ import org.checkerframework.javacutil.TypesUtils;
  * <p>Note, there are some deviations JLS 7 for the following cases:
  *
  * <ul>
- *   <li> Places where the JLS is vague. For these cases, first the OpenJDK implementation was
+ *   <li>Places where the JLS is vague. For these cases, first the OpenJDK implementation was
  *       consulted and then we favored the behavior we desire rather than the implied behavior of
  *       the JLS or JDK implementation.
- *   <li> The fact that any given type variable type may or may not have annotations for multiple
+ *   <li>The fact that any given type variable type may or may not have annotations for multiple
  *       hierarchies means that constraints are more complicated than their Java equivalents. Every
  *       constraint must identify the hierarchies to which they apply. This makes solving the
  *       constraint sets more complicated.
- *   <li> If an argument to a method is null, then the JLS says that it does not constrain the type
+ *   <li>If an argument to a method is null, then the JLS says that it does not constrain the type
  *       argument. However, null may constrain the qualifiers on the type argument, so it is
  *       included in the constraints but is not used as the underlying type of the type argument.
  * </ul>
@@ -74,9 +75,9 @@ import org.checkerframework.javacutil.TypesUtils;
  * the time to handle them:
  *
  * <ul>
- *   <li> The GlbUtil does not correctly handled wildcards/typevars when the glb result should be a
+ *   <li>The GlbUtil does not correctly handled wildcards/typevars when the glb result should be a
  *       wildcard or typevar
- *   <li> Interdependent Method Invocations -- Currently we do not correctly handle the case where
+ *   <li>Interdependent Method Invocations -- Currently we do not correctly handle the case where
  *       two methods need to have their arguments inferred and one is the argument to the other.
  *       E.g.
  *       <pre>{@code
@@ -118,7 +119,7 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
         handleNullTypeArguments(
                 typeFactory, methodElem, methodType, argTypes, assignedTo, targets, inferredArgs);
 
-        handleUninferredTypeVariables(methodType, targets, inferredArgs);
+        handleUninferredTypeVariables(typeFactory, methodType, targets, inferredArgs);
 
         return inferredArgs;
     }
@@ -134,7 +135,7 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
      * @param argTypes annotated types of arguments to the method
      * @param assignedTo annotated type to which the result of the method invocation is assigned
      * @param targets set of type variables to infer
-     * @param inferredArgs map of type variables to the annotated types of their type arguments.
+     * @param inferredArgs map of type variables to the annotated types of their type arguments
      */
     private void handleNullTypeArguments(
             AnnotatedTypeFactory typeFactory,
@@ -162,7 +163,7 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
                 if (withoutNullResult == null) {
                     // withoutNullResult is null when the only constraint on a type argument is
                     // where a method argument is null.
-                    withoutNullResult = atv.getUpperBound().deepCopy();
+                    withoutNullResult = typeFactory.getUninferredWildcardType(atv);
                 }
                 AnnotatedTypeMirror lub =
                         AnnotatedTypes.leastUpperBound(typeFactory, withoutNullResult, result);
@@ -418,7 +419,8 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
             List<AnnotatedTypeVariable> targetDeclarations,
             AnnotatedTypeFactory typeFactory) {
         final QualifierHierarchy qualifierHierarchy = typeFactory.getQualifierHierarchy();
-        final Set<? extends AnnotationMirror> tops = qualifierHierarchy.getTopAnnotations();
+        final AnnotationMirrorSet tops =
+                new AnnotationMirrorSet(qualifierHierarchy.getTopAnnotations());
 
         for (AnnotatedTypeVariable targetDecl : targetDeclarations) {
             InferredValue inferred = fromArgSupertypes.get(targetDecl.getUnderlyingType());
@@ -565,8 +567,8 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
      * <p>This method creates constraints:
      *
      * <ul>
-     *   <li> between the bounds of types that are already inferred and their inferred arguments
-     *   <li> between the assignment context and the return type of the method (with the previously
+     *   <li>between the bounds of types that are already inferred and their inferred arguments
+     *   <li>between the assignment context and the return type of the method (with the previously
      *       inferred arguments substituted into these constraints)
      * </ul>
      */
@@ -710,6 +712,7 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
      * parameter.
      */
     private void handleUninferredTypeVariables(
+            AnnotatedTypeFactory typeFactory,
             AnnotatedExecutableType methodType,
             Set<TypeVariable> targets,
             Map<TypeVariable, AnnotatedTypeMirror> inferredArgs) {
@@ -719,8 +722,8 @@ public class DefaultTypeArgumentInference implements TypeArgumentInference {
             if (targets.contains(typeVar)) {
                 final AnnotatedTypeMirror inferredType = inferredArgs.get(typeVar);
                 if (inferredType == null) {
-                    AnnotatedTypeMirror dummy = atv.getUpperBound().deepCopy();
-                    inferredArgs.put(typeVar, dummy);
+                    AnnotatedTypeMirror dummy = typeFactory.getUninferredWildcardType(atv);
+                    inferredArgs.put(atv.getUnderlyingType(), dummy);
                 }
             }
         }

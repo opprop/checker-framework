@@ -131,11 +131,8 @@ public abstract class AnnotatedTypeMirror {
     /** The factory to use for lazily creating annotated types. */
     protected final AnnotatedTypeFactory atypeFactory;
 
-    /** Actual type wrapped with this AnnotatedTypeMirror * */
+    /** Actual type wrapped with this AnnotatedTypeMirror */
     protected final TypeMirror actualType;
-
-    /** Used to format AnnotatedTypeMirrors into strings for printing. */
-    protected final AnnotatedTypeFormatter formatter;
 
     /** The annotations on this type. */
     // AnnotationMirror doesn't override Object.hashCode, .equals, so we use
@@ -159,7 +156,6 @@ public abstract class AnnotatedTypeMirror {
         this.actualType = type;
         assert atypeFactory != null;
         this.atypeFactory = atypeFactory;
-        this.formatter = atypeFactory.typeFormatter;
     }
 
     @Override
@@ -730,12 +726,12 @@ public abstract class AnnotatedTypeMirror {
     @SideEffectFree
     @Override
     public final String toString() {
-        return formatter.format(this);
+        return atypeFactory.getAnnotatedTypeFormatter().format(this);
     }
 
     @SideEffectFree
     public final String toString(boolean verbose) {
-        return formatter.format(this, verbose);
+        return atypeFactory.getAnnotatedTypeFormatter().format(this, verbose);
     }
 
     /**
@@ -757,10 +753,10 @@ public abstract class AnnotatedTypeMirror {
      * <p>Note: deepCopy provides two important properties in the returned copy:
      *
      * <ol>
-     *   <li> Structure preservation -- The exact structure of the original AnnotatedTypeMirror is
+     *   <li>Structure preservation -- The exact structure of the original AnnotatedTypeMirror is
      *       preserved in the copy including all component types.
-     *   <li> Annotation preservation -- All of the annotations from the original
-     *       AnnotatedTypeMirror and its components have been copied to the new type.
+     *   <li>Annotation preservation -- All of the annotations from the original AnnotatedTypeMirror
+     *       and its components have been copied to the new type.
      * </ol>
      *
      * If copyAnnotations is set to false, the second property, Annotation preservation, is removed.
@@ -804,7 +800,7 @@ public abstract class AnnotatedTypeMirror {
     /** Represents a declared type (whether class or interface). */
     public static class AnnotatedDeclaredType extends AnnotatedTypeMirror {
 
-        /** Parametrized Type Arguments * */
+        /** Parametrized Type Arguments */
         protected List<AnnotatedTypeMirror> typeArgs;
 
         /**
@@ -817,7 +813,7 @@ public abstract class AnnotatedTypeMirror {
          */
         private boolean wasRaw;
 
-        /** The enclosing Type * */
+        /** The enclosing Type */
         protected AnnotatedDeclaredType enclosingType;
 
         protected List<AnnotatedDeclaredType> supertypes = null;
@@ -839,7 +835,10 @@ public abstract class AnnotatedTypeMirror {
 
             TypeMirror encl = type.getEnclosingType();
             if (encl.getKind() == TypeKind.DECLARED) {
-                this.enclosingType = (AnnotatedDeclaredType) createType(encl, atypeFactory, true);
+                this.enclosingType =
+                        (AnnotatedDeclaredType) createType(encl, atypeFactory, declaration);
+                // Force instantiation of type arguments of enclosing type.
+                this.enclosingType.getTypeArguments();
             } else if (encl.getKind() != TypeKind.NONE) {
                 ErrorReporter.errorAbort(
                         "AnnotatedDeclaredType: unsupported enclosing type: "
@@ -928,8 +927,21 @@ public abstract class AnnotatedTypeMirror {
         public List<AnnotatedTypeMirror> getTypeArguments() {
             if (typeArgs == null) {
                 typeArgs = new ArrayList<AnnotatedTypeMirror>();
-                if (!((DeclaredType) actualType).getTypeArguments().isEmpty()) { // lazy init
-                    for (TypeMirror t : ((DeclaredType) actualType).getTypeArguments()) {
+                if (wasRaw()) {
+                    // TODO: This doesn't handle recursive type parameter
+                    // e.g. class Pair<Y extends List<Y>> { ... }
+                    // Type argument inference for raw types can be improved. See Issue #635.
+                    // https://github.com/typetools/checker-framework/issues/635
+                    AnnotatedDeclaredType declaration =
+                            atypeFactory.fromElement((TypeElement) getUnderlyingType().asElement());
+                    for (AnnotatedTypeMirror typeParam : declaration.getTypeArguments()) {
+                        AnnotatedWildcardType wct =
+                                atypeFactory.getUninferredWildcardType(
+                                        (AnnotatedTypeVariable) typeParam);
+                        typeArgs.add(wct);
+                    }
+                } else if (!getUnderlyingType().getTypeArguments().isEmpty()) { // lazy init
+                    for (TypeMirror t : getUnderlyingType().getTypeArguments()) {
                         typeArgs.add(createType(t, atypeFactory, declaration));
                     }
                 }
@@ -1444,10 +1456,10 @@ public abstract class AnnotatedTypeMirror {
             this.declaration = declaration;
         }
 
-        /** The lower bound of the type variable. * */
+        /** The lower bound of the type variable. */
         private AnnotatedTypeMirror lowerBound;
 
-        /** The upper bound of the type variable. * */
+        /** The upper bound of the type variable. */
         private AnnotatedTypeMirror upperBound;
 
         private boolean declaration;
@@ -1505,21 +1517,16 @@ public abstract class AnnotatedTypeMirror {
          * @param type the lower bound type
          */
         void setLowerBound(AnnotatedTypeMirror type) {
-            if (type != null) {
-                type = type.asUse();
+            if (type == null || type.isDeclaration()) {
+                ErrorReporter.errorAbort(
+                        "Lower bounds should never be null or a declaration.\n"
+                                + "  new bound = "
+                                + type
+                                + "\n  type = "
+                                + this);
             }
             this.lowerBound = type;
-        }
-
-        /**
-         * Sets the lower bound of this type variable without calling asUse (and therefore making a
-         * copy)
-         */
-        void setLowerBoundField(AnnotatedTypeMirror type) {
-            this.lowerBound = type;
-            if (lowerBound != null) {
-                fixupBoundAnnotations();
-            }
+            fixupBoundAnnotations();
         }
 
         /**
@@ -1604,23 +1611,16 @@ public abstract class AnnotatedTypeMirror {
          * @param type the upper bound type
          */
         void setUpperBound(AnnotatedTypeMirror type) {
-            if (type.isDeclaration()) {
+            if (type == null || type.isDeclaration()) {
                 ErrorReporter.errorAbort(
-                        "Upper bounds should never contain declarations.\n" + "type=" + type);
+                        "Upper bounds should never be null or a declaration.\n"
+                                + "  new bound = "
+                                + type
+                                + "\n  type = "
+                                + this);
             }
             this.upperBound = type;
-        }
-
-        /**
-         * Set the upper bound of this variable type without making a copy using asUse
-         *
-         * @param type the upper bound type
-         */
-        void setUpperBoundField(final AnnotatedTypeMirror type) {
-            this.upperBound = type;
-            if (upperBound != null) {
-                fixupBoundAnnotations();
-            }
+            fixupBoundAnnotations();
         }
 
         /**
@@ -1724,8 +1724,8 @@ public abstract class AnnotatedTypeMirror {
      *
      * <ul>
      *   <li>VOID -- corresponds to the keyword void.
-     *   <li> PACKAGE -- the pseudo-type of a package element.
-     *   <li> NONE -- used in other cases where no actual type is appropriate; for example, the
+     *   <li>PACKAGE -- the pseudo-type of a package element.
+     *   <li>NONE -- used in other cases where no actual type is appropriate; for example, the
      *       superclass of java.lang.Object.
      * </ul>
      */
@@ -1871,10 +1871,10 @@ public abstract class AnnotatedTypeMirror {
      * explicitly set by a super clause, or neither (but not both).
      */
     public static class AnnotatedWildcardType extends AnnotatedTypeMirror {
-        /** SuperBound * */
+        /** SuperBound */
         private AnnotatedTypeMirror superBound;
 
-        /** ExtendBound * */
+        /** ExtendBound */
         private AnnotatedTypeMirror extendsBound;
 
         private AnnotatedWildcardType(WildcardType type, AnnotatedTypeFactory factory) {
@@ -1893,13 +1893,16 @@ public abstract class AnnotatedTypeMirror {
          * @param type the type of the lower bound
          */
         void setSuperBound(AnnotatedTypeMirror type) {
-            if (type != null) {
-                type = type.asUse();
+            if (type == null || type.isDeclaration()) {
+                ErrorReporter.errorAbort(
+                        "Super bounds should never be null or a declaration.\n"
+                                + "  new bound = "
+                                + type
+                                + "\n  type = "
+                                + this);
             }
             this.superBound = type;
-            if (superBound != null) {
-                fixupBoundAnnotations();
-            }
+            fixupBoundAnnotations();
         }
 
         public AnnotatedTypeMirror getSuperBoundField() {
@@ -1924,13 +1927,16 @@ public abstract class AnnotatedTypeMirror {
          * @param type the type of the upper bound
          */
         void setExtendsBound(AnnotatedTypeMirror type) {
-            if (type != null) {
-                type = type.asUse();
+            if (type == null || type.isDeclaration()) {
+                ErrorReporter.errorAbort(
+                        "Extends bounds should never be null or a declaration.\n"
+                                + "  new bound = "
+                                + type
+                                + "\n  type = "
+                                + this);
             }
             this.extendsBound = type;
-            if (extendsBound != null) {
-                fixupBoundAnnotations();
-            }
+            fixupBoundAnnotations();
         }
 
         public AnnotatedTypeMirror getExtendsBoundField() {
@@ -1990,7 +1996,7 @@ public abstract class AnnotatedTypeMirror {
                 type.addAnnotations(this.getAnnotationsField());
             }
 
-            type.typeArgHack = typeArgHack;
+            type.uninferredTypeArgument = uninferredTypeArgument;
 
             return type;
         }
@@ -2010,16 +2016,28 @@ public abstract class AnnotatedTypeMirror {
             return getExtendsBound().getErased();
         }
 
-        // Remove the typeArgHack once method type
+        // Remove the uninferredTypeArgument once method type
         // argument inference and raw type handling is improved.
-        private boolean typeArgHack = false;
+        private boolean uninferredTypeArgument = false;
 
-        /* package-scope */ void setTypeArgHack() {
-            typeArgHack = true;
+        /**
+         * Set that this wildcard is from an uninferred type argument. This method should only be
+         * used within the framework. Once issues that depend on this hack, in particular Issue 979,
+         * are fixed, this must be removed.
+         */
+        public void setUninferredTypeArgument() {
+            uninferredTypeArgument = true;
         }
 
-        /* package-scope */ boolean isTypeArgHack() {
-            return typeArgHack;
+        /**
+         * Returns whether or not this wildcard is a type argument for which inference failed to
+         * infer a type.
+         *
+         * @return returns whether or not this wildcard is a type argument for which inference
+         *     failed
+         */
+        public boolean isUninferredTypeArgument() {
+            return uninferredTypeArgument;
         }
     }
 

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;
@@ -87,7 +88,7 @@ import org.checkerframework.javacutil.TreeUtils;
     // 1. Add a brief blurb here about the use case
     //    and a pointer to one prominent use of the option.
     // 2. Update the Checker Framework manual:
-    //     * checker/manual/introduction.tex contains a list of all options,
+    //     * docs/manual/introduction.tex contains a list of all options,
     //       which should be in the same order as this source code file.
     //     * a specific section should contain a detailed discussion.
 
@@ -163,6 +164,10 @@ import org.checkerframework.javacutil.TreeUtils;
     // org.checkerframework.framework.flow.CFAbstractTransfer.sequentialSemantics
     "concurrentSemantics",
 
+    // Whether to use a conservative value for type arguments that could not be inferred.
+    // See Issue 979.
+    "conservativeUninferredTypeArguments",
+
     ///
     /// Type-checking modes:  enable/disable functionality
     ///
@@ -215,9 +220,6 @@ import org.checkerframework.javacutil.TreeUtils;
     // Whether to print @InvisibleQualifier marked annotations
     // org.checkerframework.framework.type.AnnotatedTypeMirror.toString()
     "printAllQualifiers",
-
-    // Print qualifier parameters using annotations instead of the <<Q>> format.
-    "printQualifierParametersAsAnnotations",
 
     // Whether to print [] around a set of type parameters in order to clearly see where they end
     // e.g.  <E extends F, F extends Object>
@@ -1140,11 +1142,20 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         if (source instanceof Element) {
             messager.printMessage(kind, messageText, (Element) source);
         } else if (source instanceof Tree) {
-            Trees.instance(processingEnv)
-                    .printMessage(kind, messageText, (Tree) source, currentRoot);
+            printMessage(kind, messageText, (Tree) source, currentRoot);
         } else {
             ErrorReporter.errorAbort("invalid position source: " + source.getClass().getName());
         }
+    }
+
+    /**
+     * Do not call this method directly. Call {@link #message(Kind, Object, String, Object...)}
+     * instead. (This method exists so that the BaseTypeChecker can override it and treat messages
+     * from compound checkers differently.)
+     */
+    protected void printMessage(
+            Diagnostic.Kind kind, String message, Tree source, CompilationUnitTree root) {
+        Trees.instance(processingEnv).printMessage(kind, message, source, root);
     }
 
     /**
@@ -1166,7 +1177,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *
      * @param kind the kind of message to print
      * @param msg the message text
-     * @param args optional arguments to substitute in the message.
+     * @param args optional arguments to substitute in the message
      * @see SourceChecker#message(Diagnostic.Kind, Object, String, Object...)
      */
     public void message(Diagnostic.Kind kind, String msg, Object... args) {
@@ -1215,8 +1226,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *       {@link #getSuppressWarningsKeys()} (e.g., {@code "nullness"} for Nullness, {@code
      *       "regex"} for Regex)
      *   <li>{@code "suppress-key:error-key}, where the suppress-key is as above, and error-key is a
-     *       prefix of the errors that it may suppress. So "nullness:generic.argument", would
-     *       suppress any errors in the Nullness Checker related to generic.argument.
+     *       prefix or suffix of the errors that it may suppress. So "nullness:generic.argument",
+     *       would suppress any errors in the Nullness Checker related to generic.argument.
      * </ol>
      *
      * @param anno the @SuppressWarnings annotation written by the user
@@ -1826,7 +1837,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     protected final Collection<String> getStandardSuppressWarningsKeys() {
         SuppressWarningsKeys annotation = this.getClass().getAnnotation(SuppressWarningsKeys.class);
 
-        Set<String> result = new HashSet<>();
+        // TreeSet ensures keys are returned in a consistent order.
+        Set<String> result = new TreeSet<>();
         result.add(SUPPRESS_ALL_KEY);
 
         if (annotation != null) {

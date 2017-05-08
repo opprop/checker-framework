@@ -147,13 +147,11 @@ public class ElementAnnotationUtil {
      * <@A ? extends Object> -- @A is placed on the super bound (Void)
      * <@B ? super CharSequence> -- @B is placed on the extends bound (probably Object)
      * }</pre>
-     *
      *   <li>b) If an Annotation is on a bound, it applies to that bound. E.g.
      *       <pre>{@code
      * <? extends @A Object> -- @A is placed on the extends bound (Object)
      * <? super @B CharSequence> -- @B is placed on the super bound (CharSequence)
      * }</pre>
-     *
      *   <li>c) If an Annotation is on an unbounded wildcard there are two subcases.
      *       <ul>
      *         <li>c.1 The user wrote the annotation explicitly -- these annotations apply to both
@@ -169,7 +167,6 @@ public class ElementAnnotationUtil {
      *          This case is treated just like annotations in cases a/b.
      * }</pre>
      *       </ul>
-     *
      * </ul>
      */
     private static final class WildcardBoundAnnos {
@@ -210,7 +207,7 @@ public class ElementAnnotationUtil {
                 possiblyBoth.add(anno);
 
             } else {
-                // A TypePathEntry of WILDCARD indicates that is is placed on the bound
+                // A TypePathEntry of WILDCARD indicates that it is placed on the bound
                 // use the type of the wildcard bound to determine which set to put it in
 
                 if (isInFrontOfWildcard) {
@@ -324,7 +321,7 @@ public class ElementAnnotationUtil {
 
     /**
      * See the Type Annotation Specification on bounds
-     * (http://types.cs.washington.edu/jsr308/specification/java-annotation-design.html)
+     * (https://checkerframework.org/jsr308/specification/java-annotation-design.html)
      *
      * <p>TypeAnnotationPositions have bound indices when they represent an upper bound on a
      * TypeVariable. The index 0 ALWAYS refers to the superclass type. If that supertype is implied

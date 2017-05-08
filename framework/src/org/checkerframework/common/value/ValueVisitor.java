@@ -1,33 +1,52 @@
 package org.checkerframework.common.value;
 
 import com.sun.source.tree.AnnotationTree;
-import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.NewArrayTree;
-import com.sun.source.tree.Tree;
+import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.TypeCastTree;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeInfo;
+import java.util.Collections;
 import java.util.List;
-import javax.lang.model.element.Element;
+import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.value.qual.ArrayLen;
+import org.checkerframework.common.value.qual.ArrayLenRange;
 import org.checkerframework.common.value.qual.BoolVal;
 import org.checkerframework.common.value.qual.DoubleVal;
+import org.checkerframework.common.value.qual.IntRange;
 import org.checkerframework.common.value.qual.IntVal;
 import org.checkerframework.common.value.qual.StringVal;
 import org.checkerframework.framework.source.Result;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.InternalUtils;
 
 /**
  * @author plvines
- *     <p>Visitor for the Constant Value type-system.
+ *     <p>Visitor for the Constant Value type-system
  */
 public class ValueVisitor extends BaseTypeVisitor<ValueAnnotatedTypeFactory> {
 
     public ValueVisitor(BaseTypeChecker checker) {
         super(checker);
+    }
+
+    /**
+     * @param exp an integral literal tree
+     * @return {@code exp}'s literal value
+     */
+    private long getIntLiteralValue(LiteralTree exp) {
+        Object orgValue = exp.getValue();
+        switch (exp.getKind()) {
+            case INT_LITERAL:
+            case LONG_LITERAL:
+                return ((Number) orgValue).longValue();
+            case CHAR_LITERAL:
+                return (long) ((Character) orgValue);
+            default:
+                throw new IllegalArgumentException(
+                        "exp is not an intergral literal (INT_LITERAL, LONG_LITERAL, CHAR_LITERAL)");
+        }
     }
 
     @Override
@@ -36,10 +55,11 @@ public class ValueVisitor extends BaseTypeVisitor<ValueAnnotatedTypeFactory> {
     }
 
     /**
-     * Issues a warning if any constant-value annotation has &gt; MAX_VALUES number of values
-     * provided. Works together with
-     * ValueAnnotatedTypeFactory.ValueTypeAnnotator.replaceWithUnknownValIfTooManyValues which
-     * treats the value as @UnknownVal in this case.
+     * Warns about malformed constant-value annotations.
+     *
+     * <p>Issues an error if any @IntRange annotation has its 'from' value greater than 'to' value.
+     *
+     * <p>Issues a warning if any constant-value annotation has &gt; MAX_VALUES arguments.
      */
     @Override
     public Void visitAnnotation(AnnotationTree node, Void p) {
@@ -50,30 +70,61 @@ public class ValueVisitor extends BaseTypeVisitor<ValueAnnotatedTypeFactory> {
             return super.visitAnnotation(node, p);
         }
 
-        Element element = TreeInfo.symbol((JCTree) node.getAnnotationType());
-        if (!(element.toString().equals(ArrayLen.class.getName())
-                || element.toString().equals(BoolVal.class.getName())
-                || element.toString().equals(DoubleVal.class.getName())
-                || element.toString().equals(IntVal.class.getName())
-                || element.toString().equals(StringVal.class.getName()))) {
-            return super.visitAnnotation(node, p);
-        }
+        AnnotationMirror anno = InternalUtils.annotationFromAnnotationTree(node);
 
-        if (node.getArguments().size() > 0
-                && node.getArguments().get(0).getKind() == Kind.ASSIGNMENT) {
-            AssignmentTree argument = (AssignmentTree) node.getArguments().get(0);
-            if (argument.getExpression().getKind() == Tree.Kind.NEW_ARRAY) {
-                int numArgs = ((NewArrayTree) argument.getExpression()).getInitializers().size();
-
-                if (numArgs > ValueAnnotatedTypeFactory.MAX_VALUES) {
-                    checker.report(
-                            Result.warning(
-                                    "too.many.values.given", ValueAnnotatedTypeFactory.MAX_VALUES),
-                            node);
+        if (AnnotationUtils.areSameByClass(anno, IntRange.class)) {
+            // If there are 2 arguments, issue an error if from.greater.than.to.
+            // If there are fewer than 2 arguments, we needn't worry about this problem because the
+            // other argument will be defaulted to Long.MIN_VALUE or Long.MAX_VALUE accordingly.
+            if (args.size() == 2) {
+                long from = AnnotationUtils.getElementValue(anno, "from", Long.class, true);
+                long to = AnnotationUtils.getElementValue(anno, "to", Long.class, true);
+                if (from > to) {
+                    checker.report(Result.failure("from.greater.than.to"), node);
                     return null;
                 }
             }
+        } else if (AnnotationUtils.areSameByClass(anno, ArrayLen.class)
+                || AnnotationUtils.areSameByClass(anno, BoolVal.class)
+                || AnnotationUtils.areSameByClass(anno, DoubleVal.class)
+                || AnnotationUtils.areSameByClass(anno, IntVal.class)
+                || AnnotationUtils.areSameByClass(anno, StringVal.class)) {
+            List<Object> values =
+                    AnnotationUtils.getElementValueArray(anno, "value", Object.class, true);
+
+            if (values.isEmpty()) {
+                checker.report(Result.warning("no.values.given"), node);
+                return null;
+            } else if (values.size() > ValueAnnotatedTypeFactory.MAX_VALUES) {
+                checker.report(
+                        Result.warning(
+                                (AnnotationUtils.areSameByClass(anno, IntVal.class)
+                                        ? "too.many.values.given.int"
+                                        : "too.many.values.given"),
+                                ValueAnnotatedTypeFactory.MAX_VALUES),
+                        node);
+                return null;
+            } else if (AnnotationUtils.areSameByClass(anno, ArrayLen.class)) {
+                List<Integer> arrayLens =
+                        AnnotationUtils.getElementValueArray(anno, "value", Integer.class, true);
+                if (Collections.min(arrayLens) < 0) {
+                    checker.report(
+                            Result.warning("negative.arraylen", Collections.min(arrayLens)), node);
+                    return null;
+                }
+            }
+        } else if (AnnotationUtils.areSameByClass(anno, ArrayLenRange.class)) {
+            int from = AnnotationUtils.getElementValue(anno, "from", Integer.class, true);
+            int to = AnnotationUtils.getElementValue(anno, "to", Integer.class, true);
+            if (from > to) {
+                checker.report(Result.failure("from.greater.than.to"), node);
+                return null;
+            } else if (from < 0) {
+                checker.report(Result.warning("negative.arraylen", from), node);
+                return null;
+            }
         }
+
         return super.visitAnnotation(node, p);
     }
 

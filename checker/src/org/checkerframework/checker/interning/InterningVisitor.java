@@ -69,9 +69,8 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
     /**
      * @return true if interning should be verified for the input expression. By default, all
      *     classes are checked for interning unless {@code -Acheckclass} is specified.
-     * @see <a
-     *     href="http://types.cs.washington.edu/checker-framework/current/checker-framework-manual.html#interning-checks">What
-     *     the Interning Checker checks</a>
+     * @see <a href="https://checkerframework.org/manual/#interning-checks">What the Interning
+     *     Checker checks</a>
      */
     private boolean shouldCheckExpression(ExpressionTree tree) {
         if (typeToCheck == null) return true;
@@ -213,7 +212,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      *     java.lang.Object)
      */
     @Override
-    public Void visitClass(ClassTree node, Void p) {
+    public void processClassTree(ClassTree node) {
         // TODO: Should this method use the Javac types or some other utility to get
         // all direct supertypes instead, and should it verify that each does not
         // override .equals and that at least one of them is annotated with @UsesObjectEquals?
@@ -253,7 +252,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
             }
         }
 
-        return super.visitClass(node, p);
+        super.processClassTree(node);
     }
 
     // **********************************************************************
@@ -298,8 +297,6 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
     /**
      * Tests whether a method invocation is an invocation of {@link Comparable#compareTo}.
      *
-     * <p>
-     *
      * @param node a method invocation node
      * @return true iff {@code node} is a invocation of {@code compareTo()}
      */
@@ -319,11 +316,11 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      * an if statement that's the first statement in the method, and one of the following is true:
      *
      * <ol>
-     *   <li> the method overrides {@link Comparator#compare}, the "then" branch of the if statement
+     *   <li>the method overrides {@link Comparator#compare}, the "then" branch of the if statement
      *       returns zero, and the comparison tests equality of the method's two parameters
-     *   <li> the method overrides {@link Object#equals(Object)} and the comparison tests "this"
+     *   <li>the method overrides {@link Object#equals(Object)} and the comparison tests "this"
      *       against the method's parameter
-     *   <li> the method overrides {@link Comparable#compareTo(Object)}, the "then" branch of the if
+     *   <li>the method overrides {@link Comparable#compareTo(Object)}, the "then" branch of the if
      *       statement returns zero, and the comparison tests "this" against the method's parameter
      * </ol>
      *
@@ -822,10 +819,14 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      */
     DeclaredType typeToCheck() {
         String className = checker.getOption("checkclass");
-        if (className == null) return null;
+        if (className == null) {
+            return null;
+        }
 
         TypeElement classElt = elements.getTypeElement(className);
-        if (classElt == null) return null;
+        if (classElt == null) {
+            return null;
+        }
 
         return types.getDeclaredType(classElt);
     }

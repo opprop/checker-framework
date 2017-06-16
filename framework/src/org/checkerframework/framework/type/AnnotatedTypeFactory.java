@@ -312,18 +312,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     protected final ViewpointAdaptor<?> viewpointAdaptor;
 
     /**
-     * A boolean flag to indicate {@link AnnotatedTypeFactory#viewpointAdaptor} is null or not.
-     * These are two things: type system claims to need viewpoint adaptation and {@link
-     * AnnotatedTypeFactory#viewpointAdaptor} is null or not. If type system claims to need
-     * viewpoint adaptation, but fails to provide valid concrete subclass implementation of {@link
-     * ViewpointAdaptor}, this filed is still set to false, and error aborts. If true, i.e.
-     * viewpointAdaptor is non-null, then {@link AnnotatedTypeFactory#viewpointAdaptor}} is used to
-     * perform viewpoint adaptation. In this way, we can ensure that
-     * withEffectiveViewpointAdaptation implies viewpointAdaptor is non-null
-     */
-    protected final boolean withEffectiveViewpointAdaptation;
-
-    /**
      * Constructs a factory from the given {@link ProcessingEnvironment} instance and syntax tree
      * root. (These parameters are required so that the factory may conduct the appropriate
      * annotation-gathering analyses on certain tree types.)
@@ -370,8 +358,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         this.typeFormatter = createAnnotatedTypeFormatter();
         this.annotationFormatter = createAnnotationFormatter();
-        this.viewpointAdaptor = createViewpointAdaptor(checker.withViewpointAdaptation());
-        this.withEffectiveViewpointAdaptation = this.viewpointAdaptor != null;
+        this.viewpointAdaptor = createViewpointAdaptor();
 
         infer = checker.hasOption("infer");
         if (infer) {
@@ -1313,7 +1300,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             addAnnotationFromFieldInvariant(type, owner, (VariableElement) element);
         }
         addComputedTypeAnnotations(element, type);
-        if (withEffectiveViewpointAdaptation && viewpointAdaptor.shouldBeAdapted(type, element)) {
+        if (viewpointAdaptor != null && viewpointAdaptor.shouldBeAdapted(type, element)) {
             AnnotatedTypeMirror decltype = this.getAnnotatedType(element);
             AnnotatedTypeMirror combinedType =
                     this.viewpointAdaptor.combineTypeWithType(owner, decltype, this);
@@ -1514,12 +1501,12 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         for (AnnotatedTypeMirror atm : tvars) {
             AnnotatedTypeVariable atv = (AnnotatedTypeVariable) atm;
             AnnotatedTypeMirror upper = atv.getUpperBound();
-            if (withEffectiveViewpointAdaptation) {
+            if (viewpointAdaptor != null) {
                 upper = viewpointAdaptor.combineTypeWithType(type, upper, this);
             }
             upper = typeVarSubstitutor.substitute(mapping, upper);
             AnnotatedTypeMirror lower = atv.getLowerBound();
-            if (withEffectiveViewpointAdaptation) {
+            if (viewpointAdaptor != null) {
                 lower = viewpointAdaptor.combineTypeWithType(type, lower, this);
             }
             lower = typeVarSubstitutor.substitute(mapping, lower);
@@ -1973,7 +1960,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType methodType =
                 AnnotatedTypes.asMemberOf(types, this, receiverType, methodElt);
 
-        if (withEffectiveViewpointAdaptation) {
+        if (viewpointAdaptor != null) {
             AnnotatedExecutableType declMethodType = this.getAnnotatedType(methodElt);
             AnnotatedTypeMirror returnType = declMethodType.getReturnType();
             List<AnnotatedTypeMirror> parameterTypes = declMethodType.getParameterTypes();
@@ -2139,7 +2126,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         List<AnnotatedTypeMirror> parameterTypes = con.getParameterTypes();
         List<AnnotatedTypeVariable> typeVariables = con.getTypeVariables();
 
-        if (withEffectiveViewpointAdaptation) {
+        if (viewpointAdaptor != null) {
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new HashMap<>();
             for (AnnotatedTypeMirror parameterType : parameterTypes) {
                 AnnotatedTypeMirror p =
@@ -3682,31 +3669,12 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return checker;
     }
 
-    /**
-     * Factory method to reflectively set {@link AnnotatedTypeFactory#viewpointAdaptor}. By default,
-     * this method gets the name of type system from the canonical name of "this", and concatenate
-     * it with "ViewpointAdaptor". If the concrete type system has a different naming mechanism,
-     * then developer of that type system should override this method to instantiate it correctly.
-     * If the target class can be instantiated successfully, it's used. Otherwise, internal error is
-     * triggered and will be error aborted.
-     *
-     * @return ViewpointAdaptor newly created
-     */
-    protected ViewpointAdaptor<?> createViewpointAdaptor(
-            boolean claimsToEnableViewpointAdaptation) {
-        if (!claimsToEnableViewpointAdaptation) return null;
-        // Reflectively lookup subclass of {@link ViewpointAdaptor} using type factory naming convention
-        String clazzName =
-                this.getClass()
-                        .getCanonicalName()
-                        .replace("AnnotatedTypeFactory", "ViewpointAdaptor");
-        try {
-            // Tries to instantiate that viewpoint adaptor
-            return (ViewpointAdaptor<?>) Class.forName(clazzName).newInstance();
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            // If didn't find or failed to instantiate, error abort.
-            checker.errorAbort("Failed to instantiate " + clazzName + " !");
-            return null;
-        }
+    /** Factory method to create ViewpointAdaptor. */
+    protected ViewpointAdaptor<?> createViewpointAdaptor() {
+        return null;
+    }
+
+    public ViewpointAdaptor<?> getViewpointAdaptor() {
+        return viewpointAdaptor;
     }
 }

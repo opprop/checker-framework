@@ -1,19 +1,5 @@
 package org.checkerframework.javacutil;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
-import javax.lang.model.type.WildcardType;
-import javax.lang.model.util.Elements;
-
 import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayAccessTree;
@@ -29,7 +15,7 @@ import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.Type.AnnotatedType;
+import com.sun.tools.javac.code.Type.CapturedType;
 import com.sun.tools.javac.code.Types;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
@@ -44,10 +30,23 @@ import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.util.Context;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.WildcardType;
+import javax.lang.model.util.Elements;
 
 /*>>>
- import org.checkerframework.checker.nullness.qual.*;
- */
+import org.checkerframework.checker.nullness.qual.*;
+*/
 
 /**
  * Static utility methods used by annotation abstractions in this package. Some
@@ -96,19 +95,19 @@ public class InternalUtils {
             case TYPE_PARAMETER:
                 return TreeInfo.symbolFor((JCTree) tree);
 
-            // symbol() only works on MethodSelects, so we need to get it manually
-            // for method invocations.
+                // symbol() only works on MethodSelects, so we need to get it manually
+                // for method invocations.
             case METHOD_INVOCATION:
                 return TreeInfo.symbol(((JCMethodInvocation) tree).getMethodSelect());
 
             case ASSIGNMENT:
-                return TreeInfo.symbol((JCTree)((AssignmentTree)tree).getVariable());
+                return TreeInfo.symbol((JCTree) ((AssignmentTree) tree).getVariable());
 
             case ARRAY_ACCESS:
-                return symbol(((ArrayAccessTree)tree).getExpression());
+                return symbol(((ArrayAccessTree) tree).getExpression());
 
             case NEW_CLASS:
-                return ((JCNewClass)tree).constructor;
+                return ((JCNewClass) tree).constructor;
 
             case MEMBER_REFERENCE:
                 // TreeInfo.symbol, which is used in the default case, didn't handle
@@ -136,7 +135,7 @@ public class InternalUtils {
             return false;
         }
 
-        if ((((/*@NonNull*/ Symbol)e).flags() & Flags.ANONCONSTR) != 0) {
+        if ((((/*@NonNull*/ Symbol) e).flags() & Flags.ANONCONSTR) != 0) {
             return true;
         }
 
@@ -181,7 +180,7 @@ public class InternalUtils {
 
             // the method call is guaranteed to return nonnull
             JCMethodDecl anonConstructor =
-                (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
+                    (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
             assert anonConstructor != null;
             assert anonConstructor.body.stats.size() == 1;
             JCExpressionStatement stmt = (JCExpressionStatement) anonConstructor.body.stats.head;
@@ -196,23 +195,27 @@ public class InternalUtils {
         return (ExecutableElement) e;
     }
 
-    public final static List<AnnotationMirror> annotationsFromTypeAnnotationTrees(List<? extends AnnotationTree> annos) {
+    public final static List<AnnotationMirror> annotationsFromTypeAnnotationTrees(
+            List<? extends AnnotationTree> annos) {
         List<AnnotationMirror> annotations = new ArrayList<AnnotationMirror>(annos.size());
         for (AnnotationTree anno : annos) {
-            annotations.add(((JCAnnotation)anno).attribute);
+            annotations.add(((JCAnnotation) anno).attribute);
         }
         return annotations;
     }
 
-    public final static List<? extends AnnotationMirror> annotationsFromTree(AnnotatedTypeTree node) {
-        return annotationsFromTypeAnnotationTrees(((JCAnnotatedType)node).annotations);
+    public final static List<? extends AnnotationMirror> annotationsFromTree(
+            AnnotatedTypeTree node) {
+        return annotationsFromTypeAnnotationTrees(((JCAnnotatedType) node).annotations);
     }
 
-    public final static List<? extends AnnotationMirror> annotationsFromTree(TypeParameterTree node) {
-        return annotationsFromTypeAnnotationTrees(((JCTypeParameter)node).annotations);
+    public final static List<? extends AnnotationMirror> annotationsFromTree(
+            TypeParameterTree node) {
+        return annotationsFromTypeAnnotationTrees(((JCTypeParameter) node).annotations);
     }
 
-    public final static List<? extends AnnotationMirror> annotationsFromArrayCreation(NewArrayTree node, int level) {
+    public final static List<? extends AnnotationMirror> annotationsFromArrayCreation(
+            NewArrayTree node, int level) {
 
         assert node instanceof JCNewArray;
         final JCNewArray newArray = ((JCNewArray) node);
@@ -237,10 +240,17 @@ public class InternalUtils {
      * Returns whether a TypeVariable represents a captured type.
      */
     public static boolean isCaptured(TypeVariable typeVar) {
-        if (typeVar instanceof AnnotatedType) {
-            return ((Type.TypeVar) ((Type.AnnotatedType) typeVar).unannotatedType()).isCaptured();
+        return ((Type.TypeVar) ((Type) typeVar).unannotatedType()).isCaptured();
+    }
+
+    /**
+     * If typeVar is a captured wildcard, returns that wildcard; otherwise returns null.
+     */
+    public static WildcardType getCapturedWildcard(TypeVariable typeVar) {
+        if (isCaptured(typeVar)) {
+            return ((CapturedType) ((Type) typeVar).unannotatedType()).wildcard;
         }
-        return ((Type.TypeVar) typeVar).isCaptured();
+        return null;
     }
 
     /**
@@ -372,8 +382,8 @@ public class InternalUtils {
      * method is given (i.e., the return type might still contain unsubstituted
      * type variables), given the receiver of the method call.
      */
-    public static TypeMirror substituteMethodReturnType(TypeMirror methodType,
-            TypeMirror substitutedReceiverType) {
+    public static TypeMirror substituteMethodReturnType(
+            TypeMirror methodType, TypeMirror substitutedReceiverType) {
         if (methodType.getKind() != TypeKind.TYPEVAR) {
             return methodType;
         }
@@ -391,13 +401,30 @@ public class InternalUtils {
         return null;
     }
 
-    /** Helper function to extract the javac Context from the
+    /**
+     * Helper function to extract the javac Context from the
      * javac processing environment.
      *
      * @param env the processing environment
      * @return the javac Context
      */
     public static Context getJavacContext(ProcessingEnvironment env) {
-        return ((JavacProcessingEnvironment)env).getContext();
+        return ((JavacProcessingEnvironment) env).getContext();
+    }
+
+    public static TypeElement getTypeElement(TypeMirror type) {
+        return (TypeElement) ((Type) type).tsym;
+    }
+
+    /**
+     * Obtain the class loader for {@code clazz}.
+     * If that is not available, return the system class loader.
+     * @param clazz the class whose class loader to find
+     * @return the class loader used to {@code clazz}, or the system
+     *         class loader, or null if both are unavailable
+     */
+    public static ClassLoader getClassLoaderForClass(Class<? extends Object> clazz) {
+        ClassLoader classLoader = clazz.getClassLoader();
+        return classLoader == null ? ClassLoader.getSystemClassLoader() : classLoader;
     }
 }

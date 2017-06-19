@@ -1,8 +1,8 @@
 package org.checkerframework.checker.i18nformatter;
 
 import javax.annotation.processing.SupportedOptions;
-
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.RelevantJavaTypes;
 
 /**
  * A type-checker plug-in for the qualifier that finds syntactically invalid
@@ -14,6 +14,6 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
  * @author Siwakorn Srisakaokul
  *
  */
-@SupportedOptions( {"bundlenames", "propfiles"} )
-public class I18nFormatterChecker extends BaseTypeChecker {
-}
+@SupportedOptions({"bundlenames", "propfiles"})
+@RelevantJavaTypes(CharSequence.class)
+public class I18nFormatterChecker extends BaseTypeChecker {}

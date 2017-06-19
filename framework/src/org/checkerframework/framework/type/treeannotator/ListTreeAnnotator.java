@@ -1,10 +1,10 @@
 package org.checkerframework.framework.type.treeannotator;
 
+import com.sun.source.tree.Tree;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import com.sun.source.tree.Tree;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 /**
@@ -28,8 +28,24 @@ public class ListTreeAnnotator extends TreeAnnotator {
      *                   They are executed in the order passed in.
      */
     public ListTreeAnnotator(TreeAnnotator... annotators) {
+        this(Arrays.asList(annotators));
+    }
+
+    /**
+     * @param annotators the annotators that will be executed for each tree scanned by this
+     *                   TreeAnnotator. They are executed in the order passed in.
+     */
+    public ListTreeAnnotator(List<TreeAnnotator> annotators) {
         super(null);
-        this.annotators = Collections.unmodifiableList(Arrays.asList(annotators));
+        List<TreeAnnotator> annotatorList = new ArrayList<>();
+        for (TreeAnnotator annotator : annotators) {
+            if (annotator instanceof ListTreeAnnotator) {
+                annotatorList.addAll(((ListTreeAnnotator) annotator).annotators);
+            } else {
+                annotatorList.add(annotator);
+            }
+        }
+        this.annotators = Collections.unmodifiableList(annotatorList);
     }
 
     @Override

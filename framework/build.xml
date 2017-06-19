@@ -168,6 +168,8 @@
             <arg value="7"/>
             <arg value="-target"/>
             <arg value="7"/>
+            <arg value="-encoding"/>
+            <arg value="utf-8"/>
             <!-- To not get a warning about bootstrap classpath -->
             <arg value="-Xlint:-options"/>
             <arg line="-sourcepath ${src}"/>
@@ -204,8 +206,13 @@
              mirrors javadoc dependencies. If changing project
              dependencies, change the Javadoc dependencies to keep
              them in sync (and vice versa). -->
-        <javadoc sourcepath="${src}:${checker.loc}/${src}:${javacutil.loc}/${src}:${stubparser}/${src}:${dataflow.loc}/${src}:${annotation-file-utilities.loc}/${src}" destdir="${api.doc}"
+        <!-- With Ant 1.9.4 or later, add
+            failonwarning="true"
+            but Travis is stuck on Ant 1.8.2 as of 6/2016 -->
+        <javadoc sourcepath="${src}:${javacutil.loc}/${src}:${stubparser}/${src}:${dataflow.loc}/${src}:${annotation-file-utilities.loc}/${src}"
+                 destdir="${api.doc}"
                  private="${javadoc.private}"
+                 encoding="UTF-8"
                  additionalParam="-Xdoclint:all,-missing"
                  failonerror="true"
                  executable="${javadoc.bin}"
@@ -216,9 +223,13 @@
             <package name="org.checkerframework.dataflow.*"/>
             <package name="org.checkerframework.stubparser.*"/>
             <package name="org.checkerframework.framework.*"/>
-            <package name="org.checkerframework.qualframework.*"/>
             <package name="org.checkerframework.common.*"/>
             <package name="org.checkerframework.checker.*"/>
+
+            <fileset dir="${checker.loc}/${src}">
+                <include name="**/*.java"/>
+                <exclude name="${checker.jdk8orhigher.sources}" if="${jdk7orlower}"/>
+            </fileset>
 
             <link href="http://docs.oracle.com/javase/8/docs/api/"/>
             <link href="http://docs.oracle.com/javase/8/docs/jdk/api/javac/tree/"/>
@@ -269,6 +280,8 @@
             <arg value="7"/>
             <arg value="-target"/>
             <arg value="7"/>
+            <arg value="-encoding"/>
+            <arg value="utf-8"/>
             <!-- To not get a warning about bootstrap classpath -->
             <arg value="-Xlint:-options"/>
             <arg line="-sourcepath ${tests}"/>
@@ -484,6 +497,13 @@
         </antcall>
     </target>
 
+    <target name="nontopdefault-tests" depends="jar,build-tests"
+            description="Run tests for the NonTopDefault Checker ">
+        <antcall target="-run-tests">
+            <param name="param" value="tests.NonTopDefaultTest"/>
+        </antcall>
+    </target>
+
     <target name="reflection-tests" depends="jar,build-tests"
             description="Run tests for reflection resolution">
         <antcall target="-run-tests">
@@ -671,7 +691,7 @@
                     workDir="${build.jtreg.dir}/@{name}/work"
                     reportDir="${build.jtreg.dir}/@{name}/report"
                     samevm="@{samevm}" verbose="@{verbose}"
-                    failonerror="false" resultproperty="jtreg.@{name}.result"
+                    failonerror="true" resultproperty="jtreg.@{name}.result"
                     javacoptions="-g"
                     vmoptions="${coverage.options} -Xbootclasspath/p:${coverage.classpath}:${build}:${checkers.classpath} @{jpda.jvmargs}">
                     <arg line="@{keywords}"/>
@@ -721,6 +741,8 @@
             <arg value="7"/>
             <arg value="-target"/>
             <arg value="7"/>
+            <arg value="-encoding"/>
+            <arg value="utf-8"/>
             <!-- To not get a warning about bootstrap classpath -->
             <arg value="-Xlint:-options"/>
             <arg line="-sourcepath ${src}:${checker-jdk}"/>

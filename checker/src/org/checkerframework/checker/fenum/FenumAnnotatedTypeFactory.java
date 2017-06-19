@@ -1,16 +1,14 @@
 package org.checkerframework.checker.fenum;
 
 import java.lang.annotation.Annotation;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import javax.lang.model.element.AnnotationMirror;
-
 import org.checkerframework.checker.fenum.qual.Fenum;
 import org.checkerframework.checker.fenum.qual.FenumBottom;
 import org.checkerframework.checker.fenum.qual.FenumTop;
 import org.checkerframework.checker.fenum.qual.FenumUnqualified;
+import org.checkerframework.checker.fenum.qual.PolyFenum;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.*;
@@ -33,7 +31,8 @@ public class FenumAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         this.postInit();
     }
 
-    /** Copied from SubtypingChecker.
+    /**
+     * Copied from SubtypingChecker.
      * Instead of returning an empty set if no "quals" option is given,
      * we return Fenum as the only qualifier.
      */
@@ -66,13 +65,14 @@ public class FenumAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         qualSet.add(Fenum.class);
         qualSet.add(FenumUnqualified.class);
         qualSet.add(FenumBottom.class);
+        qualSet.add(PolyFenum.class);
 
         // Also call super to load everything in qual directory
-        qualSet.addAll(super.createSupportedTypeQualifiers());
+        qualSet.addAll(getBundledTypeQualifiersWithPolyAll());
 
         // TODO: warn if no qualifiers given?
         // Just Fenum("..") is still valid, though...
-        return Collections.unmodifiableSet(qualSet);
+        return qualSet;
     }
 
     @Override
@@ -95,8 +95,8 @@ public class FenumAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
         @Override
         public boolean isSubtype(AnnotationMirror rhs, AnnotationMirror lhs) {
-            if (AnnotationUtils.areSameIgnoringValues(lhs, FENUM) &&
-                    AnnotationUtils.areSameIgnoringValues(rhs, FENUM)) {
+            if (AnnotationUtils.areSameIgnoringValues(lhs, FENUM)
+                    && AnnotationUtils.areSameIgnoringValues(rhs, FENUM)) {
                 return AnnotationUtils.areSame(lhs, rhs);
             }
             // Ignore annotation values to ensure that annotation is in supertype map.
@@ -109,5 +109,4 @@ public class FenumAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             return super.isSubtype(rhs, lhs);
         }
     }
-
 }

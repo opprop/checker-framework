@@ -1,8 +1,8 @@
 package tests;
 
 import java.io.File;
-
-import org.checkerframework.framework.test.CheckerFrameworkTest;
+import java.util.List;
+import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -13,17 +13,19 @@ import org.junit.runners.Parameterized.Parameters;
  * @author Stefan Heule
  *
  */
-public class Flow2Test extends CheckerFrameworkTest {
+public class Flow2Test extends CheckerFrameworkPerDirectoryTest {
 
-    public Flow2Test(File testFile) {
-        super(testFile,
+    public Flow2Test(List<File> testFiles) {
+        super(
+                testFiles,
                 tests.util.FlowTestChecker.class,
                 "flow",
-                "-Anomsgtext", "-AcheckPurityAnnotations");
+                "-Anomsgtext",
+                "-AcheckPurityAnnotations");
     }
 
     @Parameters
-    public static String [] getTestDirs() {
-        return new String[]{"flow2"};
+    public static String[] getTestDirs() {
+        return new String[] {"flow2"};
     }
 }

@@ -1,17 +1,18 @@
 package tests;
 
-import org.checkerframework.framework.test.CheckerFrameworkTest;
-import org.junit.runners.Parameterized.Parameters;
-
 import java.io.File;
+import java.util.List;
+import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * JUnit tests for the Nullness checker when running with concurrent semantics
  */
-public class NullnessConcurrentTest extends CheckerFrameworkTest {
+public class NullnessConcurrentTest extends CheckerFrameworkPerDirectoryTest {
 
-    public NullnessConcurrentTest(File testFile) {
-        super(testFile,
+    public NullnessConcurrentTest(List<File> testFiles) {
+        super(
+                testFiles,
                 org.checkerframework.checker.nullness.NullnessChecker.class,
                 "nullness",
                 "-AconcurrentSemantics",
@@ -20,7 +21,6 @@ public class NullnessConcurrentTest extends CheckerFrameworkTest {
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[]{"nullness-concurrent-semantics"};
+        return new String[] {"nullness-concurrent-semantics"};
     }
-
 }

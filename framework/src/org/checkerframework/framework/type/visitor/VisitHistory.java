@@ -1,12 +1,11 @@
 package org.checkerframework.framework.type.visitor;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.framework.util.PluginUtil;
 import org.checkerframework.javacutil.AnnotationUtils;
-
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * IMPORTANT: DO NOT USE VisitHistory FOR VISITORS THAT UPDATE AN ANNOTATED TYPE MIRROR'S
@@ -42,6 +41,10 @@ public class VisitHistory {
         this.visited = new HashSet<>();
     }
 
+    public void clear() {
+        visited.clear();
+    }
+
     /**
      * Add a visit for type1 and type2.
      */
@@ -67,7 +70,7 @@ public class VisitHistory {
      * Visit represents a pair of types that have been added to the history.  See class note for
      * VisitHistory (at the top of this file)
      */
-    private class Visit {
+    private static class Visit {
         public final AnnotatedTypeMirror type1;
         public final AnnotatedTypeMirror type2;
 
@@ -78,13 +81,13 @@ public class VisitHistory {
 
         @Override
         public int hashCode() {
-            return ( type1 != null ? 31 * type1.hashCode() : 0 ) +
-                   ( type2 != null ? 31 * type2.hashCode() : 1 );
+            return (type1 != null ? 31 * type1.hashCode() : 0)
+                    + (type2 != null ? 31 * type2.hashCode() : 1);
         }
 
         @Override
         public boolean equals(final Object oThat) {
-            if (oThat == null || !oThat.getClass().equals(this.getClass()))  {
+            if (oThat == null || !oThat.getClass().equals(this.getClass())) {
                 return false;
             }
             final Visit that = (Visit) oThat;
@@ -94,7 +97,8 @@ public class VisitHistory {
         /**
          * This is a replacement for AnnotatedTypeMirror.equals, read the class comment for VisitHistory
          */
-        private boolean equalityCompare(final AnnotatedTypeMirror thisType, final AnnotatedTypeMirror thatType) {
+        private boolean equalityCompare(
+                final AnnotatedTypeMirror thisType, final AnnotatedTypeMirror thatType) {
             if (thisType == null) {
                 return thatType == null;
             }
@@ -112,16 +116,17 @@ public class VisitHistory {
                     //TODO: Investigate WHY we get wildcards that are essentially recursive since I
                     //TODO: don't think we can write these wildcards. Perhaps it is related to our lack of
                     //TODO: capture conversion or inferring void methods
-                    return true;  // Handles the case of recursive wildcard types
+                    return true; // Handles the case of recursive wildcard types
                 }
-                if (!AnnotationUtils.areSame(thisType.getAnnotations(), thatType.getAnnotations())) {
+                if (!AnnotationUtils.areSame(
+                        thisType.getAnnotations(), thatType.getAnnotations())) {
                     return false;
                 } else {
                     //TODO: EXPLAIN CASCADING .contains if we don't do it this way
                     final AnnotatedWildcardType thisWc = (AnnotatedWildcardType) thisType;
                     final AnnotatedWildcardType thatWc = (AnnotatedWildcardType) thatType;
-                    return equalityCompare(thisWc.getExtendsBound(), thatWc.getExtendsBound()) &&
-                           equalityCompare(thisWc.getSuperBound(), thatWc.getSuperBound());
+                    return equalityCompare(thisWc.getExtendsBound(), thatWc.getExtendsBound())
+                            && equalityCompare(thisWc.getSuperBound(), thatWc.getSuperBound());
                 }
             }
 
@@ -133,5 +138,4 @@ public class VisitHistory {
             return "( " + type1 + " => " + type2 + " )";
         }
     }
-
 }

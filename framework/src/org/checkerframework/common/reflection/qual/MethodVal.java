@@ -4,7 +4,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
@@ -20,16 +19,20 @@ import org.checkerframework.framework.qual.SubtypeOf;
  *
  * @checker_framework.manual #methodval-and-classval-checkers MethodVal Checker
  */
-@SubtypeOf({ UnknownMethod.class })
+@SubtypeOf({UnknownMethod.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE_USE, ElementType.TYPE_PARAMETER })
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 public @interface MethodVal {
-    /** The <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-13.html#jls-13.1">binary name</a>
-     * of the class that declares this method. */
+    /**
+     * The <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-13.html#jls-13.1">binary name</a>
+     * of the class that declares this method.
+     */
     String[] className();
 
-    /** The name of the method that this Method object represents.
-     * Use {@code <init>} for constructors. */
+    /**
+     * The name of the method that this Method object represents.
+     * Use {@code <init>} for constructors.
+     */
     String[] methodName();
 
     /** The number of parameters to the method. */

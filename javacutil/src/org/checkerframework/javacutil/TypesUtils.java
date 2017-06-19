@@ -1,15 +1,17 @@
 package org.checkerframework.javacutil;
 
+import static com.sun.tools.javac.code.TypeTag.WILDCARD;
+
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.model.JavacTypes;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Context;
-
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.ArrayType;
@@ -21,8 +23,6 @@ import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 
-import static com.sun.tools.javac.code.TypeTag.WILDCARD;
-
 /**
  * A utility class that helps with {@link TypeMirror}s.
  *
@@ -31,7 +31,9 @@ import static com.sun.tools.javac.code.TypeTag.WILDCARD;
 public final class TypesUtils {
 
     // Class cannot be instantiated
-    private TypesUtils() { throw new AssertionError("Class TypesUtils cannot be instantiated."); }
+    private TypesUtils() {
+        throw new AssertionError("Class TypesUtils cannot be instantiated.");
+    }
 
     /**
      * Gets the fully qualified name for a provided type.  It returns an empty
@@ -97,7 +99,7 @@ public final class TypesUtils {
      */
     public static boolean isDeclaredOfName(TypeMirror type, CharSequence qualifiedName) {
         return type.getKind() == TypeKind.DECLARED
-            && getQualifiedName((DeclaredType) type).contentEquals(qualifiedName);
+                && getQualifiedName((DeclaredType) type).contentEquals(qualifiedName);
     }
 
     public static boolean isBoxedPrimitive(TypeMirror type) {
@@ -105,7 +107,7 @@ public final class TypesUtils {
             return false;
         }
 
-        String qualifiedName = getQualifiedName((DeclaredType)type).toString();
+        String qualifiedName = getQualifiedName((DeclaredType) type).toString();
 
         return (qualifiedName.equals("java.lang.Boolean")
                 || qualifiedName.equals("java.lang.Byte")
@@ -132,23 +134,35 @@ public final class TypesUtils {
     }
 
     /**
+     * Returns true iff the argument is an anonymous type.
+     *
+     * @return whether the argument is an anonymous type
+     */
+    public static boolean isAnonymous(TypeMirror type) {
+        return (type instanceof DeclaredType)
+                && (((TypeElement) ((DeclaredType) type).asElement())
+                        .getNestingKind()
+                        .equals(NestingKind.ANONYMOUS));
+    }
+
+    /**
      * Returns true iff the argument is a primitive type.
      *
-     * @return  whether the argument is a primitive type
+     * @return whether the argument is a primitive type
      */
     public static boolean isPrimitive(TypeMirror type) {
         switch (type.getKind()) {
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case DOUBLE:
-        case FLOAT:
-        case INT:
-        case LONG:
-        case SHORT:
-            return true;
-        default:
-            return false;
+            case BOOLEAN:
+            case BYTE:
+            case CHAR:
+            case DOUBLE:
+            case FLOAT:
+            case INT:
+            case LONG:
+            case SHORT:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -172,16 +186,16 @@ public final class TypesUtils {
      */
     public static boolean isNumeric(TypeMirror type) {
         switch (type.getKind()) {
-        case BYTE:
-        case CHAR:
-        case DOUBLE:
-        case FLOAT:
-        case INT:
-        case LONG:
-        case SHORT:
-            return true;
-        default:
-            return false;
+            case BYTE:
+            case CHAR:
+            case DOUBLE:
+            case FLOAT:
+            case INT:
+            case LONG:
+            case SHORT:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -192,14 +206,14 @@ public final class TypesUtils {
      */
     public static boolean isIntegral(TypeMirror type) {
         switch (type.getKind()) {
-        case BYTE:
-        case CHAR:
-        case INT:
-        case LONG:
-        case SHORT:
-            return true;
-        default:
-            return false;
+            case BYTE:
+            case CHAR:
+            case INT:
+            case LONG:
+            case SHORT:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -210,11 +224,11 @@ public final class TypesUtils {
      */
     public static boolean isFloating(TypeMirror type) {
         switch (type.getKind()) {
-        case DOUBLE:
-        case FLOAT:
-            return true;
-        default:
-            return false;
+            case DOUBLE:
+            case FLOAT:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -378,14 +392,22 @@ public final class TypesUtils {
 
         final String qualifiedName = getQualifiedName((DeclaredType) declaredType).toString();
         switch (primitiveType.getKind()) {
-            case BOOLEAN:  return qualifiedName.equals("java.lang.Boolean");
-            case BYTE:     return qualifiedName.equals("java.lang.Byte");
-            case CHAR:     return qualifiedName.equals("java.lang.Character");
-            case DOUBLE:   return qualifiedName.equals("java.lang.Double");
-            case FLOAT:    return qualifiedName.equals("java.lang.Float");
-            case INT:      return qualifiedName.equals("java.lang.Integer");
-            case LONG:     return qualifiedName.equals("java.lang.Long");
-            case SHORT:    return qualifiedName.equals("java.lang.Short");
+            case BOOLEAN:
+                return qualifiedName.equals("java.lang.Boolean");
+            case BYTE:
+                return qualifiedName.equals("java.lang.Byte");
+            case CHAR:
+                return qualifiedName.equals("java.lang.Character");
+            case DOUBLE:
+                return qualifiedName.equals("java.lang.Double");
+            case FLOAT:
+                return qualifiedName.equals("java.lang.Float");
+            case INT:
+                return qualifiedName.equals("java.lang.Integer");
+            case LONG:
+                return qualifiedName.equals("java.lang.Long");
+            case SHORT:
+                return qualifiedName.equals("java.lang.Short");
 
             default:
                 return false;
@@ -400,10 +422,12 @@ public final class TypesUtils {
      */
     public static TypeMirror findConcreteUpperBound(final TypeMirror boundedType) {
         TypeMirror effectiveUpper = boundedType;
-        outerLoop : while (true) {
+        outerLoop:
+        while (true) {
             switch (effectiveUpper.getKind()) {
                 case WILDCARD:
-                    effectiveUpper = ((javax.lang.model.type.WildcardType) effectiveUpper).getExtendsBound();
+                    effectiveUpper =
+                            ((javax.lang.model.type.WildcardType) effectiveUpper).getExtendsBound();
                     if (effectiveUpper == null) {
                         return null;
                     }

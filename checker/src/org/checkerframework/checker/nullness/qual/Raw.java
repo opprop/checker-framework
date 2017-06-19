@@ -5,17 +5,15 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.checkerframework.checker.nullness.NullnessRawnessChecker;
 import org.checkerframework.framework.qual.DefaultFor;
-import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.TypeUseLocation;
 
 /**
  * This type qualifier belongs to the rawness type-system for tracking
  * initialization. This type-system is not used on its own, but in conjunction
  * with some other type-system that wants to ensure safe initialization. For
- * instance, {@link NullnessRawnessChecker} uses rawness to track initialization
+ * instance, {@link org.checkerframework.checker.nullness.NullnessRawnessChecker} uses rawness to track initialization
  * of {@link NonNull} fields.
  *
  * <p>
@@ -23,18 +21,18 @@ import org.checkerframework.framework.qual.SubtypeOf;
  * initialized.  An object is fully initialized when each of its fields
  * contains a value that satisfies its type qualifier. What type
  * qualifiers are considered depends on the checker; for instance, the
- * {@link NullnessRawnessChecker} considers {@link NonNull}.
+ * {@link org.checkerframework.checker.nullness.NullnessRawnessChecker} considers {@link NonNull}.
  *
  * <p>
  * Therefore, reading a field of an object of type {@link Raw} might yield
  * a value that does not correspond to the declared type qualifier for that field.
- * For instance, in the {@link NullnessRawnessChecker}, a field might be
+ * For instance, in the {@link org.checkerframework.checker.nullness.NullnessRawnessChecker}, a field might be
  * {@code null} even if it has been annotated as {@link NonNull}.
  *
  * <p>
  * More precisely, an expression of type {@code @Raw(T.class)} refers to an
  * object that has all fields of {@code T} (and any super-classes) initialized
- * (e.g., to a non-null value in the {@link NullnessRawnessChecker}).
+ * (e.g., to a non-null value in the {@link org.checkerframework.checker.nullness.NullnessRawnessChecker}).
  * Just {@code @Raw} is equivalent to {@code @Raw(Object.class)}.
  *
  * <p>
@@ -87,10 +85,10 @@ import org.checkerframework.framework.qual.SubtypeOf;
  * @checker_framework.manual #nullness-checker Nullness Checker
  */
 @SubtypeOf({})
-@DefaultFor({ TypeUseLocation.LOCAL_VARIABLE, TypeUseLocation.RESOURCE_VARIABLE })
+@DefaultFor({TypeUseLocation.LOCAL_VARIABLE, TypeUseLocation.RESOURCE_VARIABLE})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE_USE, ElementType.TYPE_PARAMETER })
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 public @interface Raw {
     /**
      * The type-frame down to which the expression (of this type) has been

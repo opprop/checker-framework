@@ -1,7 +1,5 @@
 package org.checkerframework.checker.nullness.qual;
 
-import org.checkerframework.checker.nullness.NullnessChecker;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -39,7 +37,7 @@ import java.lang.annotation.Target;
  *
  * @see NonNull
  * @see PolyNull
- * @see NullnessChecker
+ * @see org.checkerframework.checker.nullness.NullnessChecker
  * @checker_framework.manual #nullness-checker Nullness Checker
  */
 @Documented

@@ -1,6 +1,4 @@
 import org.checkerframework.framework.test.*;
-import java.util.*;
-import org.checkerframework.framework.qual.*;
 import tests.util.*;
 
 class NonMethodCode {
@@ -35,5 +33,4 @@ class NonMethodCode {
         //:: error: (assignment.type.incompatible)
         @Odd String l4 = sg1;
     }
-
 }

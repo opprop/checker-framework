@@ -9,7 +9,7 @@ import java.util.Map;
  */
 public interface TestConfiguration {
     /**
-     * @return a list of source files a CheckerFrameworkTest should be run over.  These source files
+     * @return a list of source files a CheckerFrameworkPerDirectoryTest should be run over.  These source files
      *         will be passed to Javac when the test is run.  These are NOT JUnit tests.
      */
     List<File> getTestSourceFiles();
@@ -40,7 +40,6 @@ public interface TestConfiguration {
      */
     List<String> getProcessors();
 
-
     /**
      * Some Javac command line arguments require arguments themselves (e.g. -classpath takes a path)
      * getOptions returns a {@code Map(optionName -> optionArgumentIfAny)}.  If an option does not take
@@ -57,7 +56,6 @@ public interface TestConfiguration {
      * @return a Map representing all command line options to Javac other than source files and processors
      */
     Map<String, String> getOptions();
-
 
     /**
      * @return the map returned getOptions but flattened into a list.

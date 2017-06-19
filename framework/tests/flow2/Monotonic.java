@@ -1,7 +1,4 @@
 import org.checkerframework.framework.test.*;
-
-import java.util.*;
-import org.checkerframework.framework.qual.*;
 import tests.util.*;
 
 class Monotonic {

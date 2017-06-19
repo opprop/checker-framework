@@ -20,9 +20,11 @@ import java.lang.annotation.Target;
  * SideEffectFree} method call intervenes).  For example,
  * the following code never suffers a null pointer
  * exception, so the Nullness Checker need not issue a warning:
- * <pre>{@code       if (x.myDeterministicMethod() != null) {
-        x.myDeterministicMethod().hashCode();
-      }}</pre>
+ * <pre>
+ * {@code
+ * if (x.myDeterministicMethod() != null) {
+ *   x.myDeterministicMethod().hashCode();
+ * }}</pre>
  * <p>
  * Note that {@code @Deterministic} guarantees that the result is
  * identical according to {@code ==}, <b>not</b> equal according to
@@ -46,18 +48,18 @@ import java.lang.annotation.Target;
  * newly created objects and using these objects (or some property thereof)
  * to change their return value.  For instance, the following method must be
  * forbidden.
- * <pre>{@code
-      &#64;Deterministic
-      int f() {
-         try {
-            int b = 0;
-            int a = 1/b;
-         } catch (Throwable t) {
-            return t.hashCode();
-         }
-         return 0;
-      }
-    }</pre>
+ * <pre>
+ *{@code @Deterministic
+ * int f() {
+ *   try {
+ *     int b = 0;
+ *     int a = 1/b;
+ *   } catch (Throwable t) {
+ *     return t.hashCode();
+ *   }
+ *   return 0;
+ * }
+ * }</pre>
  * </ol>
  * A constructor can be {@code @Pure}, but a constructor <em>invocation</em> is
  * not deterministic since it returns a different new object each time.
@@ -87,6 +89,5 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
-public @interface Deterministic {
-}
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
+public @interface Deterministic {}

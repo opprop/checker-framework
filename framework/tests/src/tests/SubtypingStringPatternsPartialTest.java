@@ -1,18 +1,19 @@
 package tests;
 
 import java.io.File;
-
-import org.checkerframework.framework.test.CheckerFrameworkTest;
+import java.util.List;
+import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Test suite for the Subtyping Checker, using a simple {@link Encrypted}
  * annotation.
  */
-public class SubtypingStringPatternsPartialTest extends CheckerFrameworkTest {
+public class SubtypingStringPatternsPartialTest extends CheckerFrameworkPerDirectoryTest {
 
-    public SubtypingStringPatternsPartialTest(File testFile) {
-        super(testFile,
+    public SubtypingStringPatternsPartialTest(List<File> testFiles) {
+        super(
+                testFiles,
                 org.checkerframework.common.subtyping.SubtypingChecker.class,
                 "stringpatterns/stringpatterns-partial",
                 "-Anomsgtext",
@@ -20,8 +21,7 @@ public class SubtypingStringPatternsPartialTest extends CheckerFrameworkTest {
     }
 
     @Parameters
-    public static String [] getTestDirs() {
-        return new String[]{"stringpatterns/stringpatterns-partial", "all-systems"};
+    public static String[] getTestDirs() {
+        return new String[] {"stringpatterns/stringpatterns-partial", "all-systems"};
     }
-
 }

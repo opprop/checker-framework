@@ -108,8 +108,61 @@ public enum TypeUseLocation {
     IMPLICIT_UPPER_BOUND,
 
     /**
+     * Apply default annotations to unannotated type declarations:
+     * {@code @HERE class Demo{}}
+     */
+    TYPE_DECLARATION,
+
+    /**
+     * Represents type argument location in parameterized type
+     * {@code List<@TA1 ArrayList<@TA2 String>>}
+     */
+    TYPE_ARGUMENT,
+
+    /**
+     * Represents array component location
+     * {@code @AC2 String [] @AC1 []}
+     */
+    ARRAY_COMPONENT,
+
+    /**
+     * Represents extends location of a class/interface/enum/annotation type
+     * {@code class C extends @E java.lang.Object}}
+     */
+    EXTENDS,
+
+    /**
+     * Represents implement location of a class/enum
+     * {@code class C implements @I java.lang.Cloneable}}
+     */
+    IMPLEMENTS,
+
+    /**
+     * Represents method throw clause
+     * {@code void foo() throws @T NullPointerException}
+     */
+    THROWS,
+
+    /**
+     * Represents instanceof location
+     * {@code Number instanceof @IOF Object}
+     */
+    INSTANCEOF,
+
+    /**
+     * Represents new expression location
+     * {@code new @N Object();}
+     */
+    NEW,
+
+    /**
+     * Represents cast location
+     * {@code (@C Object) e}
+     */
+    CAST,
+
+    /**
      * Apply if nothing more concrete is provided.
-     * TODO: clarify relation to ALL.
      */
     OTHERWISE,
 

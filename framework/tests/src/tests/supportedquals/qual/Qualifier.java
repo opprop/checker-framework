@@ -1,15 +1,12 @@
 package tests.supportedquals.qual;
 
-import org.checkerframework.framework.qual.DefaultQualifier;
-import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.SubtypeOf;
+import static java.lang.annotation.ElementType.TYPE_USE;
 
 import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.TYPE_USE;
+import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
+import org.checkerframework.framework.qual.SubtypeOf;
 
 @SubtypeOf({})
 @Target(TYPE_USE)
 @DefaultQualifierInHierarchy
-public @interface Qualifier {
-}
+public @interface Qualifier {}

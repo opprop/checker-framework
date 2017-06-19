@@ -1,8 +1,8 @@
 package tests;
 
 import java.io.File;
-
-import org.checkerframework.framework.test.CheckerFrameworkTest;
+import java.util.List;
+import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -15,17 +15,18 @@ import org.junit.runners.Parameterized.Parameters;
  *
  * @author pbsf
  */
-public class WholeProgramInferenceValidationTest extends CheckerFrameworkTest {
+public class WholeProgramInferenceValidationTest extends CheckerFrameworkPerDirectoryTest {
 
-
-    public WholeProgramInferenceValidationTest(File testFile) {
-        super(testFile, tests.wholeprograminference.WholeProgramInferenceTestChecker.class,
-                "value", "-Anomsgtext");
+    public WholeProgramInferenceValidationTest(List<File> testFiles) {
+        super(
+                testFiles,
+                tests.wholeprograminference.WholeProgramInferenceTestChecker.class,
+                "value",
+                "-Anomsgtext");
     }
 
     @Parameters
-    public static String [] getTestDirs() {
-        return new String[]{"whole-program-inference/annotated/"};
+    public static String[] getTestDirs() {
+        return new String[] {"whole-program-inference/annotated/"};
     }
-
 }

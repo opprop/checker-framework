@@ -1,7 +1,10 @@
 package org.checkerframework.checker.lock.qual;
 
-import java.lang.annotation.*;
-
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 import org.checkerframework.framework.qual.TargetLocations;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -34,7 +37,17 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 @SubtypeOf(GuardedByUnknown.class) // TODO: Should @GuardSatisfied be in its own hierarchy?
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@TargetLocations({ TypeUseLocation.RECEIVER, TypeUseLocation.PARAMETER, TypeUseLocation.RETURN })
+@TargetLocations({
+    TypeUseLocation.RECEIVER,
+    TypeUseLocation.PARAMETER,
+    TypeUseLocation.RETURN,
+    TypeUseLocation.FIELD,
+    TypeUseLocation.ARRAY_COMPONENT,
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.EXPLICIT_UPPER_BOUND,
+    TypeUseLocation.CAST,
+    TypeUseLocation.TYPE_DECLARATION
+})
 @Target(ElementType.TYPE_USE)
 public @interface GuardSatisfied {
     /**

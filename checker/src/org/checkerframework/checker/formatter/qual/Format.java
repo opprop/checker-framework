@@ -4,7 +4,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
@@ -19,8 +18,8 @@ import org.checkerframework.framework.qual.SubtypeOf;
  *
  * <blockquote><pre>
  * {@literal @}Format({ConversionCategory.GENERAL, ConversionCategory.INT})
- * String f = "String '%s' has length %d";
- * String.format(f, "Example", 7);
+ *  String f = "String '%s' has length %d";
+ *  String.format(f, "Example", 7);
  * </pre></blockquote>
  *
  * The annotation indicates that the format string requires any Object as the
@@ -33,7 +32,7 @@ import org.checkerframework.framework.qual.SubtypeOf;
  */
 @SubtypeOf(UnknownFormat.class)
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE_USE, ElementType.TYPE_PARAMETER })
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 public @interface Format {
     /**
      * An array of {@link ConversionCategory}, indicating the types of

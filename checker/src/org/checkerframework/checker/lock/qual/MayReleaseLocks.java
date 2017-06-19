@@ -5,12 +5,13 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.checkerframework.framework.qual.InheritedAnnotation;
 
 /**
- * It is unknown whether the method, or one of the methods it calls, releases
+ * The method, or one of the methods it calls, might release
  * locks that were held prior to the method being called.
+ * You can write this when you are certain the method releases
+ * locks, or when you don’t know whether the method releases locks.
  *
  * @see ReleasesNoLocks
  * @see LockingFree
@@ -24,6 +25,5 @@ import org.checkerframework.framework.qual.InheritedAnnotation;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @InheritedAnnotation
-@Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
-public @interface MayReleaseLocks {
-}
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
+public @interface MayReleaseLocks {}

@@ -1,10 +1,7 @@
-import org.checkerframework.framework.test.*;
-
-import java.util.*;
 import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.Pure.Kind;
-import org.checkerframework.framework.qual.*;
+import org.checkerframework.framework.test.*;
 import tests.util.*;
 
 // various tests for the checker to automatically suggest pure methods (most methods have been copied from Purity.java)
@@ -19,6 +16,7 @@ class Test {
     // class with a (potentially) non-pure constructor
     private static class NonPureClass {
         String t;
+
         public NonPureClass() {
             t = "";
         }
@@ -27,13 +25,11 @@ class Test {
     // class with a pure constructor
     private static class PureClass {
         //:: warning: (purity.more.sideeffectfree)
-        public PureClass() {
-        }
+        public PureClass() {}
     }
 
     //:: warning: (purity.more.pure)
-    void nonpure() {
-    }
+    void nonpure() {}
 
     @Pure
     String pure() {
@@ -41,8 +37,8 @@ class Test {
     }
 
     String t3() {
-      nonpure();
-      return "";
+        nonpure();
+        return "";
     }
 
     //:: warning: (purity.more.pure)
@@ -131,7 +127,7 @@ class Test {
     //:: warning: (purity.more.sideeffectfree)
     String t16() {
         try {
-            int i = 1/0;
+            int i = 1 / 0;
         } catch (Throwable t) {
             // ..
         }
@@ -141,7 +137,7 @@ class Test {
     //:: warning: (purity.more.sideeffectfree)
     String t16b() {
         try {
-            int i = 1/0;
+            int i = 1 / 0;
         } catch (Throwable t) {
             // ..
         }
@@ -151,7 +147,7 @@ class Test {
     //:: warning: (purity.more.sideeffectfree)
     String t16c() {
         try {
-            int i = 1/0;
+            int i = 1 / 0;
         } catch (Throwable t) {
             // ..
         }

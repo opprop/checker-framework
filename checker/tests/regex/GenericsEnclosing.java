@@ -1,6 +1,7 @@
 import org.checkerframework.checker.regex.qual.*;
 
-/** Resolution of outer classes must take substitution of generic types
+/**
+ * Resolution of outer classes must take substitution of generic types
  * into account.
  * Thanks to EMS for finding this problem.
  *
@@ -9,11 +10,12 @@ import org.checkerframework.checker.regex.qual.*;
  */
 class MyG<X> {
     X f;
+
     void m(X p) {}
 }
 
 class ExtMyG extends MyG<@Regex String> {
-    class EInner1{
+    class EInner1 {
         class EInner2 {
             void bar() {
                 String s = f;

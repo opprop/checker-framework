@@ -4,9 +4,7 @@ import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.annotation.processing.SupportedOptions;
-
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.subtyping.SubtypingChecker;
@@ -32,7 +30,7 @@ import org.checkerframework.framework.qual.StubFiles;
  * @checker_framework.manual #fenum-checker Fake Enum Checker
  */
 @StubFiles("jdnc.astub")
-@SupportedOptions( { "quals", "qualDirs" } )
+@SupportedOptions({"quals", "qualDirs"})
 public class FenumChecker extends BaseTypeChecker {
 
     /*
@@ -42,12 +40,14 @@ public class FenumChecker extends BaseTypeChecker {
     }
     */
 
-    /** Copied from SubtypingChecker; cannot reuse it, because SubtypingChecker is final.
+    /**
+     * Copied from SubtypingChecker; cannot reuse it, because SubtypingChecker is final.
      * @see SubtypingChecker#getSuppressWarningsKeys()
      */
     @Override
     public Collection<String> getSuppressWarningsKeys() {
-        Set<Class<? extends Annotation>> annos = ((BaseTypeVisitor<?>)visitor).getTypeFactory().getSupportedTypeQualifiers();
+        Set<Class<? extends Annotation>> annos =
+                ((BaseTypeVisitor<?>) visitor).getTypeFactory().getSupportedTypeQualifiers();
         if (annos.isEmpty()) {
             return super.getSuppressWarningsKeys();
         }

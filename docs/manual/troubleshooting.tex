@@ -968,6 +968,44 @@ Run \code{make} in the \code{docs/manual} directory to build both the PDF and HT
 \end{enumerate}
 
 
+\subsection{Configure Eclipse to Edit Checker Framework\label{building-eclipse}}
+\begin{enumerate}
+\item
+Install Eclipse from the Eclipse official website.
+
+\item
+Once installation is complete, run Eclispe and set the working directory to jsr308.
+
+\item Try locating the "plume-lib" file in jsr308. If plume-lib already exists, ignore this step. Otherwise, depending on the organization you are working from(typetools, opprop, or pascaliUWat), git-clone plume-lib by: (change "typetools" in git-clone URL below to desired organization)
+\begin{Verbatim}
+cd $JSR308
+git clone https://github.com/typetools/plume-lib.git
+\end{Verbatim}
+
+\item
+Enter the main eclipse working screen and under "File" tab, select Import -> General -> Existing Projects into Workspace. Now that the Import Projects window appear, tick "Select Root Directory" and browse for these files you have previously included in jsr308:
+\begin{itemize}
+\item annotation-files-utilities, asmx, checker, dataflow, framework, javacutil, jsr308-langtools, scene-lib, stubparser, plume-lib. (Be sure all these files were git-cloned from the same organization, either typetools, opprop, or pascaliUWat)
+\item Import the above individually. There might be more files that need to be imported depending on which Java file you would like to edit.
+\end{itemize}
+
+\item
+After all projects have been imported, error messages should not appear. Please resolve them if there are any.
+
+\item A common error encountered at this point is that tools.jar file cannot be found. A way to resolve this issue is by creating a softlink of \<JAVA\_HOME> in the plume-lib directory. This is because tools.jar is just a lib jar in the \<JAVA\_HOME> directory.
+\begin{itemize}
+\item
+Command to create softlink:
+\begin{Verbatim}
+cd $JSR308/plume-lib
+ln -s /usr/lib/jvm/java-8-openjdk-amd64 jdk
+\end{Verbatim}
+\item After a softlink is created, add tools.jar to the plume-lib build path. Do so by right clicking plume-lib under "Package Explorer" -> Build Path -> Configure Build Path. After the "Properties" window appear, under "Libraries" click "Add JARs" and add tools.jar from the softlink.
+\end{itemize}
+
+\end{enumerate}
+
+
 \subsection{Enable Travis continuous integration builds\label{building-travis}}
 
 If you have forked any of the projects rather than just creating a clone,

@@ -974,6 +974,54 @@ Run \code{make} in the \code{docs/manual} directory to build both the PDF and HT
 \end{enumerate}
 
 
+\subsection{Configure Eclipse to edit the Checker Framework\label{building-eclipse}}
+
+\begin{enumerate}
+\item Try locating the "plume-lib" file in your \<\$JSR308> directory. If
+plume-lib already exists, ignore this step; otherwise obtain plume-lib 
+from the version control repository:
+\begin{Verbatim}
+cd $JSR308
+git clone https://github.com/typetools/plume-lib.git
+cd plume-lib
+make all
+\end{Verbatim}
+
+\item At this point the tools.jar file isn't  
+in the plume-lib directory. A way to resolve this issue is by creating a 
+softlink of \<JAVA\_HOME> in the plume-lib directory, due to the fact that tools.jar 
+is just a lib jar in the \<JAVA\_HOME> directory. Here is the command to create 
+the softlink:
+\begin{Verbatim}
+cd $JSR308/plume-lib
+ln -s /usr/lib/jvm/java-8-openjdk-amd64 jdk
+\end{Verbatim}
+
+\item
+Install Eclipse from the \ahref{https://eclipse.org/ide/}{official Eclipse website}.
+
+\item
+Once installation is complete, run Eclispe and set the working directory to \<\$JSR308>.
+
+\item
+Enter the main eclipse working screen and under "File" tab, select Import -> 
+General -> Existing Projects into Workspace. Now that the Import Projects window
+appear, tick "Select Root Directory" and browse for these files you have previously 
+included in \<\$JSR308>:
+\begin{itemize}
+\item annotation-files-utilities, asmx, checker, dataflow, framework, javacutil, 
+jsr308-langtools, scene-lib, stubparser, plume-lib.
+\item Import the above files individually. There might be more files that need to
+be imported depending on which Java file you would like to edit.
+\end{itemize}
+
+\item
+After all projects have been imported, red error messages should not appear. Please 
+resolve them if there are any.
+
+\end{enumerate}
+
+
 \subsection{Enable Travis continuous integration builds\label{building-travis}}
 
 If you have forked any of the projects rather than just creating a clone,

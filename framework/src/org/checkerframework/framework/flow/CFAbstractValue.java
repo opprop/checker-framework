@@ -25,6 +25,7 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.PluginUtil;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.InternalUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
@@ -70,14 +71,20 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
         this.annotations = annotations;
         this.underlyingType = underlyingType;
 
-        assert validateSet(
+        annotationsValidation();
+    }
+
+    protected void annotationsValidation() {
+        if (!validateSet(
                         this.getAnnotations(),
                         this.getUnderlyingType(),
-                        analysis.getTypeFactory().getQualifierHierarchy())
-                : "Encountered invalid type: "
+                        analysis.getTypeFactory().getQualifierHierarchy())) {
+            ErrorReporter.errorAbort(
+                    "Encountered invalid type: "
                         + underlyingType
                         + " annotations: "
-                        + PluginUtil.join(", ", annotations);
+                        + PluginUtil.join(", ", annotations));
+        }
     }
 
     public static boolean validateSet(
@@ -87,18 +94,14 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
             return true;
         }
 
-        Set<AnnotationMirror> missingHierarchy = null;
         for (AnnotationMirror top : hierarchy.getTopAnnotations()) {
             AnnotationMirror anno = hierarchy.findAnnotationInHierarchy(annos, top);
             if (anno == null) {
-                if (missingHierarchy == null) {
-                    missingHierarchy = AnnotationUtils.createAnnotationSet();
-                }
-                missingHierarchy.add(top);
+                return false;
             }
         }
 
-        return missingHierarchy == null;
+        return true;
     }
 
     /**

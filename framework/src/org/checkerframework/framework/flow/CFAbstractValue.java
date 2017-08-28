@@ -76,14 +76,14 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
 
     protected void annotationsValidation() {
         if (!validateSet(
-                        this.getAnnotations(),
-                        this.getUnderlyingType(),
-                        analysis.getTypeFactory().getQualifierHierarchy())) {
+                this.getAnnotations(),
+                this.getUnderlyingType(),
+                analysis.getTypeFactory().getQualifierHierarchy())) {
             ErrorReporter.errorAbort(
                     "Encountered invalid type: "
-                        + underlyingType
-                        + " annotations: "
-                        + PluginUtil.join(", ", annotations));
+                            + underlyingType
+                            + " annotations: "
+                            + PluginUtil.join(", ", annotations));
         }
     }
 

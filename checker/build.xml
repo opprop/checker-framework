@@ -352,7 +352,7 @@
             <!-- Copying like this removes the $CHECKERFRAMEWORK/checker/src portion of the file
             names so that the top level directory is org.-->
             <fileset dir="${checker.loc}/${src}">
-                <include name="org/checkerframework/**/qual/*.java"/>
+                <include name="org/checkerframework/**/qual/**/*.java"/>
                 <include name="**/FormatUtil.java"/>
                 <include name="**/NullnessUtil.java"/>
                 <include name="**/RegexUtil.java"/>
@@ -362,10 +362,10 @@
                 <exclude name="${checker.jdk8orhigher.sources}"/>
             </fileset>
             <fileset dir="${dataflow.loc}/${src}">
-                <include name="org/checkerframework/**/qual/*.java"/>
+                <include name="org/checkerframework/**/qual/**/*.java"/>
             </fileset>
             <fileset dir="${framework.loc}/${src}">
-                <include name="org/checkerframework/**/qual/*.java"/>
+                <include name="org/checkerframework/**/qual/**/*.java"/>
             </fileset>
         </copy>
 

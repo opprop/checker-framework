@@ -1,0 +1,52 @@
+import org.checkerframework.checker.units.qual.*;
+
+package java.io;
+
+class PrintStream extends FilterOutputStream implements Appendable, Closeable {
+    PrintStream(OutputStream out);
+    PrintStream(OutputStream out, boolean autoFlush);
+    PrintStream(OutputStream out, boolean autoFlush, String encoding) throws UnsupportedEncodingException;
+    PrintStream(String fileName) throws FileNotFoundException;
+    PrintStream(String fileName, String csn) throws FileNotFoundException,UnsupportedEncodingException;
+    PrintStream(File file) throws FileNotFoundException;
+    PrintStream(File file, String csn) throws FileNotFoundException,UnsupportedEncodingException;
+    void flush();
+    void close();
+    boolean checkError();
+    protected void setError();
+    protected void clearError();
+
+    void write(@UnknownUnits int b);
+    void write(@UnknownUnits byte[] buf, @UnknownUnits int off, @UnknownUnits int len);
+
+    void print(@UnknownUnits boolean arg0);
+    void print(@UnknownUnits char arg0);
+    void print(@UnknownUnits int arg0);
+    void print(@UnknownUnits long arg0);
+    void print(@UnknownUnits float arg0);
+    void print(@UnknownUnits double arg0);
+    void print(@UnknownUnits char[] arg0);
+    void print(String arg0);
+    void print(@UnknownUnits Object arg0);
+
+    void println();
+    void println(@UnknownUnits boolean arg0);
+    void println(@UnknownUnits char arg0);
+    void println(@UnknownUnits int arg0);
+    void println(@UnknownUnits long arg0);
+    void println(@UnknownUnits float arg0);
+    void println(@UnknownUnits double arg0);
+    void println(@UnknownUnits char[] arg0);
+    void println(String arg0);
+    void println(@UnknownUnits Object arg0);
+
+    PrintStream printf(String format, @UnknownUnits Object[] args);
+    PrintStream printf(Locale l, String format, @UnknownUnits Object[] args);
+
+    PrintStream format(String format, @UnknownUnits Object[] args);
+    PrintStream format(Locale l, String format, @UnknownUnits Object[] args);
+
+    PrintStream append(CharSequence csq);
+    PrintStream append(CharSequence csq, @UnknownUnits int start, @UnknownUnits int end);
+    PrintStream append(char c);
+}

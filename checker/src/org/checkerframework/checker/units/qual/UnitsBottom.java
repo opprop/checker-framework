@@ -5,7 +5,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import javax.lang.model.type.TypeKind;
 import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.DefaultInUncheckedCodeFor;
 import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
@@ -18,11 +20,16 @@ import org.checkerframework.framework.qual.TypeUseLocation;
  * @checker_framework.manual #units-checker Units Checker
  * @checker_framework.manual #bottom-type the bottom type
  */
-@SubtypeOf({}) // needs to be done programmatically
+@SubtypeOf({}) // programmatically assigned as the bottom type
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
+@ImplicitFor(
+    literals = {LiteralKind.NULL},
+    types = {TypeKind.NULL, TypeKind.VOID},
+    typeNames = {java.lang.Void.class}
+)
 @DefaultFor(TypeUseLocation.LOWER_BOUND)
-@ImplicitFor(typeNames = Void.class, literals = LiteralKind.NULL)
+@DefaultInUncheckedCodeFor(TypeUseLocation.LOWER_BOUND)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
 public @interface UnitsBottom {}

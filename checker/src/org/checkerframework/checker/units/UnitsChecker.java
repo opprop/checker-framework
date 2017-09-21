@@ -7,6 +7,7 @@ import java.util.Set;
 import javax.annotation.processing.SupportedOptions;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
+import org.checkerframework.framework.qual.StubFiles;
 
 /**
  * Units Checker main class.
@@ -18,20 +19,9 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@SupportedOptions({"units", "unitsDirs"})
+@SupportedOptions({"units", "unitsDirs", "writeCSV", "printUU"})
+@StubFiles({"JavaBoxedPrimitives.astub", "JavaPrintStream.astub"})
 public class UnitsChecker extends BaseTypeChecker {
-
-    /*
-    @Override
-    public void initChecker() {
-        super.initChecker();
-    }
-    */
-
-    /**
-     * Copied from SubtypingChecker; cannot reuse it, because SubtypingChecker is final. TODO:
-     * SubtypingChecker might also want to always call super.
-     */
     @Override
     public Collection<String> getSuppressWarningsKeys() {
         Set<String> swKeys = new HashSet<String>(super.getSuppressWarningsKeys());

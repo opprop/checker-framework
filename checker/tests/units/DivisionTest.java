@@ -1,7 +1,22 @@
-import org.checkerframework.checker.units.*;
-import org.checkerframework.checker.units.qual.*;
+import org.checkerframework.checker.units.UnitsTools;
+import org.checkerframework.checker.units.qual.UnknownUnits;
+import org.checkerframework.checker.units.qual.km;
+import org.checkerframework.checker.units.qual.km2;
+import org.checkerframework.checker.units.qual.km3;
+import org.checkerframework.checker.units.qual.kmPERh;
+import org.checkerframework.checker.units.qual.m;
+import org.checkerframework.checker.units.qual.m2;
+import org.checkerframework.checker.units.qual.m3;
+import org.checkerframework.checker.units.qual.mPERs;
+import org.checkerframework.checker.units.qual.mPERs2;
+import org.checkerframework.checker.units.qual.mm;
+import org.checkerframework.checker.units.qual.mm2;
+import org.checkerframework.checker.units.qual.mm3;
+import org.checkerframework.checker.units.qual.time.duration.h;
+import org.checkerframework.checker.units.qual.time.duration.s;
+import org.checkerframework.checker.units.qual.time.instant.TimeInstant;
 
-public class Division {
+class DivisionTest {
     void d() {
         // Basic division of same units, no units constraint on x
         @m int am = 6 * UnitsTools.m, bm = 3 * UnitsTools.m;
@@ -24,6 +39,9 @@ public class Division {
         @m2 int m2 = 25 * UnitsTools.m2;
         @km2 int km2 = 9 * UnitsTools.km2;
         @mm2 int mm2 = 16 * UnitsTools.mm2;
+        @m3 int m3 = 25 * UnitsTools.m3;
+        @km3 int km3 = 9 * UnitsTools.km3;
+        @mm3 int mm3 = 16 * UnitsTools.mm3;
         @mPERs int mPERs = 20 * UnitsTools.mPERs;
         @kmPERh int kmPERh = 2 * UnitsTools.kmPERh;
         @mPERs2 int mPERs2 = 30 * UnitsTools.mPERs2;
@@ -53,6 +71,36 @@ public class Division {
         //:: error: (assignment.type.incompatible)
         distancemm = km2 / mm;
 
+        // m3 / m = m2
+        @m2 int aream2 = m3 / m;
+        //:: error: (assignment.type.incompatible)
+        aream2 = m3 / m2;
+
+        // km3 / km = km2
+        @km2 int areakm2 = km3 / km;
+        //:: error: (assignment.type.incompatible)
+        areakm2 = km3 / km2;
+
+        // mm3 / mm = mm2
+        @mm2 int areamm2 = mm3 / mm;
+        //:: error: (assignment.type.incompatible)
+        areamm2 = mm3 / mm2;
+
+        // m3 / m2 = m
+        m = m3 / m2;
+        //:: error: (assignment.type.incompatible)
+        km = m3 / m2;
+
+        // km3 / km2 = km
+        km = km3 / km2;
+        //:: error: (assignment.type.incompatible)
+        mm = km3 / km2;
+
+        // mm3 / mm2 = mm
+        mm = mm3 / mm2;
+        //:: error: (assignment.type.incompatible)
+        m = mm3 / mm2;
+
         // m / mPERs = s
         @s int times = m / mPERs;
         //:: error: (assignment.type.incompatible)
@@ -72,6 +120,13 @@ public class Division {
         @s int times2 = mPERs / mPERs2;
         //:: error: (assignment.type.incompatible)
         times2 = kmPERh / mPERs2;
+
+        // TimePoint
+        @TimeInstant int aTimePt = 5 * UnitsTools.CALmin;
+        @TimeInstant int bTimePt = 5 * UnitsTools.CALh;
+        @UnknownUnits int junk = aTimePt / bTimePt;
+        junk = aTimePt / s;
+        junk = s / bTimePt;
     }
 
     void SpeedOfSoundTests() {

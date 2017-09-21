@@ -1,11 +1,10 @@
 import static org.checkerframework.checker.units.UnitsTools.s;
 
-import org.checkerframework.checker.units.*;
-import org.checkerframework.checker.units.qual.*;
+import org.checkerframework.checker.units.UnitsTools;
+import org.checkerframework.checker.units.qual.m;
+import org.checkerframework.checker.units.qual.time.duration.s;
 
-public class Units {
-    @m int m1 = 5 * UnitsTools.m;
-
+class Units {
     // The advantage of using the multiplication with a unit is that
     // also double, float, etc. are easily handled and we don't need
     // to end a huge number of methods to UnitsTools.

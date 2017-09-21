@@ -1,7 +1,25 @@
 import org.checkerframework.checker.units.UnitsTools;
-import org.checkerframework.checker.units.qual.*;
+import org.checkerframework.checker.units.qual.Prefix;
+import org.checkerframework.checker.units.qual.UnknownUnits;
+import org.checkerframework.checker.units.qual.g;
+import org.checkerframework.checker.units.qual.kg;
+import org.checkerframework.checker.units.qual.km;
+import org.checkerframework.checker.units.qual.km2;
+import org.checkerframework.checker.units.qual.km3;
+import org.checkerframework.checker.units.qual.kmPERh;
+import org.checkerframework.checker.units.qual.m;
+import org.checkerframework.checker.units.qual.m2;
+import org.checkerframework.checker.units.qual.m3;
+import org.checkerframework.checker.units.qual.mPERs;
+import org.checkerframework.checker.units.qual.mPERs2;
+import org.checkerframework.checker.units.qual.mm;
+import org.checkerframework.checker.units.qual.mm2;
+import org.checkerframework.checker.units.qual.mm3;
+import org.checkerframework.checker.units.qual.time.duration.h;
+import org.checkerframework.checker.units.qual.time.duration.s;
+import org.checkerframework.checker.units.qual.time.instant.TimeInstant;
 
-public class Multiples {
+class MultiplicationTest {
     void m() {
         // Prefix assignment tests
         // kg
@@ -76,6 +94,33 @@ public class Multiples {
         //:: error: (assignment.type.incompatible)
         @km2 int areammbad2 = mm * mm;
 
+        // m * m2 = m3
+        @m3 int volume = m * area;
+        volume = area * m;
+        volume = m * m * m;
+        //:: error: (assignment.type.incompatible)
+        @km3 int volumembad1 = m * area;
+        //:: error: (assignment.type.incompatible)
+        @mm3 int volumembad2 = area * m;
+
+        // km * km2 = km3
+        @km3 int kvolume = km * karea;
+        kvolume = karea * km;
+        kvolume = km * km * km;
+        //:: error: (assignment.type.incompatible)
+        @m3 int kvolumembad1 = km * karea;
+        //:: error: (assignment.type.incompatible)
+        @mm3 int kvolumembad2 = karea * km;
+
+        // mm * mm2 = mm3
+        @mm3 int mvolume = mm * marea;
+        mvolume = marea * mm;
+        mvolume = mm * mm * mm;
+        //:: error: (assignment.type.incompatible)
+        @km3 int mvolumembad1 = mm * marea;
+        //:: error: (assignment.type.incompatible)
+        @m3 int mvolumembad2 = marea * mm;
+
         // s * mPERs = m
         @mPERs int speedm = 10 * UnitsTools.mPERs;
         @m int lengthm = s * speedm;
@@ -102,12 +147,21 @@ public class Multiples {
         @mm int lengthkmbad2 = h * speedkm;
 
         // s * s * mPERs2 = m
-        // TODO: fix checker so it is insensitive to order of operations as long as final results' unit makes sense
+        // TODO: fix checker so it is insensitive to order of operations as long
+        // as final results' unit makes sense
         // currently due to left associativity, and the lack of an s2 annotation
-        // this tries to evaluate (s * s) * mPERs2 which causes the type assignment incompatible error
+        // this tries to evaluate (s * s) * mPERs2 which causes the type
+        // assignment incompatible error
         //:: error: (assignment.type.incompatible)
         @m int distance = s * s * accelm;
         // if we bracket for order of operations, it works fine
         distance = s * (s * accelm);
+
+        // TimePoint
+        @TimeInstant int aTimePt = 5 * UnitsTools.CALmin;
+        @TimeInstant int bTimePt = 5 * UnitsTools.CALh;
+        @UnknownUnits int junk = aTimePt * bTimePt;
+        junk = aTimePt * s;
+        junk = s * bTimePt;
     }
 }

@@ -1,19 +1,20 @@
 package org.checkerframework.checker.units.qual;
 
 import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * MixedUnits is the result of multiplying or dividing units, where no more specific unit is known
- * from a UnitsRelations implementation.
+ * Volume of meter cubed.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@SubtypeOf(UnknownUnits.class)
+@UnitsRelations({@Relation(op = Op.MUL, lhs = m.class, rhs = m2.class, res = m3.class)})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({}) // forbids a programmer from writing it in a program
-public @interface MixedUnits {}
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
+@SubtypeOf(Volume.class)
+public @interface m3 {}

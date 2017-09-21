@@ -1,4 +1,4 @@
-package org.checkerframework.checker.units.qual;
+package org.checkerframework.checker.units.qual.time.instant;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,13 +8,17 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of areas.
+ * Calendar quarter-year.
+ *
+ * <p>This unit is used to denote a time instant in quarter-year, such as the 4 different seasons of
+ * the year.
+ *
+ * <p>The variables with this unit has its values bounded between 1 to 4 by the Java 8 Time API.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
-@SubtypeOf(UnknownUnits.class)
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface Area {}
+@SubtypeOf(TimeInstant.class)
+public @interface CALquarteryear {}

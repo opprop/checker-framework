@@ -1,4 +1,4 @@
-package org.checkerframework.checker.units.qual;
+package org.checkerframework.checker.units.qual.time.instant;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,14 +8,14 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Hour.
+ * Calendar second.
+ *
+ * <p>This unit is used to denote a time instant in seconds.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@SubtypeOf(Time.class)
-// TODO: support arbitrary factors?
-// @UnitsMultiple(quantity=s.class, factor=3600)
-public @interface h {}
+@SubtypeOf(TimeInstant.class)
+public @interface CALs {}

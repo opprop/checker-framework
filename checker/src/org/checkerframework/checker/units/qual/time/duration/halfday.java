@@ -1,20 +1,23 @@
-package org.checkerframework.checker.units.qual;
+package org.checkerframework.checker.units.qual.time.duration;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.checkerframework.checker.units.qual.time.TimeRelation;
+import org.checkerframework.checker.units.qual.time.instant.CALhalfday;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of areas.
+ * Half-Day (12 hours).
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
-@SubtypeOf(UnknownUnits.class)
+@TimeRelation(duration = halfday.class, instant = CALhalfday.class)
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface Area {}
+@SubtypeOf(TimeDuration.class)
+@TimeMultiple(timeUnit = s.class, multiplier = 43200L)
+public @interface halfday {}

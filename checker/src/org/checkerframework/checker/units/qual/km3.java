@@ -8,13 +8,13 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of areas.
+ * Volume of kilometer cubed.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
-@SubtypeOf(UnknownUnits.class)
+@UnitsRelations({@Relation(op = Op.MUL, lhs = km.class, rhs = km2.class, res = km3.class)})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface Area {}
+@SubtypeOf(Volume.class)
+public @interface km3 {}

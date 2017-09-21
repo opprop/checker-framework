@@ -8,13 +8,13 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of areas.
+ * Units of volume.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
+@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Area.class, res = Volume.class)})
 @SubtypeOf(UnknownUnits.class)
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface Area {}
+public @interface Volume {}

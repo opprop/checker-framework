@@ -1,4 +1,4 @@
-package org.checkerframework.checker.units.qual;
+package org.checkerframework.checker.units.qual.time.instant;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -8,13 +8,15 @@ import java.lang.annotation.Target;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of areas.
+ * Calendar millennium.
+ *
+ * <p>This unit is used to denote a time instant in millennia, where the first millennia spans 1 CE
+ * to 1000 CE.
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
-@SubtypeOf(UnknownUnits.class)
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-public @interface Area {}
+@SubtypeOf(TimeInstant.class)
+public @interface CALmillennia {}

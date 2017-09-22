@@ -32,10 +32,28 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 
 /**
- * This class contains the logic for defining and managing the arithmetic relationships between
- * units for the Units Checker.
+ * Helper class managing all arithmetic units relationships for the Units Checker.
+ *
+ * <p>This class defines and manages the arithmetic relationships between units for the Units
+ * Checker, in support of type checking and type inference.
  *
  * <p>This class is a singleton class.
+ *
+ * <p>This class instantiates a copy of {@link UnitsRelationsMapping} for each arithmetic operation.
+ * Each UnitsRelationsMapping is a N x N table for N units, defining the result unit for an
+ * arithmetic operation for a given pair of left-hand and right-hand units.
+ *
+ * <p>Unit relationships between {@link UnknownUnits}, {@link Dimensionless}, and {@link
+ * UnitsBottom} are defined during the construction of this class. Relationships between a specific
+ * unit and these 3 units are added via {@link #addStandardRelations(AnnotationMirror)}. All other
+ * relationships can be added via {@link #addRelation(Op, AnnotationMirror, AnnotationMirror,
+ * AnnotationMirror)}.
+ *
+ * <p>This class also ensures that the units relationships for a specific pair of unit is only
+ * defined once in the maps. Attempts to redefine a relationship will result in an error.
+ *
+ * <p>Numerous get methods are provided by this class to retrieve the unit relationships for type
+ * checking and inference, as well as debugging.
  */
 public class UnitsRelationsManager {
     private static UnitsRelationsManager instance = null;

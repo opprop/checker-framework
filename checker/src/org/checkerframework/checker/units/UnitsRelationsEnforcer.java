@@ -13,8 +13,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.ErrorReporter;
 
 /**
- * This class contains the logic for type checking all arithmetic and comparison operations for the
- * Units Checker.
+ * Helper class responsible for type checking and computing result units for all arithmetic and
+ * comparison operations for the Units Checker.
  *
  * <p>This class is a singleton class.
  */
@@ -147,16 +147,16 @@ public class UnitsRelationsEnforcer {
         AnnotationMirror varUnit = getUnit(varType);
         switch (node.getKind()) {
             case PLUS_ASSIGNMENT:
-                checkCompoundAddSubAssignmentUnit(Op.ADD, varType, varUnit, exprType, node);
+                checkAddSubAssignmentUnit(Op.ADD, varType, varUnit, exprType, node);
                 break;
             case MINUS_ASSIGNMENT:
-                checkCompoundAddSubAssignmentUnit(Op.SUB, varType, varUnit, exprType, node);
+                checkAddSubAssignmentUnit(Op.SUB, varType, varUnit, exprType, node);
                 break;
             case MULTIPLY_ASSIGNMENT:
-                checkCompoundMulDivAssignmentUnit(Op.MUL, varType, varUnit, exprType, node);
+                checkMulDivAssignmentUnit(Op.MUL, varType, varUnit, exprType, node);
                 break;
             case DIVIDE_ASSIGNMENT:
-                checkCompoundMulDivAssignmentUnit(Op.DIV, varType, varUnit, exprType, node);
+                checkMulDivAssignmentUnit(Op.DIV, varType, varUnit, exprType, node);
                 break;
             default:
                 break;
@@ -165,7 +165,8 @@ public class UnitsRelationsEnforcer {
         return varUnit;
     }
 
-    private void checkCompoundAddSubAssignmentUnit(
+    // Checks plus assignment and minus assignment.
+    private void checkAddSubAssignmentUnit(
             Op op,
             AnnotatedTypeMirror varType,
             AnnotationMirror varUnit,
@@ -179,7 +180,8 @@ public class UnitsRelationsEnforcer {
         }
     }
 
-    private void checkCompoundMulDivAssignmentUnit(
+    // Checks multiply assignment and divide assignment.
+    private void checkMulDivAssignmentUnit(
             Op op,
             AnnotatedTypeMirror varType,
             AnnotationMirror varUnit,

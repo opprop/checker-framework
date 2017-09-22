@@ -19,11 +19,13 @@ import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 /**
- * Annotation Class Loader for the Units Checker. This class is responsible for filtering out
- * prefixed units for constructing the supported type qualifiers set, and adding default and
- * user-declared unit relationships.
+ * Annotation Class Loader for the Units Checker.
+ *
+ * <p>This class is responsible for filtering out prefixed units for constructing the supported type
+ * qualifiers set, and adding default and user-declared unit relationships via the {@link
+ * UnitsRelationsManager}.
  */
-public final class UnitsAnnotationClassLoader extends AnnotationClassLoader {
+public class UnitsAnnotationClassLoader extends AnnotationClassLoader {
     private final BaseTypeChecker checker;
     private final UnitsRelationsManager relations;
 
@@ -104,11 +106,12 @@ public final class UnitsAnnotationClassLoader extends AnnotationClassLoader {
      * Custom filter for units annotations:
      *
      * <p>This filter will ignore (by returning false) any units annotation which is an alias of
-     * another base unit annotation (identified via {@link UnitsMultiple} meta-annotation). Alias
-     * annotations can still be used in source code; they are converted into a base annotation by
-     * {@link UnitsAnnotatedTypeFactory#aliasedAnnotation(AnnotationMirror)}. This filter simply
-     * makes sure that the alias annotations themselves don't become part of the type hierarchy.
-     * Further, it will ensure that their base annotations are in the hierarchy.
+     * another base unit annotation (identified via {@link UnitsMultiple} meta-annotation).
+     *
+     * <p>Alias annotations can still be used in source code; they are converted into a base
+     * annotation by {@link UnitsAnnotatedTypeFactory#aliasedAnnotation(AnnotationMirror)}. This
+     * filter simply makes sure that the alias annotations themselves don't become part of the type
+     * hierarchy. Further, it will ensure that their base annotations are in the hierarchy.
      */
     @Override
     protected boolean isSupportedAnnotationClass(Class<? extends Annotation> annoClass) {

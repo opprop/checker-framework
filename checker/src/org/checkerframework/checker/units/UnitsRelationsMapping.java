@@ -5,15 +5,16 @@ import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
 
 /**
- * Organizes units relationships for a given arithmetic operation into a mapping table.
+ * Custom data structure class which organizes units relationships for a given arithmetic operation
+ * into a mapping table.
  *
  * <p>Each UnitsRelationsMapping object uses two {@link AnnotationBiHashMap}s to store and manage
- * the relationships. The xyMap stores each relation (x, y, value) in a {@literal Map<x, Map<y,
- * value>>} data structure. The yxMap stores each relation (x, y, value) in a {@literal Map<y,
- * Map<x, value>>} data structure. Both are necessary for providing fast access to the rows and
- * columns of the mapping table for inference.
+ * the relationships. The {@link #xyMap} stores each relation (x, y, value) in a {@literal Map<x,
+ * Map<y, value>>} data structure. The {@link #yxMap} stores each relation (x, y, value) in a
+ * {@literal Map<y, Map<x, value>>} data structure. Both are necessary for providing fast access to
+ * the rows and columns of the mapping table for inference.
  */
-public final class UnitsRelationsMapping {
+public class UnitsRelationsMapping {
     private AnnotationBiHashMap xyMap;
     private AnnotationBiHashMap yxMap;
 

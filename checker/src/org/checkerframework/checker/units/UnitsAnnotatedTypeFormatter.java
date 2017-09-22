@@ -14,9 +14,10 @@ import org.checkerframework.javacutil.AnnotationUtils;
 /**
  * Annotated Type Formatter for the Units Checker.
  *
- * <p>We always format the print out of qualifiers by removing {@link Prefix#one}.
+ * <p>This class formats the print out of qualifiers by removing {@link Prefix#one}, if it is
+ * present in a unit.
  */
-public final class UnitsAnnotatedTypeFormatter extends DefaultAnnotatedTypeFormatter {
+public class UnitsAnnotatedTypeFormatter extends DefaultAnnotatedTypeFormatter {
 
     public UnitsAnnotatedTypeFormatter(BaseTypeChecker checker) {
         super(

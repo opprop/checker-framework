@@ -59,13 +59,13 @@ import org.checkerframework.checker.units.qual.time.instant.CALweek;
 import org.checkerframework.checker.units.qual.time.instant.CALyear;
 
 /**
- * Utility constants to assign units to types and methods to convert between them.
+ * Utility class containing constants to assign units to types and methods to convert between them.
  *
- * <p>All constants are declared as public static final with a value of 1.
+ * <p>All constants are declared as {@code public static final} with a value of {@code 1}.
  *
  * <p>To assign a unit to a number, simply multiply with the corresponding unit.
  *
- * <p>E.g. {@code @m int x = 5 * UnitsTools.m}
+ * <p>E.g. {@code @m int x = 5 * UnitsTools.m;}.
  */
 // Developer notes: add fromTo methods for all useful unit combinations here.
 

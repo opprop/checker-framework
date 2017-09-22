@@ -14,12 +14,12 @@ import org.checkerframework.javacutil.AnnotationUtils;
 /**
  * Alias Manager for the Units Checker.
  *
- * <p>This class is a singleton class.
- *
  * <p>This class builds and retains a mapping between alias annotations and their normalized
- * annotations. For alias units, they are mapped to their prefixed base units.
+ * annotations. Alias units are mapped to their prefixed base units.
+ *
+ * <p>This class is a singleton class.
  */
-public final class UnitsAliasManager {
+public class UnitsAliasManager {
     private static UnitsAliasManager instance = null;
 
     private static final Map<String, AnnotationMirror> aliasMap = new HashMap<>();

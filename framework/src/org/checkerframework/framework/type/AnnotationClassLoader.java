@@ -52,10 +52,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * AnnotatedTypeFactory#createSupportedTypeQualifiers()}.
  *
  * <p>Checker writers may wish to subclass this class if they wish to implement some custom rules to
- * filter or process loaded annotation classes, by providing an override implementation of {@link
- * #isSupportedAnnotationClass(Class)}. See {@link
- * org.checkerframework.checker.units.UnitsAnnotationClassLoader UnitsAnnotationClassLoader} for an
- * example.
+ * filter or post-process loaded annotation classes, by providing an override implementation of
+ * {@link #isSupportedAnnotationClass(Class)} and {@link #postProcessLoadedClass(Class)}
+ * respectively. See {@link org.checkerframework.checker.units.UnitsAnnotationClassLoader
+ * UnitsAnnotationClassLoader} for an example.
  *
  * @author Jeff Luo
  */

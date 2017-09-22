@@ -33,7 +33,26 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.TreeUtils;
 
-/** Annotated type factory for the Units Checker. */
+/**
+ * Annotated Type Factory for the Units Checker.
+ *
+ * <p>This class:
+ *
+ * <p>- Orchestrates the loading and post-processing of bundled and external units, delegating
+ * details to {@link UnitsAnnotationClassLoader}.
+ *
+ * <p>- Normalizes alias annotations via {@link UnitsAliasManager}.
+ *
+ * <p>- Formats error message presentation of units via {@link UnitsAnnotatedTypeFormatter}.
+ *
+ * <p>- Defines subtyping relationships between prefixed multiples of units via {@link
+ * UnitsQualifierHierarchy}.
+ *
+ * <p>- Defines arithmetic relationships between units via {@link UnitsRelationsManager}.
+ *
+ * <p>- Computes and propagates units annotations for expressions in an AST via {@link
+ * UnitsPropagationTreeAnnotator}.
+ */
 public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     private final AnnotationMirror UNKNOWN;
     private final AnnotationMirror BOTTOM;
@@ -63,10 +82,15 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         enforcer = UnitsRelationsEnforcer.getInstance(checker, this);
 
         // Print CSV file if requested in command line
-        String csvFilePath = checker.getOption("writeCSV");
-        if (csvFilePath != null) {
-            boolean printUU = checker.hasOption("printUU");
-            relations.writeCSV(csvFilePath, printUU);
+        if (checker.hasOption("writeCSV")) {
+            String csvFilePath = checker.getOption("writeCSV");
+            if (csvFilePath != null) {
+                boolean printUU = checker.hasOption("printUU");
+                relations.writeCSV(csvFilePath, printUU);
+            } else {
+                checker.errorAbort(
+                        "The writeCSV option must be used with a file path. Ex: -AwriteCSV=$PWD");
+            }
         }
     }
 
@@ -129,9 +153,10 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     /**
      * Units Propagation Tree Annotator type checks and computes resulting units for arithmetic and
-     * comparison operations.
+     * comparison operations as expressed in binary operations, compound assignment operations, or
+     * method invocations of tagged methods.
      */
-    private class UnitsPropagationTreeAnnotator extends PropagationTreeAnnotator {
+    protected class UnitsPropagationTreeAnnotator extends PropagationTreeAnnotator {
 
         public UnitsPropagationTreeAnnotator(AnnotatedTypeFactory atypeFactory) {
             super(atypeFactory);

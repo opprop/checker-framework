@@ -9,7 +9,7 @@ import org.checkerframework.checker.units.qual.UnknownUnits;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Units of time instant. These units denote the time of the occurence of an event.
+ * Units of time instant. These units denote the time of the occurrence of an event.
  *
  * @checker_framework.manual #units-checker Units Checker
  */

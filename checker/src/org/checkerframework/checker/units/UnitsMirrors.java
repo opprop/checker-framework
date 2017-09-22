@@ -16,7 +16,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
  * logic.
  *
  * <p>This class is a singleton class. Instantiate a copy of the class via {@link
- * #getInstance(BaseTypeChecker)} then directly reference the fields of the class.
+ * #getInstance(BaseTypeChecker)} then directly reference the fields of this class.
  */
 public class UnitsMirrors {
     private static UnitsMirrors instance = null;

@@ -22,7 +22,7 @@ import org.checkerframework.checker.units.qual.m;
  *
  * @see AnnotationMirror
  */
-public final class AnnotationBiHashMap {
+public class AnnotationBiHashMap {
 
     // stores the set of annotation mirrors used as k1
     private final Set<AnnotationMirror> k1Keys;

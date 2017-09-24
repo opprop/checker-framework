@@ -1,12 +1,12 @@
 import org.checkerframework.checker.units.UnitsTools;
 import org.checkerframework.checker.units.qual.Prefix;
-import org.checkerframework.checker.units.qual.s;
+import org.checkerframework.checker.units.qual.time.duration.s;
 import qual.Frequency;
 import qual.Hz;
 import qual.kHz;
 
 class UnitsExtensionDemo {
-    @Hz int frq;
+    @Hz double frq;
 
     void bad() {
         // Error! Unqualified value assigned to a @Hz value.
@@ -35,10 +35,9 @@ class UnitsExtensionDemo {
         @Hz double freq2 = 20 / time;
     }
 
-    void auto(@s int time) {
+    void setPeriod(@s int time) {
         // The @Hz annotation is automatically added to the result
-        // of the division, because we provide class FrequencyRelations.
-        frq = 99 / time;
+        frq = 1.0 / time;
     }
 
     public static void main(String[] args) {

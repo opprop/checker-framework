@@ -8,68 +8,50 @@ import javax.lang.model.util.Elements;
 import org.checkerframework.checker.units.qual.Prefix;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.DefaultAnnotatedTypeFormatter;
-import org.checkerframework.framework.util.AnnotationFormatter;
 import org.checkerframework.framework.util.DefaultAnnotationFormatter;
 import org.checkerframework.javacutil.AnnotationUtils;
 
+/**
+ * Annotated Type Formatter for the Units Checker.
+ *
+ * <p>This class formats the print out of qualifiers by removing {@link Prefix#one}, if it is
+ * present in a unit.
+ */
 public class UnitsAnnotatedTypeFormatter extends DefaultAnnotatedTypeFormatter {
-    protected final BaseTypeChecker checker;
-    protected final Elements elements;
 
     public UnitsAnnotatedTypeFormatter(BaseTypeChecker checker) {
-        // Utilize the Default Type Formatter, but force it to print out Invisible Qualifiers
-        // keep super call in sync with implementation in DefaultAnnotatedTypeFormatter
-        // keep checker options in sync with implementation in AnnotatedTypeFactory
         super(
-                new UnitsFormattingVisitor(
-                        checker,
+                new DefaultAnnotatedTypeFormatter.FormattingVisitor(
                         new UnitsAnnotationFormatter(checker),
                         checker.hasOption("printVerboseGenerics"),
-                        true));
-
-        this.checker = checker;
-        this.elements = checker.getElementUtils();
+                        checker.hasOption("printAllQualifiers")));
     }
 
-    protected static class UnitsFormattingVisitor
-            extends DefaultAnnotatedTypeFormatter.FormattingVisitor {
-        protected final BaseTypeChecker checker;
-        protected final Elements elements;
-
-        public UnitsFormattingVisitor(
-                BaseTypeChecker checker,
-                AnnotationFormatter annoFormatter,
-                boolean printVerboseGenerics,
-                boolean defaultInvisiblesSetting) {
-
-            super(annoFormatter, printVerboseGenerics, defaultInvisiblesSetting);
-            this.checker = checker;
-            this.elements = checker.getElementUtils();
-        }
-    }
-
-    /** Format the error printout of any units qualifier that uses Prefix.one. */
+    /**
+     * Annotation Formatter for the Units Checker.
+     *
+     * <p>This class removes {@link Prefix#one} from any qualifier for error printing.
+     */
     protected static class UnitsAnnotationFormatter extends DefaultAnnotationFormatter {
-        protected final BaseTypeChecker checker;
         protected final Elements elements;
 
         public UnitsAnnotationFormatter(BaseTypeChecker checker) {
-            this.checker = checker;
             this.elements = checker.getElementUtils();
         }
 
+        // Loops through a given a set of annotation mirrors and removes
+        // Prefix.one if it is found. This method creates a new set with the
+        // modified annotation mirrors in it, then passes to super for further
+        // processing.
         @Override
         public String formatAnnotationString(
                 Collection<? extends AnnotationMirror> annos, boolean printInvisible) {
-            // create an empty annotation set
             Set<AnnotationMirror> trimmedAnnoSet = AnnotationUtils.createAnnotationSet();
 
-            // loop through all the annotation mirrors to see if they use Prefix.one, remove Prefix.one if it does
             for (AnnotationMirror anno : annos) {
-                if (UnitsRelationsTools.getPrefix(anno) == Prefix.one) {
+                if (UnitsRelationsTools.getPrefixValue(anno) == Prefix.one) {
                     anno = UnitsRelationsTools.removePrefix(elements, anno);
                 }
-                // add to set
                 trimmedAnnoSet.add(anno);
             }
 

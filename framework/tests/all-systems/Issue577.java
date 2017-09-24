@@ -53,6 +53,7 @@ class UnionAsMemberOf {
 
     void bar() throws MyExceptionA, MyExceptionB {}
 
+    @SuppressWarnings("units:method.invocation.invalid")
     void foo1(MyInterface<Throwable> param) throws Throwable {
         try {
             bar();

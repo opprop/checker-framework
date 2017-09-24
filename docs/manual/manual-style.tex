@@ -134,6 +134,14 @@
 % In the HTML version, it's a link to the Javadoc.
 \newcommand{\refclass}[2]{\href{../api/org/checkerframework/#1/#2.html}{\<#2>}}
 
+% Reference to Checker Framework Javadoc for a package.
+% Arg 1: directory under org/checkerframework/, including internal "/", but
+% no leading or trailing "/".
+% Arg 2: fully qualified package name.
+% In the printed version, only the package name appears.
+% In the HTML version, it's a link to the Javadoc.
+\newcommand{\refpackage}[2]{\href{../api/org/checkerframework/#1/package-summary.html}{\<#2>}}
+
 % Reference to Checker Framework Javadoc for a type qualifier/annotation class
 % (not a method, etc.).  Like \refclass, but prepends an @ to the qualifier name.
 \newcommand{\refqualclass}[2]{\href{../api/org/checkerframework/#1/#2.html}{\<@#2>}}

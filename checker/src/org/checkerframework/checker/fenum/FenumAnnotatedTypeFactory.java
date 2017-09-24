@@ -50,16 +50,18 @@ public class FenumAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         // load individually named qualifiers
         if (qualNames != null) {
             for (String qualName : qualNames.split(",")) {
-                qualSet.add(loader.loadExternalAnnotationClass(qualName));
+                loader.loadExternalAnnotationClass(qualName);
             }
         }
 
         // load directories of qualifiers
         if (qualDirectories != null) {
             for (String dirName : qualDirectories.split(":")) {
-                qualSet.addAll(loader.loadExternalAnnotationClassesFromDirectory(dirName));
+                loader.loadExternalAnnotationClassesFromDirectory(dirName);
             }
         }
+
+        qualSet.addAll(loader.getLoadedAnnotationClasses());
 
         // Load top, bottom, unqualified, and fake enum
         qualSet.add(FenumTop.class);

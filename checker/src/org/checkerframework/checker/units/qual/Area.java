@@ -12,6 +12,7 @@ import org.checkerframework.framework.qual.SubtypeOf;
  *
  * @checker_framework.manual #units-checker Units Checker
  */
+@UnitsRelations({@Relation(op = Op.MUL, lhs = Length.class, rhs = Length.class, res = Area.class)})
 @SubtypeOf(UnknownUnits.class)
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

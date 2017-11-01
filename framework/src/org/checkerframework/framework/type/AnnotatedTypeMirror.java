@@ -1960,12 +1960,34 @@ public abstract class AnnotatedTypeMirror {
 
         private void fixupBoundAnnotations() {
             if (!this.getAnnotationsField().isEmpty()) {
-                if (superBound != null) {
-                    superBound.replaceAnnotations(this.getAnnotationsField());
+
+                WildcardType underlyingType = this.getUnderlyingType();
+                if (underlyingType.getExtendsBound() == null
+                        && underlyingType.getSuperBound() == null) {
+                    // Unbound wildcard
+                    replaceAnnoOnExtend();
+                    replaceAnnoOnSuper();
+
+                } else if (underlyingType.getSuperBound() == null) {
+                    // Extend bound wildcard
+                    replaceAnnoOnSuper();
+
+                } else {
+                    // Super bound wildcard
+                    replaceAnnoOnExtend();
                 }
-                if (extendsBound != null) {
-                    extendsBound.replaceAnnotations(this.getAnnotationsField());
-                }
+            }
+        }
+
+        private void replaceAnnoOnSuper() {
+            if (superBound != null) {
+                superBound.replaceAnnotations(this.getAnnotationsField());
+            }
+        }
+
+        private void replaceAnnoOnExtend() {
+            if (extendsBound != null) {
+                extendsBound.replaceAnnotations(this.getAnnotationsField());
             }
         }
 

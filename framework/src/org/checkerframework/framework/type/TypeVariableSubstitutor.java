@@ -12,6 +12,7 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.Types;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 
 /** TypeVariableSusbtitutor replaces type variables from a declaration with arguments to its use. */
 public class TypeVariableSubstitutor {
@@ -51,6 +52,11 @@ public class TypeVariableSubstitutor {
 
         if (!use.getAnnotationsField().isEmpty()) {
             substitute.replaceAnnotations(use.getAnnotations());
+            if (substitute.getKind() == TypeKind.WILDCARD) {
+                AnnotatedWildcardType substituteWildcard = (AnnotatedWildcardType) substitute;
+                substituteWildcard.getExtendsBound().replaceAnnotations(use.getAnnotations());
+                substituteWildcard.getSuperBound().replaceAnnotations(use.getAnnotations());
+            }
         }
 
         return substitute;

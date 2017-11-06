@@ -50,6 +50,12 @@ public class TypeVariableSubstitutor {
         final AnnotatedTypeMirror substitute = argument.shallowCopy(false);
         substitute.addAnnotations(argument.getAnnotationsField());
 
+        if (substitute.getKind() == TypeKind.WILDCARD) {
+            AnnotatedWildcardType substituteWildcard = (AnnotatedWildcardType) substitute;
+            substituteWildcard.getExtendsBound().replaceAnnotations(argument.getAnnotations());
+            substituteWildcard.getSuperBound().replaceAnnotations(argument.getAnnotations());
+        }
+
         if (!use.getAnnotationsField().isEmpty()) {
             substitute.replaceAnnotations(use.getAnnotations());
             if (substitute.getKind() == TypeKind.WILDCARD) {

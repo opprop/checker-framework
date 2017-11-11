@@ -1,4 +1,5 @@
 public class Unions {
+    @SuppressWarnings("units:type.argument.type.incompatible")
     void foo1(MyInterface<Throwable> param) throws Throwable {
         try {
             bar();
@@ -11,6 +12,7 @@ public class Unions {
         }
     }
 
+    @SuppressWarnings("units:type.argument.type.incompatible")
     void foo2(MyInterface<Throwable> param) throws Throwable {
         try {
             bar();

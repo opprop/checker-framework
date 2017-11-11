@@ -16,4 +16,5 @@ import org.checkerframework.framework.qual.SubtypeOf;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf(Speed.class)
+@UnitsRelation(op = Op.DIV, lhs = km.class, rhs = h.class, res = kmPERh.class)
 public @interface kmPERh {}

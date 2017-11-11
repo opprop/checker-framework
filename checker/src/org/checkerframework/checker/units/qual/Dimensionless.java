@@ -5,16 +5,17 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
- * Square millimeter.
+ * A dimensionless "unit".
  *
  * @checker_framework.manual #units-checker Units Checker
  */
+@SubtypeOf(UnknownUnits.class)
+@DefaultQualifierInHierarchy
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@SubtypeOf(Area.class)
-@UnitsRelation(op = Op.MUL, lhs = mm.class, rhs = mm.class, res = mm2.class)
-public @interface mm2 {}
+public @interface Dimensionless {}

@@ -57,6 +57,7 @@ class UnionAsMemberOf {
         try {
             bar();
         } catch (MyExceptionA | MyExceptionB ex1) {
+            @SuppressWarnings("units:method.invocation.invalid")
             String s = ex1.getT();
         }
     }

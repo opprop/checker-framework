@@ -18,20 +18,11 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@SupportedOptions({"units", "unitsDirs"})
+// writeCSV and printUU are debug options
+@SupportedOptions({"units", "unitsDirs", "writeCSV", "printUU"})
 public class UnitsChecker extends BaseTypeChecker {
 
-    /*
-    @Override
-    public void initChecker() {
-        super.initChecker();
-    }
-    */
-
-    /**
-     * Copied from SubtypingChecker; cannot reuse it, because SubtypingChecker is final. TODO:
-     * SubtypingChecker might also want to always call super.
-     */
+    /** Allows each unit to be a key for suppress warnings. */
     @Override
     public Collection<String> getSuppressWarningsKeys() {
         Set<String> swKeys = new HashSet<String>(super.getSuppressWarningsKeys());

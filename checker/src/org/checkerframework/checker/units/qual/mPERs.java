@@ -16,6 +16,5 @@ import org.checkerframework.framework.qual.SubtypeOf;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf(Speed.class)
-public @interface mPERs {
-    Prefix value() default Prefix.one;
-}
+@UnitsRelation(op = Op.DIV, lhs = m.class, rhs = s.class, res = mPERs.class)
+public @interface mPERs {}

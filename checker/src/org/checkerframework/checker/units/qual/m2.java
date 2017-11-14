@@ -16,7 +16,5 @@ import org.checkerframework.framework.qual.SubtypeOf;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf(Area.class)
-public @interface m2 {
-    // does this make sense? Is it multiple of (m^2)? Or (multiple of m)^2?
-    Prefix value() default Prefix.one;
-}
+@UnitsRelation(op = Op.MUL, lhs = m.class, rhs = m.class, res = m2.class)
+public @interface m2 {}

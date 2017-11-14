@@ -8,6 +8,7 @@ import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.units.qual.Prefix;
+import org.checkerframework.checker.units.qual.km;
 import org.checkerframework.checker.units.qual.m;
 
 /**

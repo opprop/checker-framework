@@ -99,6 +99,11 @@ public class SubtractionUnits {
         @s int aSecond = 5 * UnitsTools.s;
         @s int bSecond = 5 * UnitsTools.s;
         @s int sSecond = aSecond - bSecond;
+
+        // Millisecond
+        @ms int aMillisecond = 5 * UnitsTools.ms;
+        @ms int bMillisecond = 5 * UnitsTools.ms;
+        @ms int sMillisecond = aMillisecond - bMillisecond;
     }
 
     // Subtraction is illegal when the operands have different units or one
@@ -143,6 +148,7 @@ public class SubtractionUnits {
         @Time int bTime = 5 * UnitsTools.h;
 
         // Dimensions
+        // Acceleration
         // :: error: (assignment.type.incompatible)
         @Acceleration int sAcceleration = aAcceleration - bMass;
 
@@ -255,6 +261,10 @@ public class SubtractionUnits {
         @s int aSecond = 5 * UnitsTools.s;
         @s int bSecond = 5 * UnitsTools.s;
 
+        // Millisecond
+        @ms int aMillisecond = 5 * UnitsTools.ms;
+        @ms int bMillisecond = 5 * UnitsTools.ms;
+
         // Units
         // Amperes
         // :: error: (assignment.type.incompatible)
@@ -331,5 +341,9 @@ public class SubtractionUnits {
         // Second
         // :: error: (assignment.type.incompatible)
         @s int sSecond = aSecond - bSquareKilometer;
+
+        // Millisecond
+        // :: error: (assignment.type.incompatible)
+        @ms int sMillisecond = aMillisecond - bSecond;
     }
 }

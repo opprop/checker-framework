@@ -21,6 +21,7 @@ import org.checkerframework.checker.units.qual.min;
 import org.checkerframework.checker.units.qual.mm;
 import org.checkerframework.checker.units.qual.mm2;
 import org.checkerframework.checker.units.qual.mol;
+import org.checkerframework.checker.units.qual.ms;
 import org.checkerframework.checker.units.qual.radians;
 import org.checkerframework.checker.units.qual.s;
 
@@ -129,6 +130,7 @@ public class UnitsTools {
     public static final @h int h = 1;
     public static final @min int min = 1;
     public static final @s int s = 1;
+    public static final @ms int ms = 1;
 
     // Dimensionless Conversion Method
     /**

@@ -77,7 +77,6 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Annotation print formatting =================================================================
-
     // In Units Checker, we always want to format the print out of qualifiers by removing Prefix.one
     @Override
     protected AnnotatedTypeFormatter createAnnotatedTypeFormatter() {
@@ -85,13 +84,10 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Annotation aliasing =========================================================================
-
     /**
-     * Checks to see if the input annotation mirror is an alias unit, and if so computes and returns
-     * it's equivalent prefixed base unit. Non alias units are returned without any modifications.
-     *
-     * <p>This converts all metric-prefixed units' alias annotations (eg @kg) into base unit
-     * annotations with prefix values (eg @g(Prefix.kilo)).
+     * Checks to see if the input annotation mirror is an alias unit by checking for a mapping in
+     * aliasMap, and if so returns it's equivalent prefixed base unit. Non alias units are returned
+     * without any modifications.
      *
      * @param anno A potentially aliased unit annotation mirror.
      * @return The prefixed base unit annotation mirror for alias units, or the input anno for
@@ -116,9 +112,17 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         }
     }
 
-    protected void addToAliasMap(String aliasClassName, AnnotationMirror normalizedAnno) {
-        if (!aliasMap.containsKey(aliasClassName)) {
-            aliasMap.put(aliasClassName, normalizedAnno);
+    /**
+     * Adds a mapping from an alias unit's canonical class name to its equivalent prefixed base
+     * unit's AnnotationMirror to the aliasMap.
+     *
+     * @param aliasAnnoCanonicalClassName the canonical class name of an alias unit
+     * @param normalizedAnno AnnotationMirror of the equivalent prefixed base unit of the alias unit
+     */
+    protected void addToAliasMap(
+            String aliasAnnoCanonicalClassName, AnnotationMirror normalizedAnno) {
+        if (!aliasMap.containsKey(aliasAnnoCanonicalClassName)) {
+            aliasMap.put(aliasAnnoCanonicalClassName, normalizedAnno);
         }
     }
 
@@ -169,7 +173,6 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Tree Annotators =============================================================================
-
     /**
      * Override to use {@link ImplicitsTreeAnnotator} for the null literal and void class, and
      * {@link UnitsPropagationTreeAnnotator} to type check and propagate units.
@@ -181,7 +184,6 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Qualifier Hierarchy =========================================================================
-
     /**
      * Use custom qualifier hierarchy to programmatically set bottom of hierarchy and define subtype
      * and LUB relations for units.

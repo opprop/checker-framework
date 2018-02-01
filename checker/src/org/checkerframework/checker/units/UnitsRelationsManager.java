@@ -38,12 +38,21 @@ public class UnitsRelationsManager {
     private final UnitsAnnotatedTypeFactory atf;
     private final ProcessingEnvironment processingEnv;
 
+    /**
+     * Stores a UnitsRelationsMap for each supported arithmetic operation. Within each relations
+     * map, a relationship between units x, y, and the result unit of x op y can only be added once
+     * to each map. See {@link #addDirectRelation(Op, AnnotationMirror, AnnotationMirror,
+     * AnnotationMirror)}
+     */
     private static final Map<Op, UnitsRelationsMap> relationMaps = new HashMap<>();
 
     private final AnnotationMirror UNKNOWN;
     private final AnnotationMirror DIMENSIONLESS;
     private final AnnotationMirror BOTTOM;
     private final AnnotationMirror POLYUNIT;
+
+    /** Used to compare two units annotation mirrors and orders them alphabetically. */
+    protected final UnitsComparator unitsComparator = new UnitsComparator();
 
     // For debug CSV file generation use
     private static final String newline = System.getProperty("line.separator").intern();
@@ -75,7 +84,7 @@ public class UnitsRelationsManager {
             addDirectRelation(op, DIMENSIONLESS, DIMENSIONLESS, DIMENSIONLESS);
             addDirectRelation(op, BOTTOM, BOTTOM, UNKNOWN);
 
-            // any other interactions between the units result in UnknownUnits
+            // any other interactions between these 3 units result in UnknownUnits
             addDirectRelation(op, DIMENSIONLESS, UNKNOWN, UNKNOWN);
             addDirectRelation(op, UNKNOWN, DIMENSIONLESS, UNKNOWN);
             addDirectRelation(op, DIMENSIONLESS, BOTTOM, UNKNOWN);
@@ -232,7 +241,7 @@ public class UnitsRelationsManager {
         if (mapForOp.containsKeys(lhs, rhs)) {
             AnnotationMirror current = mapForOp.get(lhs, rhs);
             if (!AnnotationUtils.areSame(res, current)) {
-                // If we are attempting to replace a relation, produce error message
+                // If we are attempting to replace a relation, issue an error message
                 ErrorReporter.errorAbort(
                         "Conflicting arithmetic relation: attempted to replace (op = "
                                 + op
@@ -268,7 +277,7 @@ public class UnitsRelationsManager {
 
     /**
      * Adds relationships for every pair of units loaded by units checker, including prefixed
-     * multiples of base units. The rules within computes the default result unit for any given
+     * multiples of base units. This method computes the default result unit for any given
      * arithmetic operation. This is called after all user declared units relationships are added to
      * the relation maps.
      */
@@ -288,7 +297,7 @@ public class UnitsRelationsManager {
                     == originalUnits.size();
 
             // Generate all prefixed units of each base unit
-            Set<AnnotationMirror> allPrefixedUnits = new HashSet<AnnotationMirror>();
+            Set<AnnotationMirror> allPrefixedUnits = new HashSet<>();
             for (AnnotationMirror baseUnit : noPrefixBaseUnits) {
                 allPrefixedUnits.addAll(getAllPrefixedUnits(baseUnit));
             }
@@ -298,7 +307,7 @@ public class UnitsRelationsManager {
                 addStandardRelations(unit);
             }
 
-            Set<AnnotationMirror> allUnits = new HashSet<AnnotationMirror>();
+            Set<AnnotationMirror> allUnits = new HashSet<>();
             allUnits.addAll(noPrefixBaseUnits);
             allUnits.addAll(allPrefixedUnits);
             allUnits.addAll(remainingUnits);
@@ -375,7 +384,7 @@ public class UnitsRelationsManager {
      *     input set.
      */
     private Set<AnnotationMirror> getBaseUnits(Set<AnnotationMirror> allUnits) {
-        Set<AnnotationMirror> units = new HashSet<AnnotationMirror>();
+        Set<AnnotationMirror> units = new HashSet<>();
         for (AnnotationMirror unit : allUnits) {
             if (UnitsRelationsTools.isBaseUnit(unit)) {
                 units.add(unit);
@@ -392,7 +401,7 @@ public class UnitsRelationsManager {
      *     input set.
      */
     private Set<AnnotationMirror> getPrefixedUnits(Set<AnnotationMirror> allUnits) {
-        Set<AnnotationMirror> units = new HashSet<AnnotationMirror>();
+        Set<AnnotationMirror> units = new HashSet<>();
         for (AnnotationMirror unit : allUnits) {
             if (UnitsRelationsTools.isPrefixedUnit(unit)) {
                 units.add(unit);
@@ -410,7 +419,7 @@ public class UnitsRelationsManager {
      *     not base units or prefixed base units, such as {@link kmPERh}.
      */
     private Set<AnnotationMirror> getRemainingUnits(Set<AnnotationMirror> allUnits) {
-        Set<AnnotationMirror> units = new HashSet<AnnotationMirror>();
+        Set<AnnotationMirror> units = new HashSet<>();
         for (AnnotationMirror unit : allUnits) {
             if (!UnitsRelationsTools.isBaseUnit(unit)
                     && !UnitsRelationsTools.isPrefixedUnit(unit)) {
@@ -427,7 +436,7 @@ public class UnitsRelationsManager {
      * @return All possible prefixed-multiple of the base unit as a set.
      */
     private Set<AnnotationMirror> getAllPrefixedUnits(AnnotationMirror baseUnit) {
-        Set<AnnotationMirror> prefixedUnits = new HashSet<AnnotationMirror>();
+        Set<AnnotationMirror> prefixedUnits = new HashSet<>();
 
         for (Prefix p : Prefix.values()) {
             if (p != Prefix.one) {
@@ -443,7 +452,7 @@ public class UnitsRelationsManager {
     }
 
     // Methods to support constant_constant, constant_variable, variable_constant,
-    // and variable_variable encoding in inference.
+    // and variable_variable encoding in checker framework inference.
     protected AnnotationMirror getCCAnno(Op op, AnnotationMirror c1, AnnotationMirror c2) {
         return relationMaps.get(op).get(c1, c2);
     }
@@ -460,7 +469,7 @@ public class UnitsRelationsManager {
         return relationMaps.get(op).getAllXY();
     }
 
-    // Debug use: Displays all arithmetic relationships to the screen
+    /** Debug use: Displays all arithmetic relationships to the screen */
     protected void debugPrint() {
         checker.message(Diagnostic.Kind.NOTE, "Arithmetic Relations:");
         printOp(Op.ADD);
@@ -469,7 +478,11 @@ public class UnitsRelationsManager {
         printOp(Op.DIV);
     }
 
-    // Debug use: Displays the arithmetic relationships for the given operation to the screen.
+    /**
+     * Debug use: Displays the arithmetic relationships for the given operation to the screen.
+     *
+     * @param op an arithmetic operation
+     */
     private void printOp(Op op) {
         UnitsRelationsMap relations = relationMaps.get(op);
         for (AnnotationMirror x : sortUnits(relations.xKeySet())) {
@@ -489,15 +502,14 @@ public class UnitsRelationsManager {
         }
     }
 
-    /*
+    /**
      * Debug Use: Writes all arithmetic relationships into a set of CSV files at the given filePath,
      * with an option to print or hide UnknownUnits in the CSV file.
      *
      * @param filePath A fully qualified path from root of file system to a desired folder where the
-     * CSV files will be written.
-     *
+     *     CSV files will be written.
      * @param printUU Set to true to print {@literal @UnknownUnits} in the cells of the CSV file,
-     * false otherwise.
+     *     false otherwise.
      */
     protected void writeCSV(final String filePath, boolean printUU) {
         writeOpToFile(Op.ADD, filePath, printUU);
@@ -506,17 +518,15 @@ public class UnitsRelationsManager {
         writeOpToFile(Op.DIV, filePath, printUU);
     }
 
-    /*
+    /**
      * Debug Use: Writes all arithmetic relationships into a set of CSV files at the given filePath,
      * with an option to print or hide UnknownUnits in the CSV file.
      *
      * @param op An arithmetic operation.
-     *
      * @param filePath A fully qualified path from root of file system to a desired folder where the
-     * CSV files will be written.
-     *
+     *     CSV files will be written.
      * @param printUU Set to true to print {@literal @UnknownUnits} in the cells of the CSV file,
-     * false otherwise.
+     *     false otherwise.
      */
     private void writeOpToFile(Op op, final String filePath, boolean printUU) {
         final String filename = filePath + "/UnitsRelationTables-" + op.toString() + ".csv";
@@ -560,16 +570,13 @@ public class UnitsRelationsManager {
         }
     }
 
-    /*
+    /**
      * Debug use: Computes and returns the short name of a unit used for writing to a CSV file.
      *
      * @param unit An annotation mirror representing a unit.
-     *
      * @param printUU Set to true to print {@literal @UnknownUnits} in the cells of a CSV file,
-     * false otherwise.
-     *
+     *     false otherwise.
      * @param isHeader Boolean flag of whether it is a header row.
-     *
      * @return The short name of a unit for file writing.
      */
     private String fileWritingShortName(AnnotationMirror unit, boolean printUU, boolean isHeader) {
@@ -584,11 +591,10 @@ public class UnitsRelationsManager {
         return name;
     }
 
-    /*
+    /**
      * Debug use: Computes and returns the short name of a unit.
      *
      * @param unit An annotation mirror representing a unit.
-     *
      * @return The short name of a unit.
      */
     private String shortName(AnnotationMirror unit) {
@@ -607,48 +613,50 @@ public class UnitsRelationsManager {
         return name;
     }
 
-    /*
+    /** Defines an alphabetical sort order for units annotation mirrors. */
+    protected class UnitsComparator implements Comparator<AnnotationMirror> {
+        @Override
+        public int compare(AnnotationMirror a1, AnnotationMirror a2) {
+            if (a1 != null && a2 != null) {
+                // compare by annotation names
+                String a1Name = AnnotationUtils.annotationName(a1);
+                String a2Name = AnnotationUtils.annotationName(a2);
+                if (a1Name != a2Name) {
+                    return a1Name.compareTo(a2Name);
+                } else {
+                    // if annotation names are the same, compare by element values
+                    Map<? extends ExecutableElement, ? extends AnnotationValue> elval1 =
+                            AnnotationUtils.getElementValuesWithDefaults(a1);
+                    Map<? extends ExecutableElement, ? extends AnnotationValue> elval2 =
+                            AnnotationUtils.getElementValuesWithDefaults(a2);
+                    return elval1.toString().compareTo(elval2.toString());
+                }
+            } else if (a2 == null) {
+                // a1 > a2
+                return 1;
+            } else if (a1 == null) {
+                // a1 < a2
+                return -1;
+            } else {
+                // a1 == a2 == null
+                return 0;
+            }
+        }
+    }
+
+    /**
      * Debug use: Alphabetically sorts the units given in the input set by their fully qualified
      * names and returns the sorted units as a list.
      *
      * @param set A set of annotation mirrors, each representing a unit.
-     *
      * @return A sorted list of the annotation mirrors.
      */
     private List<AnnotationMirror> sortUnits(Set<AnnotationMirror> set) {
         // Copy set into list
-        List<AnnotationMirror> sortedList = new ArrayList<AnnotationMirror>(set);
+        List<AnnotationMirror> sortedList = new ArrayList<>(set);
 
         // Sort the list
-        Collections.sort(
-                sortedList,
-                new Comparator<AnnotationMirror>() {
-                    @Override
-                    public int compare(AnnotationMirror a1, AnnotationMirror a2) {
-                        if (a1 != null && a2 != null) {
-                            // compare by annotation name
-                            String a1Name = AnnotationUtils.annotationName(a1);
-                            String a2Name = AnnotationUtils.annotationName(a2);
-                            if (a1Name != a2Name) {
-                                return a1Name.compareTo(a2Name);
-                            } else {
-                                // if names are the same, compare by element values
-                                Map<? extends ExecutableElement, ? extends AnnotationValue> elval1 =
-                                        AnnotationUtils.getElementValuesWithDefaults(a1);
-                                Map<? extends ExecutableElement, ? extends AnnotationValue> elval2 =
-                                        AnnotationUtils.getElementValuesWithDefaults(a2);
-
-                                return elval1.toString().compareTo(elval2.toString());
-                            }
-                        } else if (a2 == null) {
-                            return 1; // 1 > 2
-                        } else if (a1 == null) {
-                            return -1; // 2 < 1
-                        } else {
-                            return 0;
-                        }
-                    }
-                });
+        Collections.sort(sortedList, unitsComparator);
 
         return sortedList;
     }

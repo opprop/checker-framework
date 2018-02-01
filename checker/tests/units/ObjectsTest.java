@@ -6,10 +6,20 @@ class ObjectsTest {
 
     Object field_default = null; // field default is Dimensionless
 
+    // ensure fields can be declared with units
+    @m Integer boxedMeter;
+
     void m() {
         Object local_var_default = null; // local var default is UnknownUnits
 
-        @m Object meter = new @m Integer(5);
+        // ensure local references can be declared with units
+        @m Object meter;
+
+        // ensure that objects can be created with units
+        meter = new @m Integer(5);
+        boxedMeter = new @m Integer(5);
+
+        @s Integer boxedLocalSecond = new @s Integer(10);
 
         // :: error: (assignment.type.incompatible)
         field_default = meter;
@@ -25,7 +35,8 @@ class ObjectsTest {
         @UnknownUnits Inner x;
 
         void m() {
-            // this call would give a method.invocation.invalid error if the receiver was left as Dimensionless
+            // this call would give a method.invocation.invalid error if the receiver was not set to
+            // UnknownUnits above
             x.m();
         }
     }

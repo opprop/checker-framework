@@ -99,8 +99,8 @@ public class UnitsVisitor extends BaseTypeVisitor<UnitsAnnotatedTypeFactory> {
     }
 
     /**
-     * Type checks compound assignment operations. In general, the result of the arithmetic
-     * operation must be the same unit as the variable.
+     * Type checks compound assignment operations. The result of the arithmetic operation must be
+     * the same unit as the variable.
      */
     // This is called if a compound assignment is the only expression in a statement, eg x += y;
     @SuppressWarnings("fallthrough") // fallthrough is intended

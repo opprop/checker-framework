@@ -24,16 +24,16 @@ public @interface UnitsRelation {
     Op op();
 
     /**
-     * left-hand argument
+     * left operand
      *
-     * @return the annotation class of the left-hand argument
+     * @return the annotation class of the left operand
      */
     Class<? extends Annotation> lhs();
 
     /**
-     * right-hand argument
+     * right operand
      *
-     * @return the annotation class of the right-hand argument
+     * @return the annotation class of the right operand
      */
     Class<? extends Annotation> rhs();
 

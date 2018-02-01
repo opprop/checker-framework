@@ -1,10 +1,10 @@
 package org.checkerframework.checker.units;
 
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +39,7 @@ public final class UnitsAnnotationClassLoader extends AnnotationClassLoader {
     private final Map<String, AnnotationMirror> loadedAnnotations = new HashMap<>();
 
     // Stores the list of explicitly declared unit relationships
-    private final List<UnitsRelation> relationshipsList = new LinkedList<>();
+    private final List<UnitsRelation> relationshipsList = new ArrayList<>();
 
     public UnitsAnnotationClassLoader(BaseTypeChecker checker, UnitsAnnotatedTypeFactory atf) {
         super(checker);

@@ -36,8 +36,8 @@ import org.checkerframework.checker.units.qual.s;
  */
 // Developer notes: add fromTo methods for all useful unit combinations here.
 
-// Forcefully suppress all warnings here, since this tools class provides a
-// means to assign types to value literals and convert between types
+// Forcefully suppress all warnings here, since this tools class provides a means to assign types to
+// value literals and convert between types
 @SuppressWarnings("units")
 public class UnitsTools {
     // Acceleration
@@ -118,12 +118,14 @@ public class UnitsTools {
     public static final @K int K = 1;
     public static final @C int C = 1;
 
-    public static @C int fromKelvinToCelsius(@K int k) {
-        return k - (int) 273.15;
+    /** Converts kelvins to celcius by subtracting 273.15 */
+    public static @C float fromKelvinToCelsius(@K float k) {
+        return k - 273.15f;
     }
 
-    public static @K int fromCelsiusToKelvin(@C int c) {
-        return c + (int) 273.15;
+    /** Converts celcius to kelvins by adding 273.15 */
+    public static @K float fromCelsiusToKelvin(@C float c) {
+        return c + 273.15f;
     }
 
     // Time
@@ -141,7 +143,7 @@ public class UnitsTools {
      * @return x with the Dimensionless unit replacing the unit it had
      */
     public static final @Dimensionless <T> T toDimensionless(@UnknownUnits T x) {
-        // for version 8:
+        // Updated method signature for when we compile UnitsTools using Java version 8:
         // public static final <@UnknownUnits T> @Dimensionless T toDimensionless(T x) {
         return x;
     }

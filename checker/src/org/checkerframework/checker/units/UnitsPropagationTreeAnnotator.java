@@ -45,6 +45,7 @@ public class UnitsPropagationTreeAnnotator extends PropagationTreeAnnotator {
             rht = UnitsRelationsTools.removePrefix(elements, rht);
         }
 
+        // The computation of the result unit is delegated to relationsEnforcer
         switch (kind) {
             case MINUS:
                 type.replaceAnnotation(relationsEnforcer.getArithmeticUnit(Op.SUB, lht, rht));
@@ -59,8 +60,8 @@ public class UnitsPropagationTreeAnnotator extends PropagationTreeAnnotator {
                 type.replaceAnnotation(relationsEnforcer.getArithmeticUnit(Op.MUL, lht, rht));
                 break;
             case REMAINDER:
-                // in modulo operation, it always returns the left unit
-                // regardless of what unit it is
+                // in modulo operation, it always returns the left operand unit regardless of what
+                // unit it is
                 type.replaceAnnotation(lht.getAnnotationInHierarchy(UNKNOWN));
                 break;
             case EQUAL_TO:
@@ -72,9 +73,8 @@ public class UnitsPropagationTreeAnnotator extends PropagationTreeAnnotator {
                 type.replaceAnnotation(relationsEnforcer.getComparableUnits(lht, rht, node));
                 break;
             default:
-                // Placeholders for unhandled binary operations
-                // For now, do nothing
-                break;
+                // For unhandled binary operations
+                return super.visitBinary(node, type);
         }
 
         return null;

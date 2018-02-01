@@ -24,7 +24,7 @@ import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 /**
- * Utility class providing numerous static methods which help process AnnotationMirrors and
+ * Utility class providing numerous static methods to help process AnnotationMirrors and
  * AnnotatedTypeMirrors representing various units.
  */
 public class UnitsRelationsTools {
@@ -216,7 +216,8 @@ public class UnitsRelationsTools {
             return null;
         }
 
-        // if the Annotation has a value, then detect and match the string name of the prefix, and return the matching Prefix
+        // if the Annotation has a value, then detect and match the string name of the prefix, and
+        // return the matching Prefix
         String prefixString = annotationValue.getValue().toString();
         for (Prefix prefix : Prefix.values()) {
             if (prefixString.equals(prefix.toString())) {
@@ -302,7 +303,6 @@ public class UnitsRelationsTools {
             return unitsAnnotation;
         } else {
             // The only value is the prefix value in Units Checker
-            //
             // TODO: refine sensitivity of removal for extension units, in case extension
             // Annotations have more than just Prefix in its values. Do this by building a fresh
             // annotation and copy only non Prefix element values.
@@ -352,11 +352,7 @@ public class UnitsRelationsTools {
      * @return True if the Type has no units, false otherwise.
      */
     public static boolean isDimensionless(@Nullable final AnnotatedTypeMirror annoType) {
-        if (annoType == null) {
-            return false;
-        }
-
-        return (annoType.getAnnotation(Dimensionless.class) != null);
+        return annoType != null && annoType.getAnnotation(Dimensionless.class) != null;
     }
 
     /**
@@ -371,11 +367,9 @@ public class UnitsRelationsTools {
     public static boolean hasSpecificUnit(
             @Nullable final AnnotatedTypeMirror annoType,
             @Nullable final AnnotationMirror unitsAnnotation) {
-        if (annoType == null || unitsAnnotation == null) {
-            return false;
-        }
-
-        return AnnotationUtils.containsSame(annoType.getAnnotations(), unitsAnnotation);
+        return annoType != null
+                && unitsAnnotation != null
+                && AnnotationUtils.containsSame(annoType.getAnnotations(), unitsAnnotation);
     }
 
     /**
@@ -389,12 +383,10 @@ public class UnitsRelationsTools {
     public static boolean hasSpecificUnitIgnoringPrefix(
             @Nullable final AnnotatedTypeMirror annoType,
             @Nullable final AnnotationMirror unitsAnnotation) {
-        if (annoType == null || unitsAnnotation == null) {
-            return false;
-        }
-
-        return AnnotationUtils.containsSameIgnoringValues(
-                annoType.getAnnotations(), unitsAnnotation);
+        return annoType != null
+                && unitsAnnotation != null
+                && AnnotationUtils.containsSameIgnoringValues(
+                        annoType.getAnnotations(), unitsAnnotation);
     }
 
     /**
@@ -408,8 +400,7 @@ public class UnitsRelationsTools {
         return AnnotationUtils.areSame(unit1, unit2);
     }
 
-    private static final Map<String, AnnotationMirror> directSuperTypeMap =
-            new HashMap<String, AnnotationMirror>();
+    private static final Map<String, AnnotationMirror> directSuperTypeMap = new HashMap<>();
 
     /**
      * Obtains the direct supertype of the input unit if it exists, by constructing it from the
@@ -434,17 +425,16 @@ public class UnitsRelationsTools {
                 return directSuperTypeMap.get(unitName);
             }
 
-            // loop through the meta-annotations of the annotation, look for
-            // @SubtypeOf()
+            // Loop through the meta-annotations of the annotation, look for @SubtypeOf()
             for (AnnotationMirror metaAnno :
                     unitsAnnotation.getAnnotationType().asElement().getAnnotationMirrors()) {
                 if (AnnotationUtils.areSameByClass(metaAnno, SubtypeOf.class)) {
-                    // retrieve the Class name of the supertype unit annotation
+                    // Retrieve the Class name of the supertype unit annotation
                     List<com.sun.tools.javac.code.Type> superUnitClasses =
                             AnnotationUtils.getElementValueArray(
                                     metaAnno, "value", com.sun.tools.javac.code.Type.class, true);
                     if (superUnitClasses != null && !superUnitClasses.isEmpty()) {
-                        // build and return an annotation using the class name
+                        // Build and return an annotation using the class name
                         // In units checker, each unit can have at most 1 superunit
                         AnnotationMirror superUnit =
                                 new AnnotationBuilder(

@@ -12,8 +12,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.ErrorReporter;
 
 /**
- * Helper class responsible for type checking and computing result units for all arithmetic and
- * comparison operations for the Units Checker.
+ * Helper class responsible for computing result units for all arithmetic and comparison operations
+ * for the Units Checker, and issuing errors for dimensionally inconsistent computations.
  */
 public class UnitsRelationsEnforcer {
     private final BaseTypeChecker checker;
@@ -60,7 +60,7 @@ public class UnitsRelationsEnforcer {
     public AnnotationMirror getArithmeticUnit(Op op, AnnotationMirror lht, AnnotationMirror rht) {
         AnnotationMirror result = relationsManager.getResultUnit(op, lht, rht);
 
-        // If there's no direct mapping of the relation, then error
+        // If there's no direct mapping of the relation, then issue an error
         if (result == null) {
             ErrorReporter.errorAbort(
                     "no arithmetic relationship defined for " + lht + " " + op + " " + rht);
@@ -79,6 +79,7 @@ public class UnitsRelationsEnforcer {
      */
     public AnnotationMirror getComparableUnits(
             AnnotatedTypeMirror lht, AnnotatedTypeMirror rht, Tree node) {
+        // If the two units are not allowed to be compared to each other, then issue error
         if (!isComparableUnits(lht, rht)) {
             checker.report(
                     Result.failure("comparison.unit.mismatch", lht.toString(), rht.toString()),
@@ -116,8 +117,6 @@ public class UnitsRelationsEnforcer {
      * @param atm An annotated type mirror.
      * @return The unit as an annotation mirror.
      */
-    // TODO: would be good to refactor this to UnitsRelationsTools, but UNKNOWN needs to be passed
-    // every time...
     protected AnnotationMirror getUnit(AnnotatedTypeMirror atm) {
         return atm.getEffectiveAnnotationInHierarchy(UNKNOWN);
     }
@@ -134,6 +133,10 @@ public class UnitsRelationsEnforcer {
         AnnotatedTypeMirror varType = atf.getAnnotatedType(var);
         AnnotatedTypeMirror exprType = atf.getAnnotatedType(expr);
         AnnotationMirror varUnit = getUnit(varType);
+
+        // The helper methods unfold a compound assignment expression of the form x compoundOp y to
+        // x = x op y for some operation, and checks that the result unit of (x op y) is the same as
+        // the unit of x.
         switch (node.getKind()) {
             case PLUS_ASSIGNMENT:
                 checkAddSubAssignmentUnit(Op.ADD, varType, varUnit, exprType, node);
@@ -171,6 +174,7 @@ public class UnitsRelationsEnforcer {
             AnnotatedTypeMirror exprType,
             CompoundAssignmentTree node) {
         AnnotationMirror result = getArithmeticUnit(op, varType, exprType);
+        // If the result unit of the operation is not the same as the variable, issue an error
         if (!UnitsRelationsTools.isSameUnit(varUnit, result)) {
             checker.report(
                     Result.failure("compound.assignment.type.incompatible", exprType, varType),
@@ -195,6 +199,7 @@ public class UnitsRelationsEnforcer {
             AnnotatedTypeMirror exprType,
             CompoundAssignmentTree node) {
         AnnotationMirror result = getArithmeticUnit(op, varType, exprType);
+        // If the result unit of the operation is not the same as the variable, issue an error
         if (!UnitsRelationsTools.isSameUnit(varUnit, result)) {
             AnnotatedTypeMirror resultType = exprType.deepCopy();
             resultType.replaceAnnotation(result);

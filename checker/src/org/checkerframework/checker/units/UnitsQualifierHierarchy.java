@@ -22,8 +22,7 @@ public class UnitsQualifierHierarchy extends GraphQualifierHierarchy {
     /** Checks to see if a1 is subtype of a2, accounting for unit prefixes */
     @Override
     public boolean isSubtype(AnnotationMirror a1, AnnotationMirror a2) {
-        // If the prefix is Prefix.one, automatically strip it for LUB
-        // checking
+        // If the prefix is Prefix.one, automatically strip it for LUB checking
         if (UnitsRelationsTools.getPrefixValue(a1) == Prefix.one) {
             a1 = UnitsRelationsTools.removePrefix(elements, a1);
         }
@@ -40,9 +39,8 @@ public class UnitsQualifierHierarchy extends GraphQualifierHierarchy {
             a1 = UnitsRelationsTools.removePrefix(elements, a1);
             a2 = UnitsRelationsTools.removePrefix(elements, a2);
 
-            // super call can only check using annotation mirrors in the
-            // supported type qualifier hierarchy, which must be
-            // non-prefixed units
+            // super call can only check using annotation mirrors in the supported type qualifier
+            // hierarchy, which must be non-prefixed units
             return super.isSubtype(a1, a2);
         }
     }
@@ -56,8 +54,7 @@ public class UnitsQualifierHierarchy extends GraphQualifierHierarchy {
      */
     @Override
     public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
-        // If the prefix is Prefix.one, automatically strip it for LUB
-        // checking
+        // If the prefix is Prefix.one, automatically strip it for LUB checking
         if (UnitsRelationsTools.getPrefixValue(a1) == Prefix.one) {
             a1 = UnitsRelationsTools.removePrefix(elements, a1);
         }
@@ -72,8 +69,8 @@ public class UnitsQualifierHierarchy extends GraphQualifierHierarchy {
         if (UnitsRelationsTools.isSameUnit(baseA1, baseA2)) {
             // If the two units have the same base unit
             if (UnitsRelationsTools.isSameUnit(a1, a2)) {
-                // And if they have the same Prefix, it means it is the same
-                // unit, so return the unit
+                // And if they have the same Prefix, it means it is the same unit, so return the
+                // unit
                 return a1;
             } else {
                 // If they don't have the same Prefix, find the LUB:
@@ -85,21 +82,18 @@ public class UnitsQualifierHierarchy extends GraphQualifierHierarchy {
                 AnnotationMirror a1Super = getDirectSupertype(baseA1);
                 AnnotationMirror a2Super = getDirectSupertype(baseA2);
 
-                // findLub() only works with base units, so we use the
-                // direct supertype for any prefixed unit
+                // findLub() only works with base units, so we use the direct supertype for any
+                // prefixed unit
                 if (a1Prefixed && a2Prefixed) {
-                    // if both are prefixed, find the LUB of their direct
-                    // supertypes
+                    // if both are prefixed, find the LUB of their direct supertypes
                     // eg LUB(@km, @km) == LUB(@Length, @Length) = @Length
                     return findLub(a1Super, a2Super);
                 } else if (a1Prefixed && !a2Prefixed) {
-                    // if only the left is prefixed, find LUB of (supertype
-                    // of a1) and a2
+                    // if only the left is prefixed, find LUB of (supertype of a1) and a2
                     // eg LUB(@km, @m) == LUB(@Length, @m) = @Length
                     return findLub(a1Super, a2);
                 } else {
-                    // else (only right is prefixed), find LUB of a1 and
-                    // (supertype of a2)
+                    // else (only right is prefixed), find LUB of a1 and (supertype of a2)
                     // eg LUB(@m, @km) == LUB(@m, @Length) = @Length
                     return findLub(a1, a2Super);
                 }

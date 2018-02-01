@@ -16,19 +16,16 @@ import org.checkerframework.framework.qual.SubtypeOf;
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-// Note: unit relations for UnknownUnits are programatically added
+// Note: unit relations for UnknownUnits are programmatically added
 @SubtypeOf({})
-// @DefaultQualifierInHierarchyInUncheckedCode()
-// @DefaultInUncheckedCodeFor({TypeUseLocation.PARAMETER, TypeUseLocation.UPPER_BOUND})
 @ImplicitFor(typeNames = {Throwable.class, Exception.class})
 @DefaultFor({
     // Allows flow based type refinement in the body of methods
     LOCAL_VARIABLE, // for flow based refinement
     EXCEPTION_PARAMETER, // exceptions are always top
     IMPLICIT_UPPER_BOUND, // <T>, so that T can take on any type in usage
-    // RECEIVER, // so that methods defined in classes can be invoked on objects with units
 })
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER}) // ElementType.TYPE,
+@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 public @interface UnknownUnits {}

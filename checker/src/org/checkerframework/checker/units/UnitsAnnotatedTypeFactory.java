@@ -170,8 +170,9 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         // load all the external units
         qualSet.addAll(unitsLoader.getAllExternalUnits());
 
-        // add relations to all loaded units
-        unitsLoader.addRelationshipsToLoadedUnits();
+        // post-process all loaded units, adding alias units to aliasMap and adding any units
+        // relationships declared in meta-annotations
+        unitsLoader.postprocessLoadedUnits();
 
         return qualSet;
     }

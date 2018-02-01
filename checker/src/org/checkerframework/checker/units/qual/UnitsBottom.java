@@ -1,5 +1,9 @@
 package org.checkerframework.checker.units.qual;
 
+import static org.checkerframework.framework.qual.TypeUseLocation.EXPLICIT_LOWER_BOUND;
+import static org.checkerframework.framework.qual.TypeUseLocation.EXPLICIT_UPPER_BOUND;
+import static org.checkerframework.framework.qual.TypeUseLocation.LOWER_BOUND;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,7 +14,7 @@ import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.LiteralKind;
 import org.checkerframework.framework.qual.SubtypeOf;
 import org.checkerframework.framework.qual.TargetLocations;
-import org.checkerframework.framework.qual.TypeUseLocation;
+import org.checkerframework.framework.qual.TypeKind;
 
 /**
  * The bottom type in the Units type system. Programmers should rarely write this type.
@@ -19,10 +23,14 @@ import org.checkerframework.framework.qual.TypeUseLocation;
  * @checker_framework.manual #bottom-type the bottom type
  */
 @SubtypeOf({}) // needs to be done programmatically
+@ImplicitFor(
+    types = {TypeKind.VOID},
+    typeNames = Void.class,
+    literals = LiteralKind.NULL
+)
+@DefaultFor({LOWER_BOUND})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@DefaultFor(TypeUseLocation.LOWER_BOUND)
-@ImplicitFor(typeNames = Void.class, literals = LiteralKind.NULL)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
+@TargetLocations({EXPLICIT_LOWER_BOUND, EXPLICIT_UPPER_BOUND})
 public @interface UnitsBottom {}

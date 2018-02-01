@@ -53,10 +53,8 @@ class UnitsExtensionDemo {
         @kHz int kilohertz = 30;
 
         @Hz int resultHz = hertz + 20 / seconds;
-        System.out.println(resultHz);
 
         @kHz int resultkHz = kilohertz + 50 / millisec;
-        System.out.println(resultkHz);
 
         // this demonstrates the type hierarchy resolution: the common supertype of Hz and kHz is
         // Frequency, so this statement will pass

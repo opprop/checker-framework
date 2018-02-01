@@ -1,12 +1,14 @@
 package org.checkerframework.checker.units.qual;
 
+import static org.checkerframework.framework.qual.TypeUseLocation.*;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.InvisibleQualifier;
+import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.ImplicitFor;
 import org.checkerframework.framework.qual.SubtypeOf;
 
 /**
@@ -14,9 +16,15 @@ import org.checkerframework.framework.qual.SubtypeOf;
  *
  * @checker_framework.manual #units-checker Units Checker
  */
-@InvisibleQualifier
+// Note: unit relations for UnknownUnits are programmatically added
 @SubtypeOf({})
-@DefaultQualifierInHierarchy
+@ImplicitFor(typeNames = {Throwable.class, Exception.class})
+@DefaultFor({
+    // Allows flow based type refinement in the body of methods
+    LOCAL_VARIABLE, // for flow based refinement
+    EXCEPTION_PARAMETER, // exceptions are always top
+    IMPLICIT_UPPER_BOUND, // <T>, so that T can take on any type in usage
+})
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})

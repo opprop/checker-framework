@@ -16,4 +16,5 @@ import org.checkerframework.framework.qual.SubtypeOf;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf(Area.class)
+@UnitsRelation(op = Op.MUL, lhs = mm.class, rhs = mm.class, res = mm2.class)
 public @interface mm2 {}

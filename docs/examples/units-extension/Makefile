@@ -1,5 +1,4 @@
 FILES=qual/Frequency.java \
-  qual/FrequencyRelations.java \
   qual/Hz.java \
   qual/kHz.java
 
@@ -15,7 +14,7 @@ all: compile-for-test named-quals-test qual-folder-test clean
 
 demo:
 	$(JAVAC) $(JAVAOPTS) $(FILES)
-	@echo "***** This command is expected to produce errors on line 15 & 66:"
+	@echo "***** This command is expected to produce two errors:"
 	$(JAVAC) -classpath $(PROJECTDIR) -AprintErrorStack -processor org.checkerframework.checker.units.UnitsChecker -AunitsDirs=$(PROJECTDIR) Demo.java
 
 # compile qualifiers

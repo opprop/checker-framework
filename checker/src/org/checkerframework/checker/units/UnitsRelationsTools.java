@@ -275,7 +275,7 @@ public class UnitsRelationsTools {
 
         for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
                 elementValues.entrySet()) {
-            if (entry.getKey().getSimpleName().toString().equals("value")) {
+            if (entry.getKey().getSimpleName().contentEquals("value")) {
                 return entry.getValue();
             }
         }

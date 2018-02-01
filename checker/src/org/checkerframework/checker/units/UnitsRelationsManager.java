@@ -65,7 +65,7 @@ public class UnitsRelationsManager {
     public UnitsRelationsManager(BaseTypeChecker checker, UnitsAnnotatedTypeFactory atf) {
         this.checker = checker;
         this.atf = atf;
-        processingEnv = atf.getProcessingEnv();
+        this.processingEnv = atf.getProcessingEnv();
 
         UNKNOWN = atf.UNKNOWN;
         DIMENSIONLESS = atf.DIMENSIONLESS;

@@ -45,7 +45,7 @@ public final class UnitsAnnotationClassLoader extends AnnotationClassLoader {
         super(checker);
         this.checker = checker;
         this.atf = atf;
-        relationsManager = atf.relationsManager;
+        this.relationsManager = atf.relationsManager;
 
         UNKNOWN = atf.UNKNOWN;
         DIMENSIONLESS = atf.DIMENSIONLESS;

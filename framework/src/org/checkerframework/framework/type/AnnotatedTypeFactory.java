@@ -286,7 +286,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     protected ReflectionResolver reflectionResolver;
 
-    /** Annotated Type Loader used to load annotation classes via reflective lookup */
+    /** AnnotationClassLoader used to load type annotation classes via reflective lookup. */
     protected AnnotationClassLoader loader;
 
     /** Indicates that the whole-program inference is on. */
@@ -349,7 +349,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         this.types = processingEnv.getTypeUtils();
         this.visitorState = new VisitorState();
 
-        this.loader = new AnnotationClassLoader(checker);
         this.supportedQuals = new HashSet<>();
 
         this.fromByteCode = AnnotationBuilder.fromClass(elements, FromByteCode.class);
@@ -699,6 +698,15 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
+     * Factory method to easily change what {@link AnnotationClassLoader} is created to load type
+     * annotation classes. Subclasses can override this method and return a custom
+     * AnnotationClassLoader subclass to customize loading logic.
+     */
+    protected AnnotationClassLoader createAnnotationClassLoader() {
+        return new AnnotationClassLoader(checker);
+    }
+
+    /**
      * Returns a mutable set of annotation classes that are supported by a checker
      *
      * <p>Subclasses may override this method and to return a mutable set of their supported type
@@ -800,7 +808,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     protected final Set<Class<? extends Annotation>> getBundledTypeQualifiersWithPolyAll(
             Class<? extends Annotation>... explicitlyListedAnnotations) {
         Set<Class<? extends Annotation>> annotations =
-                loadTypeAnnotationsFromQualDir(explicitlyListedAnnotations);
+                getBundledTypeQualifiersWithoutPolyAll(explicitlyListedAnnotations);
         boolean addPolyAll = false;
         for (Class<? extends Annotation> annotationClass : annotations) {
             if (annotationClass.getAnnotation(PolymorphicQualifier.class) != null) {
@@ -833,9 +841,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Loads all annotations contained in the qual directory of a checker via reflection, and has
-     * the option to include an explicitly stated list of annotations (eg ones found in a different
-     * directory than qual).
+     * Instantiates the AnnotationClassLoader and loads all annotations contained in the qual
+     * directory of a checker via reflection, and has the option to include an explicitly stated
+     * list of annotations (eg ones found in a different directory than qual).
      *
      * <p>The annotations that are automatically loaded must have the {@link
      * java.lang.annotation.Target Target} meta-annotation with the value of {@link
@@ -851,7 +859,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     @SuppressWarnings("varargs")
     private final Set<Class<? extends Annotation>> loadTypeAnnotationsFromQualDir(
             Class<? extends Annotation>... explicitlyListedAnnotations) {
-        // add the loaded annotations to the annotation set
+        loader = createAnnotationClassLoader();
+
         Set<Class<? extends Annotation>> annotations = loader.getBundledAnnotationClasses();
 
         // add in all explicitly Listed qualifiers
@@ -2886,7 +2895,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Parses the stub files in the following order: <br>
+     * Parses the stub files in the following order:
      *
      * <ol>
      *   <li>jdk.astub in the same directory as the checker, if it exists and ignorejdkastub option
@@ -2919,8 +2928,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             InputStream in = null;
             in = checker.getClass().getResourceAsStream("jdk.astub");
             if (in != null) {
-                StubParser stubParser = new StubParser("jdk.astub", in, this, processingEnv);
-                stubParser.parse(typesFromStubFiles, declAnnosFromStubFiles);
+                StubParser.parse(
+                        "jdk.astub",
+                        in,
+                        this,
+                        processingEnv,
+                        typesFromStubFiles,
+                        declAnnosFromStubFiles);
             }
         }
 
@@ -2928,8 +2942,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         // stub file for type-system independent annotations
         InputStream input = BaseTypeChecker.class.getResourceAsStream("flow.astub");
         if (input != null) {
-            StubParser stubParser = new StubParser("flow.astub", input, this, processingEnv);
-            stubParser.parse(typesFromStubFiles, declAnnosFromStubFiles);
+            StubParser.parse(
+                    "flow.astub",
+                    input,
+                    this,
+                    processingEnv,
+                    typesFromStubFiles,
+                    declAnnosFromStubFiles);
         }
 
         // Stub files specified via stubs compiler option, stubs system property,
@@ -2983,8 +3002,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 InputStream in = null;
                 in = checker.getClass().getResourceAsStream(stubPath);
                 if (in != null) {
-                    StubParser stubParser = new StubParser(stubPath, in, this, processingEnv);
-                    stubParser.parse(typesFromStubFiles, declAnnosFromStubFiles);
+                    StubParser.parse(
+                            stubPath,
+                            in,
+                            this,
+                            processingEnv,
+                            typesFromStubFiles,
+                            declAnnosFromStubFiles);
                     // We could handle the stubPath -> continue.
                     continue;
                 }
@@ -3006,9 +3030,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                             "Could not read stub resource: " + resource.getDescription());
                     continue;
                 }
-                StubParser stubParser =
-                        new StubParser(resource.getDescription(), stubStream, this, processingEnv);
-                stubParser.parse(typesFromStubFiles, declAnnosFromStubFiles);
+                StubParser.parse(
+                        resource.getDescription(),
+                        stubStream,
+                        this,
+                        processingEnv,
+                        typesFromStubFiles,
+                        declAnnosFromStubFiles);
             }
         }
 

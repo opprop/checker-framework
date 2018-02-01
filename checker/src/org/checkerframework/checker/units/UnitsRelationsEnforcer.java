@@ -27,7 +27,7 @@ public class UnitsRelationsEnforcer {
     public UnitsRelationsEnforcer(BaseTypeChecker checker, UnitsAnnotatedTypeFactory atf) {
         this.checker = checker;
         this.atf = atf;
-        relationsManager = atf.relationsManager;
+        this.relationsManager = atf.relationsManager;
 
         UNKNOWN = atf.UNKNOWN;
         DIMENSIONLESS = atf.DIMENSIONLESS;

@@ -2,7 +2,6 @@ package org.checkerframework.checker.units;
 
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
@@ -14,6 +13,7 @@ import org.checkerframework.checker.units.qual.UnknownUnits;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.AnnotatedTypeFormatter;
+import org.checkerframework.framework.type.AnnotationClassLoader;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ImplicitsTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -50,6 +50,9 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     // Maps fully qualified class names of alias annotation mirrors to their normalized annotation
     // mirrors
     private static final Map<String, AnnotationMirror> aliasMap = new HashMap<>();
+
+    // AnnotationClassLoader for the units checker
+    private UnitsAnnotationClassLoader unitsLoader;
 
     public UnitsAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
@@ -150,18 +153,19 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     // Supported type qualifiers ===================================================================
-
     // In Units Checker, we support and load additional qualifiers defined by the user, and we
     // instantiate units relationship tables defined in the meta-annotations of the qualifiers.
     @Override
-    protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
-        // Use the Units Annotated Type Loader instead of the default one
-        UnitsAnnotationClassLoader unitsLoader = new UnitsAnnotationClassLoader(checker, this);
-        loader = unitsLoader;
+    protected AnnotationClassLoader createAnnotationClassLoader() {
+        // Use the UnitsAnnotationClassLoader instead of the default one
+        unitsLoader = new UnitsAnnotationClassLoader(checker, this);
+        return unitsLoader;
+    }
 
-        // copy all loaded Units to qual set
-        Set<Class<? extends Annotation>> qualSet = new HashSet<>();
-        qualSet.addAll(getBundledTypeQualifiersWithPolyAll());
+    @Override
+    protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
+        // get all bundled annotations
+        Set<Class<? extends Annotation>> qualSet = getBundledTypeQualifiersWithPolyAll();
 
         // load all the external units
         qualSet.addAll(unitsLoader.getAllExternalUnits());

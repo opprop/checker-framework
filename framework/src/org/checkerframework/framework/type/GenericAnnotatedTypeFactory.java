@@ -483,6 +483,7 @@ public abstract class GenericAnnotatedTypeFactory<
         return superResult;
     }
 
+    // Some stupid changes.
     /**
      * Create {@link QualifierDefaults} which handles checker specified defaults. Subclasses should
      * override {@link GenericAnnotatedTypeFactory#addCheckedCodeDefaults(QualifierDefaults defs)}

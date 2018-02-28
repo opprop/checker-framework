@@ -81,6 +81,27 @@ public enum TypeUseLocation {
      */
     IMPLICIT_UPPER_BOUND,
 
+    /** Apply default annotations to unannotated type declarations: {@code @HERE class Demo{}} */
+    TYPE_DECLARATION,
+
+    /** Represents extends location of a class or interface: {@code class B extends @HERE A {}} */
+    EXTENDS,
+
+    /** Represents implements location of a class: {@code class B implements @HERE I {}} */
+    IMPLEMENTS,
+
+    /** Represents throws location of a method: {@code void foo throws @HERE Exception {}} */
+    THROWS,
+
+    /** Represents instanceof location: {@code o instanceof @HERE Object {}} */
+    INSTANCE_OF,
+
+    /** Represents new expression location: {@code new @HERE Object()} */
+    NEW,
+
+    /** Represents casts location: {@code (@HERE Object)o} */
+    CAST,
+
     /** Apply if nothing more concrete is provided. TODO: clarify relation to ALL. */
     OTHERWISE,
 

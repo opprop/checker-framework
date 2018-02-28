@@ -65,6 +65,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.Diagnostic.Kind;
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.dataflow.analysis.FlowExpressions;
 import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.TransferResult;
@@ -79,6 +80,8 @@ import org.checkerframework.dataflow.util.PurityUtils;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.qual.DefaultQualifier;
+import org.checkerframework.framework.qual.QualifiedLocations;
+import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.qual.Unused;
 import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.source.SourceVisitor;
@@ -330,6 +333,11 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             checkDefaultConstructor(classTree);
         }
 
+        checkQualifiedLocation(
+                atypeFactory.getAnnotatedType(classTree),
+                classTree,
+                TypeUseLocation.TYPE_DECLARATION);
+
         /* Visit the extends and implements clauses.
          * The superclass also visits them, but only calls visitParameterizedType, which
          * loses a main modifier.
@@ -337,12 +345,16 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         Tree ext = classTree.getExtendsClause();
         if (ext != null) {
             validateTypeOf(ext);
+            checkQualifiedLocation(
+                    atypeFactory.getAnnotatedType(ext), ext, TypeUseLocation.EXTENDS);
         }
 
         List<? extends Tree> impls = classTree.getImplementsClause();
         if (impls != null) {
             for (Tree im : impls) {
                 validateTypeOf(im);
+                checkQualifiedLocation(
+                        atypeFactory.getAnnotatedType(im), im, TypeUseLocation.IMPLEMENTS);
             }
         }
         super.visitClass(classTree, null);
@@ -550,9 +562,13 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
             // Passing the whole method/constructor validates the return type
             validateTypeOf(node);
+            checkQualifiedLocation(
+                    atypeFactory.getMethodReturnType(node), node, TypeUseLocation.RETURN);
 
             // Validate types in throws clauses
             for (ExpressionTree thr : node.getThrows()) {
+                checkQualifiedLocation(
+                        atypeFactory.getAnnotatedType(thr), thr, TypeUseLocation.THROWS);
                 validateTypeOf(thr);
             }
 
@@ -855,6 +871,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
     @Override
     public Void visitVariable(VariableTree node, Void p) {
+        validateQualifiedLocationForVariableTree(node);
+
         Pair<Tree, AnnotatedTypeMirror> preAssCtxt = visitorState.getAssignmentContext();
         visitorState.setAssignmentContext(
                 Pair.of((Tree) node, atypeFactory.getAnnotatedType(node)));
@@ -876,6 +894,34 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             return super.visitVariable(node, p);
         } finally {
             visitorState.setAssignmentContext(preAssCtxt);
+        }
+    }
+
+    private void validateQualifiedLocationForVariableTree(VariableTree node) {
+        AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(node);
+        Element element = TreeUtils.elementFromDeclaration(node);
+        switch (element.getKind()) {
+            case FIELD:
+                checkQualifiedLocation(type, node, TypeUseLocation.FIELD);
+                break;
+            case LOCAL_VARIABLE:
+                checkQualifiedLocation(type, node, TypeUseLocation.LOCAL_VARIABLE);
+                break;
+            case RESOURCE_VARIABLE:
+                checkQualifiedLocation(type, node, TypeUseLocation.RESOURCE_VARIABLE);
+                break;
+            case EXCEPTION_PARAMETER:
+                checkQualifiedLocation(type, node, TypeUseLocation.EXCEPTION_PARAMETER);
+                break;
+            case PARAMETER:
+                if (element.getSimpleName().contentEquals("this")) {
+                    checkQualifiedLocation(type, node, TypeUseLocation.RECEIVER);
+                } else {
+                    checkQualifiedLocation(type, node, TypeUseLocation.PARAMETER);
+                }
+                break;
+            default:
+                break;
         }
     }
 
@@ -1268,6 +1314,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
         checkTypeArguments(node, paramBounds, typeargs, node.getTypeArguments());
 
+        checkQualifiedLocation(atypeFactory.getAnnotatedType(node), node, TypeUseLocation.NEW);
+
         boolean valid = validateTypeOf(node);
 
         if (valid) {
@@ -1537,6 +1585,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
     public Void visitNewArray(NewArrayTree node, Void p) {
         boolean valid = validateTypeOf(node);
 
+        checkQualifiedLocation(atypeFactory.getAnnotatedType(node), node, TypeUseLocation.NEW);
+
         if (valid && node.getType() != null) {
             AnnotatedArrayType arrayType = atypeFactory.getAnnotatedType(node);
             if (atypeFactory.getDependentTypesHelper() != null) {
@@ -1676,6 +1726,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
     @Override
     public Void visitTypeCast(TypeCastTree node, Void p) {
+        Tree castTree = node.getType();
+        AnnotatedTypeMirror castType = atypeFactory.getAnnotatedType(castTree);
+        checkQualifiedLocation(castType, castTree, TypeUseLocation.CAST);
         // validate "node" instead of "node.getType()" to prevent duplicate errors.
         boolean valid = validateTypeOf(node) && validateTypeOf(node.getExpression());
         if (valid) {
@@ -1692,6 +1745,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
     @Override
     public Void visitInstanceOf(InstanceOfTree node, Void p) {
+        Tree typeTree = node.getType();
+        AnnotatedTypeMirror instanceOfType = atypeFactory.getAnnotatedType(typeTree);
+        checkQualifiedLocation(instanceOfType, typeTree, TypeUseLocation.INSTANCE_OF);
         validateTypeOf(node.getType());
         return super.visitInstanceOf(node, p);
     }
@@ -2662,6 +2718,52 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             return true;
         }
         return false;
+    }
+
+    protected void checkQualifiedLocation(
+            AnnotatedTypeMirror type, Tree tree, TypeUseLocation location) {
+        for (AnnotationMirror am : type.getAnnotations()) {
+            Element elementOfAnnotation = am.getAnnotationType().asElement();
+            QualifiedLocations qualifiedLocations =
+                    elementOfAnnotation.getAnnotation(QualifiedLocations.class);
+            // Null means no QualifiedLocations annotation => Any usage is correct.
+            if (qualifiedLocations == null) {
+                continue;
+            }
+
+            Set<TypeUseLocation> set = new HashSet<>(Arrays.asList(qualifiedLocations.value()));
+
+            if (set.contains(TypeUseLocation.ALL)) continue;
+
+            if (set.contains(TypeUseLocation.LOWER_BOUND)) {
+                if (location == TypeUseLocation.EXPLICIT_LOWER_BOUND
+                        || location == TypeUseLocation.IMPLICIT_LOWER_BOUND) {
+                    // TypeUseLocation.LOWER_BOUND already covers both explicit and implicit lower
+                    // bounds, so no need to check
+                    continue;
+                }
+            }
+
+            if (set.contains(TypeUseLocation.UPPER_BOUND)) {
+                // TypeUseLocation.UPPER_BOUND already covers both explicit and implicit upper
+                // bounds, so no need to check
+                if (location == TypeUseLocation.EXPLICIT_UPPER_BOUND
+                        || location == TypeUseLocation.IMPLICIT_UPPER_BOUND) {
+                    continue;
+                }
+            }
+
+            if (!set.contains(location)) {
+                reportLocationError(type, tree, location);
+            }
+        }
+    }
+
+    private void reportLocationError(
+            AnnotatedTypeMirror type, Tree tree, TypeUseLocation location) {
+        @SuppressWarnings("CompilerMessages")
+        @CompilerMessageKey String errorMessage = location.toString().toLowerCase() + ".annotation.forbidden";
+        checker.report(Result.failure(errorMessage, type.getAnnotations(), type.toString()), tree);
     }
 
     /**

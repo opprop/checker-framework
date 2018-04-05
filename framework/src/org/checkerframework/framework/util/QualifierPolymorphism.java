@@ -3,6 +3,7 @@ package org.checkerframework.framework.util;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.util.TreePath;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -216,6 +217,21 @@ public class QualifierPolymorphism {
                                     atypeFactory.getReceiverType(tree), type.getReceiverType()));
         }
 
+        TreePath path = atypeFactory.getPath(tree);
+        if (path != null) {
+            // TODO Solve crash on library jblas
+            AnnotatedTypeMirror assignmentContext =
+                    TypeArgInferenceUtil.assignedTo(atypeFactory, path);
+            if (assignmentContext != null) {
+                matchingMapping =
+                        collector.reduce2(
+                                matchingMapping,
+                                collector.visit(
+                                        // Actual assignment lhs type
+                                        type.getReturnType(), assignmentContext));
+            }
+        }
+
         if (matchingMapping != null && !matchingMapping.isEmpty()) {
             replacer.visit(type, matchingMapping);
         } else {
@@ -365,8 +381,56 @@ public class QualifierPolymorphism {
                 if (a2Annos != null && !a2Annos.isEmpty()) {
                     r2remain.remove(key1);
                     Set<? extends AnnotationMirror> lubs =
+                            // Should not always go upward. For poly return type, should
                             qualhierarchy.leastUpperBounds(a1Annos, a2Annos);
                     res.put(key1, lubs);
+                } else {
+                    res.put(key1, a1Annos);
+                }
+            }
+            for (AnnotationMirror key2 : r2remain) {
+                res.put(key2, r2.get(key2));
+            }
+            return res;
+        }
+
+        public Map<AnnotationMirror, Set<? extends AnnotationMirror>> reduce2(
+                Map<AnnotationMirror, Set<? extends AnnotationMirror>> r1,
+                Map<AnnotationMirror, Set<? extends AnnotationMirror>> r2) {
+
+            if (r1 == null || r1.isEmpty()) {
+                return r2;
+            }
+            if (r2 == null || r2.isEmpty()) {
+                return r1;
+            }
+
+            Map<AnnotationMirror, Set<? extends AnnotationMirror>> res =
+                    new HashMap<AnnotationMirror, Set<? extends AnnotationMirror>>(r1.size());
+            // Ensure that all qualifiers from r1 and r2 are visited.
+            Set<AnnotationMirror> r2remain = AnnotationUtils.createAnnotationSet();
+            r2remain.addAll(r2.keySet());
+            for (Map.Entry<AnnotationMirror, Set<? extends AnnotationMirror>> kv1 : r1.entrySet()) {
+                AnnotationMirror key1 = kv1.getKey();
+                Set<? extends AnnotationMirror> a1Annos = kv1.getValue();
+                Set<? extends AnnotationMirror> a2Annos = r2.get(key1);
+                if (a2Annos != null && !a2Annos.isEmpty()) {
+                    r2remain.remove(key1);
+                    Set<? extends AnnotationMirror> lubs =
+                            // Should not always go upward. For poly return type, should
+                            qualhierarchy.leastUpperBounds(a1Annos, a2Annos);
+                    Iterator<? extends AnnotationMirror> a1i = a1Annos.iterator();
+                    Iterator<? extends AnnotationMirror> a2i = a2Annos.iterator();
+                    while (a1i.hasNext() && a2i.hasNext()) {
+                        AnnotationMirror a1 = a1i.next();
+                        AnnotationMirror a2 = a2i.next();
+                        if (!qualhierarchy.isSubtype(a1, a2)) {
+                            res.remove(
+                                    key1); // Upper bound is lower than lower bound -> no solution
+                        } else {
+                            res.put(key1, Collections.singleton(a1));
+                        }
+                    }
                 } else {
                     res.put(key1, a1Annos);
                 }
@@ -457,7 +521,24 @@ public class QualifierPolymorphism {
             type = AnnotatedTypes.asSuper(atypeFactory, type, dcType);
 
             Map<AnnotationMirror, Set<? extends AnnotationMirror>> result =
-                    mapQualifierToPoly(type, dcType);
+                    new HashMap<AnnotationMirror, Set<? extends AnnotationMirror>>();
+
+            for (Map.Entry<AnnotationMirror, AnnotationMirror> kv : polyQuals.entrySet()) {
+                AnnotationMirror top = kv.getKey();
+                AnnotationMirror poly = kv.getValue();
+
+                if (top == null && dcType.hasAnnotation(POLYALL)) {
+                    // PolyAll qualifier
+                    result.put(poly, type.getAnnotations());
+                } else if (dcType.hasAnnotation(poly)) {
+                    AnnotationMirror typeQual = type.getAnnotationInHierarchy(top);
+                    result.put(poly, Collections.singleton(typeQual));
+                } else if (type.hasAnnotation(poly)) {
+                    AnnotationMirror typeQual = dcType.getAnnotationInHierarchy(top);
+                    result.put(poly, Collections.singleton(typeQual));
+                }
+            }
+
             if (!type.wasRaw() && !dcType.wasRaw()) {
                 result = reduce(result, visit(type.getTypeArguments(), dcType.getTypeArguments()));
             }

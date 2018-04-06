@@ -38,21 +38,23 @@ public abstract class ViewpointAdapter<Modifier> {
      *
      * @param receiver receiver type
      * @param declared declared type
-     * @param f {@link AnnotatedTypeFactory} of concrete type system
+     * @param atypeFactory {@link AnnotatedTypeFactory} of concrete type system
      * @return {@link AnnotatedTypeMirror} after viewpoint adaptation
      */
-    public <TypeFactory extends AnnotatedTypeFactory> AnnotatedTypeMirror combineTypeWithType(
-            AnnotatedTypeMirror receiver, AnnotatedTypeMirror declared, TypeFactory f) {
-        assert receiver != null && declared != null && f != null;
+    public AnnotatedTypeMirror combineTypeWithType(
+            AnnotatedTypeMirror receiver,
+            AnnotatedTypeMirror declared,
+            AnnotatedTypeFactory atypeFactory) {
+        assert receiver != null && declared != null && atypeFactory != null;
 
         AnnotatedTypeMirror result = declared;
 
         if (receiver.getKind() == TypeKind.TYPEVAR) {
             receiver = ((AnnotatedTypeVariable) receiver).getUpperBound();
         }
-        Modifier recvModifier = extractModifier(receiver, f);
+        Modifier recvModifier = extractModifier(receiver, atypeFactory);
         if (recvModifier != null) {
-            result = combineModifierWithType(recvModifier, declared, f);
+            result = combineModifierWithType(recvModifier, declared, atypeFactory);
             result = substituteTVars(receiver, result);
         }
 
@@ -63,30 +65,38 @@ public abstract class ViewpointAdapter<Modifier> {
      * Extract modifier from {@link AnnotatedTypeMirror}.
      *
      * @param atm AnnotatedTypeMirror from which modifier is extracted
-     * @param f {@link AnnotatedTypeFactory} of concrete type system
+     * @param atypeFactory {@link AnnotatedTypeFactory} of concrete type system
      * @return modifier extracted
      */
-    protected abstract <TypeFactory extends AnnotatedTypeFactory> Modifier extractModifier(
-            AnnotatedTypeMirror atm, TypeFactory f);
+    protected abstract Modifier extractModifier(
+            AnnotatedTypeMirror atm, AnnotatedTypeFactory atypeFactory);
 
-    protected <TypeFactory extends AnnotatedTypeFactory>
-            AnnotatedTypeMirror combineModifierWithType(
-                    Modifier recvModifier, AnnotatedTypeMirror decl, TypeFactory f) {
-        if (decl.getKind().isPrimitive()) {
-            return decl;
-        } else if (decl.getKind() == TypeKind.TYPEVAR) {
+    /**
+     * Sub-procedure to combine receiver modifiers with declared types. Modifiers are extracted from
+     * declared types to furthur perform viewpoint adaptation only between two modifiers.
+     *
+     * @param receiver receiver modifier
+     * @param declared declared type
+     * @param atypeFactory {@link AnnotatedTypeFactory} of concrete type system
+     * @return {@link AnnotatedTypeMirror} after viewpoint adaptation
+     */
+    protected AnnotatedTypeMirror combineModifierWithType(
+            Modifier receiver, AnnotatedTypeMirror declared, AnnotatedTypeFactory atypeFactory) {
+        if (declared.getKind().isPrimitive()) {
+            return declared;
+        } else if (declared.getKind() == TypeKind.TYPEVAR) {
             if (!isTypeVarExtends) {
                 isTypeVarExtends = true;
-                AnnotatedTypeVariable atv = (AnnotatedTypeVariable) decl.shallowCopy();
+                AnnotatedTypeVariable atv = (AnnotatedTypeVariable) declared.shallowCopy();
                 Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
                 // For type variables, we recursively adapt upper and lower bounds
                 AnnotatedTypeMirror resUpper =
-                        combineModifierWithType(recvModifier, atv.getUpperBound(), f);
+                        combineModifierWithType(receiver, atv.getUpperBound(), atypeFactory);
                 mapping.put(atv.getUpperBound(), resUpper);
 
                 AnnotatedTypeMirror resLower =
-                        combineModifierWithType(recvModifier, atv.getLowerBound(), f);
+                        combineModifierWithType(receiver, atv.getLowerBound(), atypeFactory);
                 mapping.put(atv.getLowerBound(), resLower);
 
                 AnnotatedTypeMirror result = AnnotatedTypeReplacer.replace(atv, mapping);
@@ -94,21 +104,22 @@ public abstract class ViewpointAdapter<Modifier> {
                 isTypeVarExtends = false;
                 return result;
             }
-            return decl;
-        } else if (decl.getKind() == TypeKind.DECLARED) {
-            AnnotatedDeclaredType adt = (AnnotatedDeclaredType) decl.shallowCopy();
+            return declared;
+        } else if (declared.getKind() == TypeKind.DECLARED) {
+            AnnotatedDeclaredType adt = (AnnotatedDeclaredType) declared.shallowCopy();
 
             // Mapping between declared type argument to combined type argument
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
-            Modifier declModifier = extractModifier(adt, f);
-            Modifier resultModifier = combineModifierWithModifier(recvModifier, declModifier, f);
+            Modifier declModifier = extractModifier(adt, atypeFactory);
+            Modifier resultModifier =
+                    combineModifierWithModifier(receiver, declModifier, atypeFactory);
 
             // Recursively combine type arguments and store to map
             for (AnnotatedTypeMirror typeArgument : adt.getTypeArguments()) {
                 // Recursively adapt the type arguments of this adt
                 AnnotatedTypeMirror combinedTypeArgument =
-                        combineModifierWithType(recvModifier, typeArgument, f);
+                        combineModifierWithType(receiver, typeArgument, atypeFactory);
                 mapping.put(typeArgument, combinedTypeArgument);
             }
 
@@ -117,23 +128,25 @@ public abstract class ViewpointAdapter<Modifier> {
             result.replaceAnnotation(extractAnnotationMirror(resultModifier));
 
             return result;
-        } else if (decl.getKind() == TypeKind.ARRAY) {
-            AnnotatedArrayType aat = (AnnotatedArrayType) decl.shallowCopy();
+        } else if (declared.getKind() == TypeKind.ARRAY) {
+            AnnotatedArrayType aat = (AnnotatedArrayType) declared.shallowCopy();
 
             // Replace the main modifier
-            Modifier declModifier = extractModifier(aat, f);
-            Modifier resultModifier = combineModifierWithModifier(recvModifier, declModifier, f);
+            Modifier declModifier = extractModifier(aat, atypeFactory);
+            Modifier resultModifier =
+                    combineModifierWithModifier(receiver, declModifier, atypeFactory);
             aat.replaceAnnotation(extractAnnotationMirror(resultModifier));
 
             // Combine component type recursively and sets combined component type
             AnnotatedTypeMirror compo = aat.getComponentType();
             // Recursively call itself first on the component type
-            AnnotatedTypeMirror combinedCompoType = combineModifierWithType(recvModifier, compo, f);
+            AnnotatedTypeMirror combinedCompoType =
+                    combineModifierWithType(receiver, compo, atypeFactory);
             aat.setComponentType(combinedCompoType);
 
             return aat;
-        } else if (decl.getKind() == TypeKind.WILDCARD) {
-            AnnotatedWildcardType awt = (AnnotatedWildcardType) decl.shallowCopy();
+        } else if (declared.getKind() == TypeKind.WILDCARD) {
+            AnnotatedWildcardType awt = (AnnotatedWildcardType) declared.shallowCopy();
 
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
@@ -144,7 +157,7 @@ public abstract class ViewpointAdapter<Modifier> {
             if (extend != null) {
                 // Recursively adapt the extends bound of this awt
                 AnnotatedTypeMirror combinedExtend =
-                        combineModifierWithType(recvModifier, extend, f);
+                        combineModifierWithType(receiver, extend, atypeFactory);
                 mapping.put(extend, combinedExtend);
             }
 
@@ -152,25 +165,26 @@ public abstract class ViewpointAdapter<Modifier> {
             AnnotatedTypeMirror zuper = awt.getSuperBound();
             if (zuper != null) {
                 // Recursively adapt the lower bound of this awt
-                AnnotatedTypeMirror combinedZuper = combineModifierWithType(recvModifier, zuper, f);
+                AnnotatedTypeMirror combinedZuper =
+                        combineModifierWithType(receiver, zuper, atypeFactory);
                 mapping.put(zuper, combinedZuper);
             }
 
             AnnotatedTypeMirror result = AnnotatedTypeReplacer.replace(awt, mapping);
 
             return result;
-        } else if (decl.getKind() == TypeKind.NULL) {
-            AnnotatedNullType ant = (AnnotatedNullType) decl.shallowCopy(true);
-            Modifier declModifier = extractModifier(ant, f);
-            Modifier result = combineModifierWithModifier(recvModifier, declModifier, f);
+        } else if (declared.getKind() == TypeKind.NULL) {
+            AnnotatedNullType ant = (AnnotatedNullType) declared.shallowCopy(true);
+            Modifier declModifier = extractModifier(ant, atypeFactory);
+            Modifier result = combineModifierWithModifier(receiver, declModifier, atypeFactory);
             ant.replaceAnnotation(extractAnnotationMirror(result));
             return ant;
         } else {
             ErrorReporter.errorAbort(
                     "ViewpointAdaptor::combineModifierWithType: Unknown decl: "
-                            + decl
+                            + declared
                             + " of kind: "
-                            + decl.getKind());
+                            + declared.getKind());
             return null;
         }
     }
@@ -188,13 +202,12 @@ public abstract class ViewpointAdapter<Modifier> {
      *
      * @param receiver receiver modifier
      * @param declared declared modifier
-     * @param typeFactory {@link AnnotatedTypeFactory} of concrete type system
+     * @param atypeFactory {@link AnnotatedTypeFactory} of concrete type system
      * @return result modifier after viewpoint adaptation
      */
     @SideEffectFree
-    protected abstract <TypeFactory extends AnnotatedTypeFactory>
-            Modifier combineModifierWithModifier(
-                    Modifier receiver, Modifier declared, TypeFactory typeFactory);
+    protected abstract Modifier combineModifierWithModifier(
+            Modifier receiver, Modifier declared, AnnotatedTypeFactory atypeFactory);
 
     /**
      * If rhs is type variable use whose type arguments should be inferred from receiver - lhs, this

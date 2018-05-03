@@ -301,15 +301,11 @@ public abstract class ViewpointAdapter<Modifier> {
         AnnotatedDeclaredType decltype = res.first;
         int foundindex = res.second;
 
-        if (!decltype.wasRaw()) {
-            // Explicitly provide actual type arguments
-            List<AnnotatedTypeMirror> tas = decltype.getTypeArguments();
-            // return a copy, as we want to modify the type later.
-            return tas.get(foundindex).shallowCopy(true);
-        } else {
-            // Type arguments not explicitly provided => use upper bound of var
-            return var.getUpperBound();
-        }
+        // TODO Original GUT implementation checks whether type was raw or not.
+        // But that caused strange errors and caused some tests to fail unreasonably.
+        List<AnnotatedTypeMirror> tas = decltype.getTypeArguments();
+        // return a copy, as we want to modify the type later.
+        return tas.get(foundindex).shallowCopy(true);
     }
 
     /**
@@ -329,7 +325,7 @@ public abstract class ViewpointAdapter<Modifier> {
         int foundindex = 0;
 
         for (TypeParameterElement tparam : tparams) {
-            // TODO Comparing with simple name is dangerous!
+            // TODO Comparing with simple name is dangerous! This must be resolved first before merge!
             if (tparam.equals(varelem) || tparam.getSimpleName().equals(varelem.getSimpleName())) {
                 // we found the right index!
                 break;

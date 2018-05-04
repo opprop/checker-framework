@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +103,6 @@ import org.checkerframework.framework.util.GraphQualifierHierarchy;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.framework.util.TreePathCacher;
-import org.checkerframework.framework.util.ViewpointAdapter;
 import org.checkerframework.framework.util.typeinference.DefaultTypeArgumentInference;
 import org.checkerframework.framework.util.typeinference.TypeArgumentInference;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -184,7 +182,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     private WholeProgramInference wholeProgramInference;
 
     /** Viewpoint adapter to perform viewpoint adaptation */
-    protected ViewpointAdapter<?> viewpointAdapter;
+    protected ViewpointAdapter viewpointAdapter;
     /**
      * This formatter is used for converting AnnotatedTypeMirrors to Strings. This formatter will be
      * used by all AnnotatedTypeMirrors created by this factory in their toString methods.
@@ -699,7 +697,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /** Factory method to create ViewpointAdaptor. */
-    protected ViewpointAdapter<?> createViewpointAdapter() {
+    protected ViewpointAdapter createViewpointAdapter() {
         return null;
     }
 
@@ -1366,40 +1364,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             addAnnotationFromFieldInvariant(type, owner, (VariableElement) element);
         }
         addComputedTypeAnnotations(element, type);
-        if (shouldViewpointAdaptMember(type, element)) {
-            viewpointAdaptMember(type, owner, element);
-        }
-    }
-
-    protected boolean shouldViewpointAdaptMember(AnnotatedTypeMirror type, Element element) {
-        if (!(type.getKind() == TypeKind.DECLARED || type.getKind() == TypeKind.ARRAY)) {
-            return false;
-        }
-        if (element.getKind() == ElementKind.LOCAL_VARIABLE
-                || element.getKind() == ElementKind.PARAMETER) {
-            return false;
-        }
-        return true;
-    }
-
-    protected void viewpointAdaptMember(
-            AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
         if (viewpointAdapter != null) {
-            AnnotatedTypeMirror decltype = this.getAnnotatedType(element);
-            AnnotatedTypeMirror combinedType =
-                    this.viewpointAdapter.combineTypeWithType(owner, decltype, this);
-            type.replaceAnnotations(combinedType.getAnnotations());
-            if (type.getKind() == TypeKind.DECLARED
-                    && combinedType.getKind() == TypeKind.DECLARED) {
-                AnnotatedDeclaredType adtType = (AnnotatedDeclaredType) type;
-                AnnotatedDeclaredType adtCombinedType = (AnnotatedDeclaredType) combinedType;
-                adtType.setTypeArguments(adtCombinedType.getTypeArguments());
-            } else if (type.getKind() == TypeKind.ARRAY
-                    && combinedType.getKind() == TypeKind.ARRAY) {
-                AnnotatedArrayType aatType = (AnnotatedArrayType) type;
-                AnnotatedArrayType aatCombinedType = (AnnotatedArrayType) combinedType;
-                aatType.setComponentType(aatCombinedType.getComponentType());
-            }
+            viewpointAdapter.viewpointAdaptMember(type, owner, element);
         }
     }
 
@@ -1599,30 +1565,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         List<AnnotatedTypeParameterBounds> res = new ArrayList<>(tvars.size());
 
-        viewpointAdaptTypeVariableBounds(type, tvars, mapping, res);
-        return res;
-    }
-
-    protected void viewpointAdaptTypeVariableBounds(
-            AnnotatedDeclaredType type,
-            List<AnnotatedTypeMirror> tvars,
-            Map<TypeVariable, AnnotatedTypeMirror> mapping,
-            List<AnnotatedTypeParameterBounds> res) {
-        for (AnnotatedTypeMirror atm : tvars) {
-            AnnotatedTypeVariable atv = (AnnotatedTypeVariable) atm;
-            AnnotatedTypeMirror upper = atv.getUpperBound();
-            if (viewpointAdapter != null) {
-                upper = viewpointAdapter.combineTypeWithType(type, upper, this);
-            }
-            upper = typeVarSubstitutor.substitute(mapping, upper);
-            AnnotatedTypeMirror lower = atv.getLowerBound();
-            if (viewpointAdapter != null) {
-                lower = viewpointAdapter.combineTypeWithType(type, lower, this);
-            }
-            lower = typeVarSubstitutor.substitute(mapping, lower);
-
-            res.add(new AnnotatedTypeParameterBounds(upper, lower));
+        if (viewpointAdapter != null) {
+            viewpointAdapter.viewpointAdaptTypeVariableBounds(
+                    type, tvars, mapping, res, typeVarSubstitutor);
         }
+        return res;
     }
 
     /**
@@ -2090,8 +2037,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType methodType =
                 AnnotatedTypes.asMemberOf(types, this, receiverType, methodElt);
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>(methodType.getTypeVariables().size());
-        if (!ElementUtils.isStatic(methodElt)) {
-            viewpointAdaptMethod(methodElt, receiverType, methodType);
+        if (viewpointAdapter != null) {
+            viewpointAdapter.viewpointAdaptMethod(methodElt, receiverType, methodType);
         }
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =
@@ -2122,58 +2069,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         return Pair.of(methodType, typeargs);
-    }
-
-    protected void viewpointAdaptMethod(
-            ExecutableElement methodElt,
-            AnnotatedTypeMirror receiverType,
-            AnnotatedExecutableType methodType) {
-        if (viewpointAdapter != null) {
-            AnnotatedExecutableType declMethodType = this.getAnnotatedType(methodElt);
-            AnnotatedTypeMirror returnType = declMethodType.getReturnType();
-            AnnotatedTypeMirror methodReceiver = declMethodType.getReceiverType();
-            List<AnnotatedTypeMirror> parameterTypes = declMethodType.getParameterTypes();
-            List<AnnotatedTypeVariable> typeVariables = declMethodType.getTypeVariables();
-
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new IdentityHashMap<>();
-
-            if (returnType.getKind() != TypeKind.VOID) {
-                AnnotatedTypeMirror r =
-                        viewpointAdapter.combineTypeWithType(receiverType, returnType, this);
-                mappings.put(returnType, r);
-            }
-            for (AnnotatedTypeMirror parameterType : parameterTypes) {
-                AnnotatedTypeMirror p =
-                        viewpointAdapter.combineTypeWithType(receiverType, parameterType, this);
-                mappings.put(parameterType, p);
-            }
-            if (methodReceiver != null) {
-                AnnotatedTypeMirror mr =
-                        viewpointAdapter.combineTypeWithType(receiverType, methodReceiver, this);
-                mappings.put(methodReceiver, mr);
-            }
-            for (AnnotatedTypeVariable typeVariable : typeVariables) {
-                AnnotatedTypeMirror ub =
-                        viewpointAdapter.combineTypeWithType(
-                                receiverType, typeVariable.getUpperBound(), this);
-                mappings.put(typeVariable.getUpperBound(), ub);
-                AnnotatedTypeMirror lb =
-                        viewpointAdapter.combineTypeWithType(
-                                receiverType, typeVariable.getLowerBound(), this);
-                mappings.put(typeVariable.getLowerBound(), lb);
-            }
-
-            declMethodType =
-                    (AnnotatedExecutableType)
-                            AnnotatedTypeReplacer.replace(declMethodType, mappings);
-
-            // Because we can't viewpoint adapt asMemberOf result, we adapt the declared method first, and sets the
-            // corresponding parts to asMemberOf result
-            methodType.setReturnType(declMethodType.getReturnType());
-            methodType.setReceiverType(declMethodType.getReceiverType());
-            methodType.setParameterTypes(declMethodType.getParameterTypes());
-            methodType.setTypeVariables(declMethodType.getTypeVariables());
-        }
     }
 
     /**
@@ -2267,7 +2162,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             con.setParameterTypes(actualParams);
         }
 
-        con = viewpointAdaptConstructor(type, con);
+        if (viewpointAdapter != null) {
+            con = viewpointAdapter.viewpointAdaptConstructor(type, con);
+        }
 
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>();
 
@@ -2282,32 +2179,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         return Pair.of(con, typeargs);
-    }
-
-    protected AnnotatedExecutableType viewpointAdaptConstructor(
-            AnnotatedTypeMirror type, AnnotatedExecutableType con) {
-        List<AnnotatedTypeMirror> parameterTypes = con.getParameterTypes();
-        List<AnnotatedTypeVariable> typeVariables = con.getTypeVariables();
-        AnnotatedTypeMirror constructorReturn = con.getReturnType();
-
-        if (viewpointAdapter != null) {
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new IdentityHashMap<>();
-            for (AnnotatedTypeMirror parameterType : parameterTypes) {
-                AnnotatedTypeMirror p =
-                        viewpointAdapter.combineTypeWithType(type, parameterType, this);
-                mappings.put(parameterType, p);
-            }
-            for (AnnotatedTypeMirror typeVariable : typeVariables) {
-                AnnotatedTypeMirror tv =
-                        viewpointAdapter.combineTypeWithType(type, typeVariable, this);
-                mappings.put(typeVariable, tv);
-            }
-            AnnotatedTypeMirror cr =
-                    viewpointAdapter.combineTypeWithType(type, constructorReturn, this);
-            mappings.put(constructorReturn, cr);
-            con = (AnnotatedExecutableType) AnnotatedTypeReplacer.replace(con, mappings);
-        }
-        return con;
     }
 
     /** Returns the return type of the method {@code m}. */

@@ -74,7 +74,7 @@ if [[ "${GROUP}" == "downstream" || "${GROUP}" == "all" ]]; then
   fi
   set -e
   echo "Running:  (cd .. && git clone --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git)"
-  (cd .. && git clone --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git) || (cd .. && git clone --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git)
+  (cd .. && git clone -b opprop_upstream_update_may_3_2018 --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git) || (cd .. && git clone -b opprop_upstream_update_may_3_2018 --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git)
   echo "... done: (cd .. && git clone --depth 1 https://github.com/${CFISLUGOWNER}/checker-framework-inference.git)"
 
   export AFU=`pwd`/../annotation-tools/annotation-file-utilities

@@ -5,14 +5,20 @@ import java.util.Map;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeVariable;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 
 public interface ViewpointAdapter {
 
-    void viewpointAdaptMember(AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element);
+    void viewpointAdaptMember(
+            AnnotatedTypeMirror memberType,
+            AnnotatedTypeMirror receiverType,
+            Element memberElement);
 
-    AnnotatedExecutableType viewpointAdaptConstructor(
-            AnnotatedTypeMirror type, AnnotatedExecutableType con);
+    void viewpointAdaptConstructor(
+            ExecutableElement constructorElt,
+            AnnotatedTypeMirror receiverType,
+            AnnotatedExecutableType constructorType);
 
     void viewpointAdaptMethod(
             ExecutableElement methodElt,
@@ -20,9 +26,9 @@ public interface ViewpointAdapter {
             AnnotatedExecutableType methodType);
 
     void viewpointAdaptTypeVariableBounds(
-            AnnotatedTypeMirror.AnnotatedDeclaredType type,
-            List<AnnotatedTypeMirror> tvars,
-            Map<TypeVariable, AnnotatedTypeMirror> mapping,
-            List<AnnotatedTypeParameterBounds> res,
+            AnnotatedDeclaredType receiverType,
+            List<AnnotatedTypeMirror> declaredTypeVariables,
+            Map<TypeVariable, AnnotatedTypeMirror> typeVarToTypeArgMapping,
+            List<AnnotatedTypeParameterBounds> adaptedTypeVariableBounds,
             TypeVariableSubstitutor typeVarSubstitutor);
 }

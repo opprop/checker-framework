@@ -58,6 +58,22 @@ To run the Index Checker, run the command
   javac -processor index \emph{MyJavaFile}.java
 \end{alltt}
 
+Recall that in Java, type annotations are written before the type;
+in particular,
+array annotations appear immediately before ``\<[]>''.
+Here is how to declare a length-9 array of positive integers:
+
+\begin{Verbatim}
+  @Positive int @ArrayLen(9) []
+\end{Verbatim}
+
+Multi-dimensional arrays are similar.
+Here is how to declare a length-2 array of length-4 arrays:
+
+\begin{Verbatim}
+  String @ArrayLen(2) [] @ArrayLen(4) []
+\end{Verbatim}
+
 
 \section{Index Checker structure and annotations\label{index-annotations}}
 
@@ -352,6 +368,8 @@ annotated as
 
 The MinLen type qualifier is implemented in practice by the Constant Value Checker,
 using \<@ArrayLenRange> annotations (see \chapterpageref{constant-value-checker}).
+This means that errors related to the minimum lengths of arrays must be suppressed using
+the "value" argument to \<@SuppressWarnings>.
 \refqualclass{common/value/qual}{ArrayLenRange} and \refqualclass{common/value/qual}{ArrayLen}
 annotations can also be used to establish the minimum length of a sequence, if a
 more precise estimate of length is known. For example,

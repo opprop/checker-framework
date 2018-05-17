@@ -1,5 +1,6 @@
 package org.checkerframework.framework.type;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -12,7 +13,6 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeVariable;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -163,25 +163,22 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     }
 
     @Override
-    public void viewpointAdaptTypeVariableBounds(
+    public void viewpointAdaptTypeParameterBounds(
             AnnotatedDeclaredType receiverType,
-            List<AnnotatedTypeMirror> declaredTypeVariables,
-            Map<TypeVariable, AnnotatedTypeMirror> typeVarToTypeArgMapping,
-            List<AnnotatedTypeParameterBounds> adaptedTypeVariableBounds,
-            TypeVariableSubstitutor typeVarSubstitutor) {
-        for (AnnotatedTypeMirror atm : declaredTypeVariables) {
-            AnnotatedTypeVariable atv = (AnnotatedTypeVariable) atm;
+            List<AnnotatedTypeParameterBounds> typeParameterBounds) {
 
-            AnnotatedTypeMirror upper = atv.getUpperBound();
-            upper = combineTypeWithType(receiverType, upper);
-            upper = typeVarSubstitutor.substitute(typeVarToTypeArgMapping, upper);
-
-            AnnotatedTypeMirror lower = atv.getLowerBound();
-            lower = combineTypeWithType(receiverType, lower);
-            lower = typeVarSubstitutor.substitute(typeVarToTypeArgMapping, lower);
-
-            adaptedTypeVariableBounds.add(new AnnotatedTypeParameterBounds(upper, lower));
+        List<AnnotatedTypeParameterBounds> adaptedTypeParameterBounds = new ArrayList<>();
+        for (AnnotatedTypeParameterBounds typeParameterBound : typeParameterBounds) {
+            AnnotatedTypeMirror adaptedUpper =
+                    combineTypeWithType(receiverType, typeParameterBound.getUpperBound());
+            AnnotatedTypeMirror adaptedLower =
+                    combineTypeWithType(receiverType, typeParameterBound.getLowerBound());
+            adaptedTypeParameterBounds.add(
+                    new AnnotatedTypeParameterBounds(adaptedUpper, adaptedLower));
         }
+
+        typeParameterBounds.clear();
+        typeParameterBounds.addAll(adaptedTypeParameterBounds);
     }
 
     /**

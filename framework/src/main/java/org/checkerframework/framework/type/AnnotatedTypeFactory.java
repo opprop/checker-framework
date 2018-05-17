@@ -2156,11 +2156,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             con.setParameterTypes(actualParams);
         }
 
+        List<AnnotatedTypeMirror> typeargs = new ArrayList<>(con.getTypeVariables().size());
         if (viewpointAdapter != null) {
             viewpointAdapter.viewpointAdaptConstructor(ctor, type, con);
         }
-
-        List<AnnotatedTypeMirror> typeargs = new ArrayList<>();
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =
                 AnnotatedTypes.findTypeArguments(processingEnv, this, tree, ctor, con);

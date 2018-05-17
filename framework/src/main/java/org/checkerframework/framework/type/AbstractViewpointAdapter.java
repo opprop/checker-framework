@@ -18,6 +18,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayTyp
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedNullType;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.javacutil.ElementUtils;
@@ -63,9 +64,6 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     }
 
     protected boolean shouldAdaptMember(AnnotatedTypeMirror type, Element element) {
-        if (!(type.getKind() == TypeKind.DECLARED || type.getKind() == TypeKind.ARRAY)) {
-            return false;
-        }
         if (element.getKind() == ElementKind.LOCAL_VARIABLE
                 || element.getKind() == ElementKind.PARAMETER) {
             return false;
@@ -223,9 +221,14 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
      */
     protected AnnotatedTypeMirror combineAnnotationWithType(
             AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declared) {
-        // TODO Also perform viewpoint adaptation on primitive types
         if (declared.getKind().isPrimitive()) {
-            return declared;
+            AnnotatedPrimitiveType apt = (AnnotatedPrimitiveType) declared.shallowCopy();
+
+            AnnotationMirror declaredAnnotation = extractAnnotationMirror(apt);
+            AnnotationMirror resultAnnotation =
+                    combineAnnotationWithAnnotation(receiverAnnotation, declaredAnnotation);
+            apt.replaceAnnotation(resultAnnotation);
+            return apt;
         } else if (declared.getKind() == TypeKind.TYPEVAR) {
             if (!isTypeVarExtends) {
                 isTypeVarExtends = true;
@@ -362,7 +365,6 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             if (lhs.getKind() == TypeKind.DECLARED) {
                 rhs = getTypeVariableSubstitution((AnnotatedDeclaredType) lhs, atv);
             }
-            // else TODO: the receiver might be another type variable... should we do something?
         } else if (rhs.getKind() == TypeKind.DECLARED) {
             //System.out.println("before: " + rhs);
             AnnotatedDeclaredType adt = (AnnotatedDeclaredType) rhs.shallowCopy();
@@ -435,8 +437,6 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         AnnotatedDeclaredType decltype = res.first;
         int foundindex = res.second;
 
-        // TODO Original GUT implementation checks whether type was raw or not.
-        // But that caused strange errors and caused some tests to fail unreasonably.
         List<AnnotatedTypeMirror> tas = decltype.getTypeArguments();
         // return a copy, as we want to modify the type later.
         return tas.get(foundindex).shallowCopy(true);
@@ -459,8 +459,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         int foundindex = 0;
 
         for (TypeParameterElement tparam : tparams) {
-            // TODO Comparing with simple name is dangerous! This must be resolved first before merge!
-            if (tparam.equals(varelem) || tparam.getSimpleName().equals(varelem.getSimpleName())) {
+            if (tparam.equals(varelem)) {
                 // we found the right index!
                 break;
             }

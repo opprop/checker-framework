@@ -123,7 +123,6 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         List<AnnotatedTypeVariable> typeVariables = declMethodType.getTypeVariables();
         AnnotatedTypeMirror returnType = declMethodType.getReturnType();
         AnnotatedTypeMirror methodReceiver = declMethodType.getReceiverType();
-        ;
 
         Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new IdentityHashMap<>();
 

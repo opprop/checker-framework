@@ -40,9 +40,9 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
     @Override
     public void viewpointAdaptMember(
-            AnnotatedTypeMirror memberType,
             AnnotatedTypeMirror receiverType,
-            Element memberElement) {
+            Element memberElement,
+            AnnotatedTypeMirror memberType) {
         if (!shouldAdaptMember(memberType, memberElement)) {
             return;
         }
@@ -73,8 +73,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
     @Override
     public void viewpointAdaptConstructor(
-            ExecutableElement constructorElt,
             AnnotatedTypeMirror receiverType,
+            ExecutableElement constructorElt,
             AnnotatedExecutableType constructorType) {
 
         AnnotatedExecutableType declConstructorType = atypeFactory.getAnnotatedType(constructorElt);
@@ -107,8 +107,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
     @Override
     public void viewpointAdaptMethod(
-            ExecutableElement methodElt,
             AnnotatedTypeMirror receiverType,
+            ExecutableElement methodElt,
             AnnotatedExecutableType methodType) {
         if (!shouldAdaptMethod(methodElt)) {
             return;
@@ -161,7 +161,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
     @Override
     public void viewpointAdaptTypeParameterBounds(
-            AnnotatedDeclaredType receiverType,
+            AnnotatedTypeMirror receiverType,
             List<AnnotatedTypeParameterBounds> typeParameterBounds) {
 
         List<AnnotatedTypeParameterBounds> adaptedTypeParameterBounds = new ArrayList<>();

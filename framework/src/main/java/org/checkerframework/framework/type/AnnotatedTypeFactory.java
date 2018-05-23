@@ -1360,7 +1360,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
         addComputedTypeAnnotations(element, type);
         if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptMember(type, owner, element);
+            viewpointAdapter.viewpointAdaptMember(owner, element, type);
         }
     }
 
@@ -2038,7 +2038,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 AnnotatedTypes.asMemberOf(types, this, receiverType, methodElt);
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>(methodType.getTypeVariables().size());
         if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptMethod(methodElt, receiverType, methodType);
+            viewpointAdapter.viewpointAdaptMethod(receiverType, methodElt, methodType);
         }
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =
@@ -2164,7 +2164,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>(con.getTypeVariables().size());
         if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptConstructor(ctor, type, con);
+            viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
         }
 
         Map<TypeVariable, AnnotatedTypeMirror> typeVarMapping =

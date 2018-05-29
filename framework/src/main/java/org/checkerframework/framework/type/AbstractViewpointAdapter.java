@@ -25,7 +25,16 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.ErrorReporter;
 import org.checkerframework.javacutil.Pair;
 
-/** Utility class to perform viewpoint adaptation. */
+/**
+* Abstract utility class for performing viewpoint adaptation.
+*
+* This class contains the common logic for extracting and inserting viewpoint adapted annotations
+* into the coresponding types for member/field access, constructor and method invocations, and
+* type parameter bound instantiations.
+*
+* Subclasses implement the computation of the precise viewpoint adapted type given a receiver type
+* and a declared type, and implement how to extract the modifier given an ATM.
+*/
 public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
     // This prevents calling combineTypeWithType on type variable if it is an upper bound

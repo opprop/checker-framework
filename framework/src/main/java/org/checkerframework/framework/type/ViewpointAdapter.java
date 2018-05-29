@@ -6,19 +6,19 @@ import javax.lang.model.element.ExecutableElement;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 
 /**
- * Interface that contains viewpoint adaptation logic.
+ * This interface defines the methods that must be implemented by a viewpoint adaptor utility class.
  *
- * <p>Standard viewpoint adaptation happens on members/fields accesses, constructor invocations,
+ * <p>Standard viewpoint adaptation applies to member/field accesses, constructor invocations,
  * method invocations and type parameter instantiations.
  */
 public interface ViewpointAdapter {
 
     /**
-     * Viewpoint adapts members/fields accesses
+     * Viewpoint adapts a member/field access.
      *
-     * @param receiverType receiver type through which members are accessed
-     * @param memberElement element of the accessed member
-     * @param memberType accessed type of the member. After the method returns, it will be mutated
+     * @param receiverType receiver type through which the member/field is accessed.
+     * @param memberElement element of the accessed member/field.
+     * @param memberType accessed type of the member/field. After the method returns, it will be mutated
      *     to the viewpoint adapted result.
      */
     void viewpointAdaptMember(
@@ -27,10 +27,10 @@ public interface ViewpointAdapter {
             AnnotatedTypeMirror memberType);
 
     /**
-     * Viewpoint adapts constructor invocations.
+     * Viewpoint adapts a constructor invocation.
      *
-     * @param receiverType receiver type through which constructors are invoked
-     * @param constructorElt element of the invoked constructor
+     * @param receiverType receiver type through which a constructor is invoked.
+     * @param constructorElt element of the invoked constructor.
      * @param constructorType invoked type of the constructor. After the method returns, it will be
      *     mutated to the viewpoint adapted constructor signature.
      */
@@ -40,10 +40,10 @@ public interface ViewpointAdapter {
             AnnotatedExecutableType constructorType);
 
     /**
-     * Viewpoint adapts method invocations.
+     * Viewpoint adapts a method invocation.
      *
-     * @param receiverType receiver type through which methods are invoked
-     * @param methodElt element of the invoked method
+     * @param receiverType receiver type through which a method is invoked.
+     * @param methodElt element of the invoked method.
      * @param methodType invoked type of the method. After the method returns, it will be mutated to
      *     the viewpoint adapted method signature.
      */
@@ -53,9 +53,9 @@ public interface ViewpointAdapter {
             AnnotatedExecutableType methodType);
 
     /**
-     * Viewpoint adapts type parameter bounds when being instantiated.
+     * Viewpoint adapts a type parameter bound when being instantiated.
      *
-     * @param receiverType receiver type through which type parameter is instantiated
+     * @param receiverType receiver type through which the type parameter is instantiated.
      * @param typeParameterBounds a list of type parameter bounds. After the method returns, it will
      *     be mutated to the viewpoint adapted type parameter bounds.
      */

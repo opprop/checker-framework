@@ -8,13 +8,18 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 /**
  * This interface defines the methods that must be implemented by a viewpoint adaptor utility class.
  *
- * <p>Standard viewpoint adaptation applies to member/field accesses, constructor invocations,
+ * <p> Standard viewpoint adaptation applies to member/field accesses, constructor invocations,
  * method invocations and type parameter instantiations.
  */
 public interface ViewpointAdapter {
 
     /**
      * Viewpoint adapts a member/field access.
+     *
+     * <p> Developer notes:
+     * When this method is invoked on a member/field with a type given by a type parameter.
+     * The type arguments are correctly substituted, and memberType is already in a good shape.
+     * Only annotations on the memberType should be replaced by the viewpoint adapted ones.
      *
      * @param receiverType receiver type through which the member/field is accessed.
      * @param memberElement element of the accessed member/field.

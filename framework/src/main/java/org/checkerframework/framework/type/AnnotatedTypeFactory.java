@@ -692,7 +692,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return typeHierarchy;
     }
 
-    /** Factory method to create ViewpointAdaptor. */
+    /**
+    * Factory method to create a ViewpointAdaptor. Subclasses should implement and instantiate
+    * a ViewpointAdapter subclass here if viewpoint adaptation is needed for analysis.
+    */
     protected ViewpointAdapter createViewpointAdapter() {
         return null;
     }

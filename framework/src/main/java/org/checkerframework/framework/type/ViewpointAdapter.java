@@ -8,13 +8,13 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 /**
  * Interface that contains viewpoint adaptation logic.
  *
- * <p>Standard viewpoint adaptation happens on members/fields accesses, constructor invocations,
- * method invocations and type parameter instantiations.
+ * <p>Standard viewpoint adaptation happens on member accesses, constructor invocations, method
+ * invocations and type parameter instantiations.
  */
 public interface ViewpointAdapter {
 
     /**
-     * Viewpoint adapts members/fields accesses
+     * Viewpoint adapts members accesses
      *
      * @param receiverType receiver type through which members are accessed
      * @param memberElement element of the accessed member

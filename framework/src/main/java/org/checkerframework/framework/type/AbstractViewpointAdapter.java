@@ -63,6 +63,18 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         }
     }
 
+    /**
+     * Determines whether a particular member should be viewpoint adapted or not.
+     *
+     * <p>Not every member needs viewpoint adaptation , for example, local variables and method
+     * formal parameters.
+     *
+     * @param type type of the member. Even though {@code type} is not used in this method, a
+     *     particular subclass of {@link ViewpointAdapter} may disable viewpoint adaptation for
+     *     elements based on their types. So, {@code type} is still in the method signature.
+     * @param element element of the member
+     * @return true if the member needs viewpoint adaptation
+     */
     protected boolean shouldAdaptMember(AnnotatedTypeMirror type, Element element) {
         if (element.getKind() == ElementKind.LOCAL_VARIABLE
                 || element.getKind() == ElementKind.PARAMETER) {
@@ -204,18 +216,18 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     }
 
     /**
-     * Extract modifier from {@link AnnotatedTypeMirror}.
+     * Extract qualifier from {@link AnnotatedTypeMirror}.
      *
-     * @param atm AnnotatedTypeMirror from which modifier is extracted
-     * @return modifier extracted
+     * @param atm AnnotatedTypeMirror from which qualifier is extracted
+     * @return qualifier extracted
      */
     protected abstract AnnotationMirror extractAnnotationMirror(AnnotatedTypeMirror atm);
 
     /**
-     * Sub-procedure to combine receiver modifiers with declared types. Modifiers are extracted from
-     * declared types to furthur perform viewpoint adaptation only between two modifiers.
+     * Sub-procedure to combine receiver qualifiers with declared types. qualifiers are extracted
+     * from declared types to furthur perform viewpoint adaptation only between two qualifiers.
      *
-     * @param receiverAnnotation receiver modifier
+     * @param receiverAnnotation receiver qualifier
      * @param declared declared type
      * @return {@link AnnotatedTypeMirror} after viewpoint adaptation
      */
@@ -224,9 +236,9 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         if (declared.getKind().isPrimitive()) {
             AnnotatedPrimitiveType apt = (AnnotatedPrimitiveType) declared.shallowCopy();
 
-            AnnotationMirror declaredAnnotation = extractAnnotationMirror(apt);
             AnnotationMirror resultAnnotation =
-                    combineAnnotationWithAnnotation(receiverAnnotation, declaredAnnotation);
+                    combineAnnotationWithAnnotation(
+                            receiverAnnotation, extractAnnotationMirror(apt));
             apt.replaceAnnotation(resultAnnotation);
             return apt;
         } else if (declared.getKind() == TypeKind.TYPEVAR) {
@@ -256,9 +268,9 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             // Mapping between declared type argument to combined type argument
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
-            AnnotationMirror declaredAnnotation = extractAnnotationMirror(adt);
             AnnotationMirror resultAnnotation =
-                    combineAnnotationWithAnnotation(receiverAnnotation, declaredAnnotation);
+                    combineAnnotationWithAnnotation(
+                            receiverAnnotation, extractAnnotationMirror(adt));
 
             // Recursively combine type arguments and store to map
             for (AnnotatedTypeMirror typeArgument : adt.getTypeArguments()) {
@@ -276,10 +288,10 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         } else if (declared.getKind() == TypeKind.ARRAY) {
             AnnotatedArrayType aat = (AnnotatedArrayType) declared.shallowCopy();
 
-            // Replace the main modifier
-            AnnotationMirror declaredAnnotation = extractAnnotationMirror(aat);
+            // Replace the main qualifier
             AnnotationMirror resultAnnotation =
-                    combineAnnotationWithAnnotation(receiverAnnotation, declaredAnnotation);
+                    combineAnnotationWithAnnotation(
+                            receiverAnnotation, extractAnnotationMirror(aat));
             aat.replaceAnnotation(resultAnnotation);
 
             // Combine component type recursively and sets combined component type
@@ -295,7 +307,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
-            // There is no main modifier for a wildcard
+            // There is no main qualifier for a wildcard
 
             // Adapt extend
             AnnotatedTypeMirror extend = awt.getExtendsBound();
@@ -320,9 +332,9 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             return result;
         } else if (declared.getKind() == TypeKind.NULL) {
             AnnotatedNullType ant = (AnnotatedNullType) declared.shallowCopy(true);
-            AnnotationMirror declaredAnnotation = extractAnnotationMirror(ant);
             AnnotationMirror resultAnnotation =
-                    combineAnnotationWithAnnotation(receiverAnnotation, declaredAnnotation);
+                    combineAnnotationWithAnnotation(
+                            receiverAnnotation, extractAnnotationMirror(ant));
             ant.replaceAnnotation(resultAnnotation);
             return ant;
         } else {
@@ -336,21 +348,21 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     }
 
     /**
-     * Viewpoint adapt declared modifier to receiver modifier.
+     * Viewpoint adapt declared qualifier to receiver qualifier.
      *
-     * @param receiverAnnotation receiver modifier
-     * @param declaredAnnotation declared modifier
-     * @return result modifier after viewpoint adaptation
+     * @param receiverAnnotation receiver qualifier
+     * @param declaredAnnotation declared qualifier
+     * @return result qualifier after viewpoint adaptation
      */
     @SideEffectFree
     protected abstract AnnotationMirror combineAnnotationWithAnnotation(
             AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation);
 
     /**
-     * If rhs is type variable use whose type arguments should be inferred from receiver - lhs, this
-     * method substitutes that type argument into rhs, and return the reference to rhs. So, this
-     * method is side effect free, i.e., rhs will be copied and that copy gets modified and
-     * returned.
+     * If rhs contains/is type variable use whose type arguments should be inferred from the
+     * receiver, i.e. lhs, this method substitutes that type argument into rhs, and return the
+     * reference to rhs. This method is side effect free, because rhs will be copied and that copy
+     * gets modified and returned.
      *
      * @param lhs type from which type arguments are extracted to replace formal type parameters of
      *     rhs.
@@ -366,7 +378,6 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 rhs = getTypeVariableSubstitution((AnnotatedDeclaredType) lhs, atv);
             }
         } else if (rhs.getKind() == TypeKind.DECLARED) {
-            //System.out.println("before: " + rhs);
             AnnotatedDeclaredType adt = (AnnotatedDeclaredType) rhs.shallowCopy();
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
 
@@ -376,7 +387,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 // The following code does the wrong thing!
             }
             // We must use AnnotatedTypeReplacer to replace the formal type parameters with actual type
-            // arguments, but not replace with its main modifier
+            // arguments, but not replace with its main qualifier
             rhs = AnnotatedTypeReplacer.replace(adt, mapping);
         } else if (rhs.getKind() == TypeKind.WILDCARD) {
             AnnotatedWildcardType awt = (AnnotatedWildcardType) rhs.shallowCopy();

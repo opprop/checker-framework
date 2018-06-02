@@ -176,8 +176,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     /** performs whole program inference */
     private WholeProgramInference wholeProgramInference;
 
-    /** Viewpoint adapter to perform viewpoint adaptation */
+    /** Viewpoint adapter used to perform viewpoint adaptation */
     protected ViewpointAdapter viewpointAdapter;
+
     /**
      * This formatter is used for converting AnnotatedTypeMirrors to Strings. This formatter will be
      * used by all AnnotatedTypeMirrors created by this factory in their toString methods.
@@ -691,7 +692,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return typeHierarchy;
     }
 
-    /** Factory method to create ViewpointAdaptor. */
+    /**
+     * Factory method to create a ViewpointAdaptor. Subclasses should implement and instantiate a
+     * ViewpointAdapter subclass here if viewpoint adaptation is needed for analysis.
+     */
     protected ViewpointAdapter createViewpointAdapter() {
         return null;
     }

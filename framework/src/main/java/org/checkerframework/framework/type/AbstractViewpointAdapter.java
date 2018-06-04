@@ -73,14 +73,15 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     }
 
     /**
-     * Determines whether a particular member should be viewpoint adapted or not.
+     * Determines whether a particular member should be viewpoint adapted or not. The default
+     * implementation adapts all members except for local variables and parameters. 
      *
      * <p>Not every member needs viewpoint adaptation , for example, local variables and method
      * formal parameters.
      *
-     * @param type type of the member. Even though {@code type} is not used in this method, a
-     *     particular subclass of {@link ViewpointAdapter} may disable viewpoint adaptation for
-     *     elements based on their types. So, {@code type} is still in the method signature.
+     * @param type type of the member, used to decide whether a member should be viewpoint
+     *     adapted or not. A subclass of {@link ViewpointAdapter} may disable viewpoint
+     *     adaptation for elements based on their types.
      * @param element element of the member
      * @return true if the member needs viewpoint adaptation
      */

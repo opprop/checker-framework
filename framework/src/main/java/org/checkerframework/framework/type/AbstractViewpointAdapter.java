@@ -33,7 +33,7 @@ import org.checkerframework.javacutil.Pair;
  * invocations, and type parameter bound instantiations.
  *
  * <p>Subclasses implement the computation of the precise viewpoint adapted type given a receiver
- * type and a declared type, and implement how to extract the modifier given an ATM.
+ * type and a declared type, and implement how to extract the qualifier given an ATM.
  */
 public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 

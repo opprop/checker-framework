@@ -1879,6 +1879,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * correctly.
      */
     public AnnotatedDeclaredType getSelfType(Tree tree) {
+        if (TreeUtils.isClassTree(tree)) {
+            return getAnnotatedType(TreeUtils.elementFromDeclaration((ClassTree) tree));
+        }
         TreePath path = getPath(tree);
         ClassTree enclosingClass = TreeUtils.enclosingClass(path);
         if (enclosingClass == null) {
@@ -3018,8 +3021,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             }
             List<StubResource> stubs = StubUtil.allStubFiles(stubPathFull);
             if (stubs.size() == 0) {
-                InputStream in = null;
-                in = checker.getClass().getResourceAsStream(stubPath);
+                InputStream in = checker.getClass().getResourceAsStream(stubPath);
                 if (in != null) {
                     StubParser.parse(
                             stubPath,

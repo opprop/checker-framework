@@ -51,7 +51,7 @@ script:
 - echo "TRAVIS_PULL_REQUEST_SHA=${TRAVIS_PULL_REQUEST_SHA}"
 - echo "TRAVIS_REPO_SLUG=${TRAVIS_REPO_SLUG}"
 - >-
-  if [[ $JDKVER == jdkany ]]
+  if [ $JDKVER = jdkany ] ; then
     DOCKERIMAGE=mdernst/$OS-for-cf-$JDKVER
   else
     DOCKERIMAGE=charleszhuochen/$OS-for-cfi-$JDKVER

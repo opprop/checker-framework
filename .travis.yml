@@ -55,7 +55,7 @@ script:
     DOCKERIMAGE=mdernst/$OS-for-cf-$JDKVER
   else
     DOCKERIMAGE=charleszhuochen/$OS-for-cfi-$JDKVER
-  fi
+  fi &&
   docker run -v $HOME/.gradle:/root/.gradle -v $HOME/.m2:/root/.m2 $DOCKERIMAGE /bin/bash -c "true &&
      if [ $TRAVIS_EVENT_TYPE = pull_request ] ; then
        git clone --quiet $REMOTE_ORIGIN_URL $THIS_REPO || git clone --quiet $REMOTE_ORIGIN_URL $THIS_REPO

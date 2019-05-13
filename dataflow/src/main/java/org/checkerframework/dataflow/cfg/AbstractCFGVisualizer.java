@@ -12,8 +12,7 @@ import org.checkerframework.dataflow.cfg.node.Node;
 /**
  * An abstract class of control flow graph visualizer. It provides the methods to generate a control
  * flow graph in the language of DOT. To achieve this abstract class, you need to override {@link
- * #init(Map)}, {@link #visualize(ControlFlowGraph, Block, Analysis)}, {@link
- * #visualizeStore(Store)} and {@link #shutdown()}.
+ * #init(Map)}, {@link #visualize(ControlFlowGraph, Block, Analysis)} and {@link #shutdown()}.
  *
  * <p>Examples: {@link DOTCFGVisualizer} and {@link StringCFGVisualizer}.
  */

@@ -49,7 +49,7 @@ public interface CFGVisualizer<
      *
      * @param store the store to visualize
      */
-    void visualizeStore(S store);
+    String visualizeStore(S store);
 
     /**
      * Called by a {@code CFAbstractStore} to visualize the class name before calling the {@code

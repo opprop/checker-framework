@@ -10,9 +10,8 @@ import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
- * An abstract class of control flow graph visualizer. It provides the methods to generate a control
- * flow graph in the language of DOT. To achieve this abstract class, you need to override {@link
- * #init(Map)}, {@link #visualize(ControlFlowGraph, Block, Analysis)} and {@link #shutdown()}.
+ * An abstract class of control flow graph visualizer. To achieve this abstract class, you need to
+ * implement some of the methods in {@link CFGVisualizer}.
  *
  * <p>Examples: {@link DOTCFGVisualizer} and {@link StringCFGVisualizer}.
  */
@@ -48,9 +47,7 @@ public abstract class AbstractCFGVisualizer<
         IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
         int count = 1;
         for (Block b : cfg.getDepthFirstOrderedBlocks()) {
-            if (depthFirstOrder.get(b) == null) {
-                depthFirstOrder.put(b, new ArrayList<>());
-            }
+            depthFirstOrder.computeIfAbsent(b, k -> new ArrayList<>());
             depthFirstOrder.get(b).add(count++);
         }
         return depthFirstOrder;
@@ -185,92 +182,11 @@ public abstract class AbstractCFGVisualizer<
         return s.replace("\"", "\\\"");
     }
 
-    @Override
-    public String visualizeStore(S store) {
-        String sbStoreBackup = this.sbStore.toString();
-        this.sbStore.setLength(0);
-        store.visualize(this);
-        String sbStoreReturnValue = this.sbStore.toString();
-        this.sbStore.setLength(0);
-        this.sbStore.append(sbStoreBackup).append(sbStoreReturnValue);
-        return sbStoreReturnValue;
-    }
-
-    @Override
-    public void visualizeStoreThisVal(A value) {
-        this.sbStore.append("  this > ").append(value).append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        this.sbStore
-                .append("  ")
-                .append(localVar)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        this.sbStore
-                .append("  ")
-                .append(fieldAccess)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        this.sbStore
-                .append("  ")
-                .append(arrayValue)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        this.sbStore
-                .append("  ")
-                .append(methodCall.toString().replace("\"", "\\\""))
-                .append(" > ")
-                .append(value)
-                .append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        this.sbStore
-                .append("  ")
-                .append(className)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-    }
-
-    @Override
-    public void visualizeStoreKeyVal(String keyName, Object value) {
-        this.sbStore.append("  ").append(keyName).append(" = ").append(value).append("\\n");
-    }
-
     protected String escapeDoubleQuotes(final String str) {
         return str.replace("\"", "\\\"");
     }
 
     protected String toStringEscapeDoubleQuotes(final Object obj) {
         return escapeDoubleQuotes(String.valueOf(obj));
-    }
-
-    @Override
-    public void visualizeStoreHeader(String classCanonicalName) {
-        this.sbStore.append(classCanonicalName).append(" (\\n");
-    }
-
-    @Override
-    public void visualizeStoreFooter() {
-        this.sbStore.append(")");
     }
 }

@@ -16,10 +16,7 @@ import java.util.Queue;
 import java.util.Set;
 import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.analysis.AbstractValue;
-import org.checkerframework.dataflow.analysis.Analysis;
-import org.checkerframework.dataflow.analysis.Store;
-import org.checkerframework.dataflow.analysis.TransferFunction;
+import org.checkerframework.dataflow.analysis.*;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGStatement;
 import org.checkerframework.dataflow.cfg.block.Block;
@@ -301,6 +298,97 @@ public class DOTCFGVisualizer<
                 .append(" [label=\"")
                 .append(labelContent)
                 .append("\"];\n");
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Do not call this method by hand. Use {@link StringCFGVisualizer} to see the String version
+     * of the value of store.
+     */
+    @Override
+    public @Nullable String visualizeStore(S store) {
+        store.visualize(this);
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreThisVal(A value) {
+        this.sbStore.append("  this > ").append(value).append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
+        this.sbStore
+                .append("  ")
+                .append(localVar)
+                .append(" > ")
+                .append(toStringEscapeDoubleQuotes(value))
+                .append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
+        this.sbStore
+                .append("  ")
+                .append(fieldAccess)
+                .append(" > ")
+                .append(toStringEscapeDoubleQuotes(value))
+                .append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
+        this.sbStore
+                .append("  ")
+                .append(arrayValue)
+                .append(" > ")
+                .append(toStringEscapeDoubleQuotes(value))
+                .append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
+        this.sbStore
+                .append("  ")
+                .append(methodCall.toString().replace("\"", "\\\""))
+                .append(" > ")
+                .append(value)
+                .append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
+        this.sbStore
+                .append("  ")
+                .append(className)
+                .append(" > ")
+                .append(toStringEscapeDoubleQuotes(value))
+                .append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreKeyVal(String keyName, Object value) {
+        this.sbStore.append("  ").append(keyName).append(" = ").append(value).append("\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreHeader(String classCanonicalName) {
+        this.sbStore.append(classCanonicalName).append(" (\\n");
+        return null;
+    }
+
+    @Override
+    public String visualizeStoreFooter() {
+        this.sbStore.append(")");
+        return null;
     }
 
     /**

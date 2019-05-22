@@ -11,22 +11,17 @@ public class StringCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
+    private final String lineSeparator = System.getProperty("line.separator");
+
     @Override
     public void init(Map<String, Object> args) {
         super.init(args);
     }
 
     @Override
-    public @Nullable Map<String, Object> visualize(
+    public Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        Set<Block> blocks = cfg.getAllBlocks();
-        StringBuilder sbAllBlocks = new StringBuilder();
-        for (Block eachBlock : blocks) {
-            sbAllBlocks.append(eachBlock.toString()).append("\n");
-        }
-        Map<String, Object> res = new HashMap<>();
-        res.put("allBlocks", sbAllBlocks.toString());
-        return res;
+        return null;
     }
 
     @Override
@@ -44,94 +39,91 @@ public class StringCFGVisualizer<
     }
 
     @Override
-    public @Nullable String visualizeStore(S store) {
-        if (this.sbStore.length() > 0) {
-            this.sbStore.setLength(0);
+    public void visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
+
+        TransferInput<A, S> input = analysis.getInput(bb);
+        assert input != null;
+
+        this.sbStore.setLength(0);
+
+        this.sbStore.append("Before:");
+        if (!input.containsTwoStores()) {
+            S regularStore = input.getRegularStore();
+            this.sbStore.append(visualizeStore(regularStore));
+        } else {
+            S thenStore = input.getThenStore();
+            this.sbStore.append("Then:");
+            this.sbStore.append(visualizeStore(thenStore));
+            S elseStore = input.getElseStore();
+            this.sbStore.append("Else:");
+            this.sbStore.append(visualizeStore(elseStore));
         }
-        store.visualize(this);
-        return this.sbStore.toString();
+
+        // the transfer input before this block is added before the block content
+        this.sbBlock.insert(0, this.sbStore);
+
+        if (verbose) {
+            Node lastNode = getLastNode(bb);
+            if (lastNode != null) {
+                this.sbStore.setLength(0);
+                this.sbStore.append("After:");
+                this.sbStore.append(visualizeStore(analysis.getResult().getStoreAfter(lastNode)));
+                this.sbBlock.append(this.sbStore);
+            }
+        }
+    }
+
+    @Override
+    public String visualizeStore(S store) {
+        return store.visualize(this);
     }
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        this.sbStore.append("  this > ").append(value).append("\\n");
-        return "this > " + value.toString();
+        return "this > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        this.sbStore
-                .append("  ")
-                .append(localVar)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-        return localVar.toString() + " > " + value.toString();
+        return localVar.toString() + " > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        this.sbStore
-                .append("  ")
-                .append(fieldAccess)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-        return fieldAccess.toString() + " > " + value.toString();
+        return fieldAccess.toString() + " > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        this.sbStore
-                .append("  ")
-                .append(arrayValue)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-        return arrayValue.toString() + " > " + value.toString();
+        return arrayValue.toString() + " > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        this.sbStore
-                .append("  ")
-                .append(methodCall.toString().replace("\"", "\\\""))
-                .append(" > ")
-                .append(value)
-                .append("\\n");
-        return methodCall.toString() + " > " + value.toString();
+        return methodCall.toString() + " > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        this.sbStore
-                .append("  ")
-                .append(className)
-                .append(" > ")
-                .append(toStringEscapeDoubleQuotes(value))
-                .append("\\n");
-        return className.toString() + " > " + value.toString();
+        return className.toString() + " > " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        this.sbStore.append("  ").append(keyName).append(" = ").append(value).append("\\n");
-        return keyName + " = " + value.toString();
+        return keyName + " = " + value.toString() + lineSeparator;
     }
 
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
-        this.sbStore.append(classCanonicalName).append(" (\\n");
-        return classCanonicalName;
+        return classCanonicalName + lineSeparator;
     }
 
     @Override
     public String visualizeStoreFooter() {
-        this.sbStore.append(")");
         return ")";
     }
 
-    /** StringCFGVisualizer does not write into file, so leave it blank. */
+    /** StringCFGVisualizer does not write into file, so left intentionally blank. */
     @Override
     public void shutdown() {}
 }

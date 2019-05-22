@@ -19,12 +19,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.*;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGStatement;
-import org.checkerframework.dataflow.cfg.block.Block;
+import org.checkerframework.dataflow.cfg.block.*;
 import org.checkerframework.dataflow.cfg.block.Block.BlockType;
-import org.checkerframework.dataflow.cfg.block.ConditionalBlock;
-import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
-import org.checkerframework.dataflow.cfg.block.SingleSuccessorBlock;
-import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.UserError;
@@ -243,16 +239,32 @@ public class DOTCFGVisualizer<
     }
 
     /**
+     * Generate the order of processing blocks.
+     *
+     * @param cfg the current control flow graph
+     */
+    private IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
+        IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
+        int count = 1;
+        for (Block b : cfg.getDepthFirstOrderedBlocks()) {
+            depthFirstOrder.computeIfAbsent(b, k -> new ArrayList<>());
+            depthFirstOrder.get(b).add(count++);
+        }
+        return depthFirstOrder;
+    }
+
+    /**
      * Produce a representation of the contests of a basic block.
      *
      * @param bb basic block to visualize
      * @param analysis the current analysis
      */
     @Override
-    public @Nullable String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
+    public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
 
         this.sbBlock.setLength(0);
 
+        // loop over contents
         List<Node> contents = new ArrayList<>();
         loopOverContents(bb, contents, analysis);
 
@@ -264,10 +276,8 @@ public class DOTCFGVisualizer<
                 visualizeSpecialBlock((SpecialBlock) bb);
             } else if (bb.getType() == BlockType.CONDITIONAL_BLOCK) {
                 this.sbDigraph.append(" \",];\n");
-                return null;
             } else {
                 this.sbDigraph.append("?? empty ?? \",];\n");
-                return null;
             }
         }
 
@@ -279,7 +289,50 @@ public class DOTCFGVisualizer<
         this.sbDigraph
                 .append((this.sbBlock.toString() + (centered ? "" : "\\n")).replace("\\n", "\\l"))
                 .append(" \",];\n");
-        return this.sbBlock.toString();
+
+        return null;
+    }
+
+    @Override
+    public void visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
+
+        TransferInput<A, S> input = analysis.getInput(bb);
+        assert input != null;
+
+        this.sbStore.setLength(0);
+
+        // split input representation to two lines
+        this.sbStore.append("Before:");
+        if (!input.containsTwoStores()) {
+            S regularStore = input.getRegularStore();
+            this.sbStore.append('[');
+            visualizeStore(regularStore);
+            this.sbStore.append(']');
+        } else {
+            S thenStore = input.getThenStore();
+            this.sbStore.append("[then=");
+            visualizeStore(thenStore);
+            S elseStore = input.getElseStore();
+            this.sbStore.append(", else=");
+            visualizeStore(elseStore);
+            this.sbStore.append("]");
+        }
+        // separator
+        this.sbStore.append("\\n~~~~~~~~~\\n");
+
+        // the transfer input before this block is added before the block content
+        this.sbBlock.insert(0, this.sbStore);
+
+        if (verbose) {
+            Node lastNode = getLastNode(bb);
+            if (lastNode != null) {
+                this.sbStore.setLength(0);
+                this.sbStore.append("\\n~~~~~~~~~\\n");
+                this.sbStore.append("After:");
+                visualizeStore(analysis.getResult().getStoreAfter(lastNode));
+                this.sbBlock.append(this.sbStore);
+            }
+        }
     }
 
     /**
@@ -307,7 +360,7 @@ public class DOTCFGVisualizer<
      * of the value of store.
      */
     @Override
-    public @Nullable String visualizeStore(S store) {
+    public String visualizeStore(S store) {
         store.visualize(this);
         return null;
     }
@@ -377,6 +430,14 @@ public class DOTCFGVisualizer<
     public String visualizeStoreKeyVal(String keyName, Object value) {
         this.sbStore.append("  ").append(keyName).append(" = ").append(value).append("\\n");
         return null;
+    }
+
+    private String escapeDoubleQuotes(final String str) {
+        return str.replace("\"", "\\\"");
+    }
+
+    private String toStringEscapeDoubleQuotes(final Object obj) {
+        return escapeDoubleQuotes(String.valueOf(obj));
     }
 
     @Override

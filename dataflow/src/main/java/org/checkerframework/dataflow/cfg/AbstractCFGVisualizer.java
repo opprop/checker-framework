@@ -38,21 +38,6 @@ public abstract class AbstractCFGVisualizer<
         this.sbBlock = new StringBuilder();
     }
 
-    /**
-     * Generate the order of processing blocks.
-     *
-     * @param cfg the current control flow graph
-     */
-    protected IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
-        IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
-        int count = 1;
-        for (Block b : cfg.getDepthFirstOrderedBlocks()) {
-            depthFirstOrder.computeIfAbsent(b, k -> new ArrayList<>());
-            depthFirstOrder.get(b).add(count++);
-        }
-        return depthFirstOrder;
-    }
-
     protected void loopOverContents(
             Block bb, List<Node> contents, @Nullable Analysis<A, S, T> analysis) {
         switchBlockType(bb, contents);
@@ -98,59 +83,20 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    @Override
-    public void visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        assert analysis != null
-                : "analysis should be non-null when visualizing the transfer input of a block.";
-
-        TransferInput<A, S> input = analysis.getInput(bb);
-        assert input != null;
-
-        this.sbStore.setLength(0);
-
-        // split input representation to two lines
-        this.sbStore.append("Before:");
-        if (!input.containsTwoStores()) {
-            S regularStore = input.getRegularStore();
-            this.sbStore.append('[');
-            visualizeStore(regularStore);
-            this.sbStore.append(']');
-        } else {
-            S thenStore = input.getThenStore();
-            this.sbStore.append("[then=");
-            visualizeStore(thenStore);
-            S elseStore = input.getElseStore();
-            this.sbStore.append(", else=");
-            visualizeStore(elseStore);
-            this.sbStore.append("]");
+    protected Node getLastNode(Block bb) {
+        Node lastNode;
+        switch (bb.getType()) {
+            case REGULAR_BLOCK:
+                List<Node> blockContents = ((RegularBlock) bb).getContents();
+                lastNode = blockContents.get(blockContents.size() - 1);
+                break;
+            case EXCEPTION_BLOCK:
+                lastNode = ((ExceptionBlock) bb).getNode();
+                break;
+            default:
+                lastNode = null;
         }
-        // separator
-        this.sbStore.append("\\n~~~~~~~~~\\n");
-
-        // the transfer input before this block is added before the block content
-        this.sbBlock.insert(0, this.sbStore);
-
-        if (verbose) {
-            Node lastNode;
-            switch (bb.getType()) {
-                case REGULAR_BLOCK:
-                    List<Node> blockContents = ((RegularBlock) bb).getContents();
-                    lastNode = blockContents.get(blockContents.size() - 1);
-                    break;
-                case EXCEPTION_BLOCK:
-                    lastNode = ((ExceptionBlock) bb).getNode();
-                    break;
-                default:
-                    lastNode = null;
-            }
-            if (lastNode != null) {
-                this.sbStore.setLength(0);
-                this.sbStore.append("\\n~~~~~~~~~\\n");
-                this.sbStore.append("After:");
-                visualizeStore(analysis.getResult().getStoreAfter(lastNode));
-                this.sbBlock.append(this.sbStore);
-            }
-        }
+        return lastNode;
     }
 
     @Override
@@ -168,7 +114,7 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    protected String prepareNodeType(Node t) {
+    private String prepareNodeType(Node t) {
         String name = t.getClass().getSimpleName();
         return name.replace("Node", "");
     }
@@ -178,15 +124,7 @@ public abstract class AbstractCFGVisualizer<
      *
      * @param s the String to be processed.
      */
-    protected String prepareString(String s) {
+    private String prepareString(String s) {
         return s.replace("\"", "\\\"");
-    }
-
-    protected String escapeDoubleQuotes(final String str) {
-        return str.replace("\"", "\\\"");
-    }
-
-    protected String toStringEscapeDoubleQuotes(final Object obj) {
-        return escapeDoubleQuotes(String.valueOf(obj));
     }
 }

@@ -157,7 +157,8 @@ public class ConstantPropagationStore implements Store<ConstantPropagationStore>
     }
 
     @Override
-    public void visualize(CFGVisualizer<?, ConstantPropagationStore, ?> viz) {
+    public String visualize(CFGVisualizer<?, ConstantPropagationStore, ?> viz) {
         // Do nothing since ConstantPropagationStore doesn't support visualize
+        return null;
     }
 }

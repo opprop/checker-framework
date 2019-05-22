@@ -1,5 +1,6 @@
 package org.checkerframework.dataflow.analysis;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.CFGVisualizer;
 
 /**
@@ -86,5 +87,5 @@ public interface Store<S extends Store<S>> {
      *
      * @param viz the visualizer to visualize this store
      */
-    void visualize(CFGVisualizer<?, S, ?> viz);
+    @Nullable String visualize(CFGVisualizer<?, S, ?> viz);
 }

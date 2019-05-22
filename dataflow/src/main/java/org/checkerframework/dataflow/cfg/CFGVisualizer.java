@@ -58,7 +58,7 @@ public interface CFGVisualizer<
      *
      * @param classCanonicalName the canonical name of the class
      */
-    String visualizeStoreHeader(String classCanonicalName);
+    @Nullable String visualizeStoreHeader(String classCanonicalName);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize a local variable.
@@ -66,7 +66,7 @@ public interface CFGVisualizer<
      * @param localVar the local variable
      * @param value the value of the local variable
      */
-    String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value);
+    @Nullable String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of the current
@@ -74,7 +74,7 @@ public interface CFGVisualizer<
      *
      * @param value the value of the current object this
      */
-    String visualizeStoreThisVal(A value);
+    @Nullable String visualizeStoreThisVal(A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of fields
@@ -83,7 +83,7 @@ public interface CFGVisualizer<
      * @param fieldAccess the field
      * @param value the value of the field
      */
-    String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value);
+    @Nullable String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of arrays
@@ -92,7 +92,7 @@ public interface CFGVisualizer<
      * @param arrayValue the array
      * @param value the value of the array
      */
-    String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
+    @Nullable String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of pure method
@@ -101,7 +101,7 @@ public interface CFGVisualizer<
      * @param methodCall the pure method call
      * @param value the value of the pure method call
      */
-    String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value);
+    @Nullable String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of class names
@@ -110,7 +110,7 @@ public interface CFGVisualizer<
      * @param className the class name
      * @param value the value of the class name
      */
-    String visualizeStoreClassVals(FlowExpressions.ClassName className, A value);
+    @Nullable String visualizeStoreClassVals(FlowExpressions.ClassName className, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the specific information
@@ -121,13 +121,13 @@ public interface CFGVisualizer<
      * @param keyName the name of the specific information to be visualized
      * @param value the value of the specific information to be visualized
      */
-    String visualizeStoreKeyVal(String keyName, Object value);
+    @Nullable String visualizeStoreKeyVal(String keyName, Object value);
 
     /**
      * Called by {@code CFAbstractStore} to visualize any information after the invocation of {@code
      * CFAbstractStore#internalVisualize()}.
      */
-    String visualizeStoreFooter();
+    @Nullable String visualizeStoreFooter();
 
     /**
      * Visualize a block based on the analysis.

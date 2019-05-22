@@ -960,25 +960,25 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      * Adds a representation of the internal information of this store to visualizer {@code viz}.
      */
     protected String internalVisualize(CFGVisualizer<V, S, ?> viz) {
-        String res = "";
+        StringBuilder res = new StringBuilder();
         for (Entry<FlowExpressions.LocalVariable, V> entry : localVariableValues.entrySet()) {
-            res += viz.visualizeStoreLocalVar(entry.getKey(), entry.getValue());
+            res.append(viz.visualizeStoreLocalVar(entry.getKey(), entry.getValue()));
         }
         if (thisValue != null) {
-            res += viz.visualizeStoreThisVal(thisValue);
+            res.append(viz.visualizeStoreThisVal(thisValue));
         }
         for (Entry<FlowExpressions.FieldAccess, V> entry : fieldValues.entrySet()) {
-            res += viz.visualizeStoreFieldVals(entry.getKey(), entry.getValue());
+            res.append(viz.visualizeStoreFieldVals(entry.getKey(), entry.getValue()));
         }
         for (Entry<FlowExpressions.ArrayAccess, V> entry : arrayValues.entrySet()) {
-            res += viz.visualizeStoreArrayVal(entry.getKey(), entry.getValue());
+            res.append(viz.visualizeStoreArrayVal(entry.getKey(), entry.getValue()));
         }
         for (Entry<MethodCall, V> entry : methodValues.entrySet()) {
-            res += viz.visualizeStoreMethodVals(entry.getKey(), entry.getValue());
+            res.append(viz.visualizeStoreMethodVals(entry.getKey(), entry.getValue()));
         }
         for (Entry<FlowExpressions.ClassName, V> entry : classValues.entrySet()) {
-            res += viz.visualizeStoreClassVals(entry.getKey(), entry.getValue());
+            res.append(viz.visualizeStoreClassVals(entry.getKey(), entry.getValue()));
         }
-        return res;
+        return res.toString();
     }
 }

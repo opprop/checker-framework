@@ -50,7 +50,7 @@ public interface CFGVisualizer<
      * @param store the store to visualize
      * @return the String presentation of the value of store
      */
-    @Nullable String visualizeStore(S store);
+    String visualizeStore(S store);
 
     /**
      * Called by a {@code CFAbstractStore} to visualize the class name before calling the {@code
@@ -58,7 +58,7 @@ public interface CFGVisualizer<
      *
      * @param classCanonicalName the canonical name of the class
      */
-    @Nullable String visualizeStoreHeader(String classCanonicalName);
+    String visualizeStoreHeader(String classCanonicalName);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize a local variable.
@@ -66,7 +66,7 @@ public interface CFGVisualizer<
      * @param localVar the local variable
      * @param value the value of the local variable
      */
-    @Nullable String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value);
+    String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of the current
@@ -74,7 +74,7 @@ public interface CFGVisualizer<
      *
      * @param value the value of the current object this
      */
-    @Nullable String visualizeStoreThisVal(A value);
+    String visualizeStoreThisVal(A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of fields
@@ -83,7 +83,7 @@ public interface CFGVisualizer<
      * @param fieldAccess the field
      * @param value the value of the field
      */
-    @Nullable String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value);
+    String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of arrays
@@ -92,7 +92,7 @@ public interface CFGVisualizer<
      * @param arrayValue the array
      * @param value the value of the array
      */
-    @Nullable String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
+    String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of pure method
@@ -101,7 +101,7 @@ public interface CFGVisualizer<
      * @param methodCall the pure method call
      * @param value the value of the pure method call
      */
-    @Nullable String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value);
+    String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the value of class names
@@ -110,7 +110,7 @@ public interface CFGVisualizer<
      * @param className the class name
      * @param value the value of the class name
      */
-    @Nullable String visualizeStoreClassVals(FlowExpressions.ClassName className, A value);
+    String visualizeStoreClassVals(FlowExpressions.ClassName className, A value);
 
     /**
      * Called by {@code CFAbstractStore#internalVisualize()} to visualize the specific information
@@ -121,13 +121,13 @@ public interface CFGVisualizer<
      * @param keyName the name of the specific information to be visualized
      * @param value the value of the specific information to be visualized
      */
-    @Nullable String visualizeStoreKeyVal(String keyName, Object value);
+    String visualizeStoreKeyVal(String keyName, Object value);
 
     /**
      * Called by {@code CFAbstractStore} to visualize any information after the invocation of {@code
      * CFAbstractStore#internalVisualize()}.
      */
-    @Nullable String visualizeStoreFooter();
+    String visualizeStoreFooter();
 
     /**
      * Visualize a block based on the analysis.
@@ -135,14 +135,14 @@ public interface CFGVisualizer<
      * @param bb the block
      * @param analysis the current analysis
      */
-    @Nullable String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis);
+    String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis);
 
     /**
      * Visualize a SpecialBlock.
      *
      * @param sbb the special block
      */
-    void visualizeSpecialBlock(SpecialBlock sbb);
+    String visualizeSpecialBlock(SpecialBlock sbb);
 
     /**
      * Visualize the transferInput of a Block based on the analysis.
@@ -150,7 +150,7 @@ public interface CFGVisualizer<
      * @param bb the block
      * @param analysis the current analysis
      */
-    void visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis);
+    String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis);
 
     /**
      * Visualize a Node based on the analysis.
@@ -158,7 +158,7 @@ public interface CFGVisualizer<
      * @param t the node
      * @param analysis the current analysis
      */
-    void visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis);
+    String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis);
 
     /** Shutdown method called once from the shutdown hook of the {@code BaseTypeChecker}. */
     void shutdown();

@@ -80,42 +80,42 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        return "this > " + value.toString() + lineSeparator;
+        return "this > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return localVar.toString() + " > " + value.toString() + lineSeparator;
+        return localVar.toString() + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return fieldAccess.toString() + " > " + value.toString() + lineSeparator;
+        return fieldAccess.toString() + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return arrayValue.toString() + " > " + value.toString() + lineSeparator;
+        return arrayValue.toString() + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return methodCall.toString() + " > " + value.toString() + lineSeparator;
+        return methodCall.toString() + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return className.toString() + " > " + value.toString() + lineSeparator;
+        return className.toString() + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return keyName + " = " + value.toString() + lineSeparator;
+        return keyName + " = " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
-        return classCanonicalName + lineSeparator;
+        return classCanonicalName + " (" + lineSeparator;
     }
 
     @Override

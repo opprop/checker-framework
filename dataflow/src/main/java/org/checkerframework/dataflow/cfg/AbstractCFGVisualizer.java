@@ -77,7 +77,7 @@ public abstract class AbstractCFGVisualizer<
         return sbBlock.toString() + (centered ? "" : "\\n");
     }
 
-    protected String loopOverBlockContents(Block bb, @Nullable Analysis<A, S, T> analysis) {
+    private String loopOverBlockContents(Block bb, @Nullable Analysis<A, S, T> analysis) {
 
         List<Node> contents = new ArrayList<>();
         StringBuilder sbBlockContents = new StringBuilder();
@@ -95,7 +95,7 @@ public abstract class AbstractCFGVisualizer<
         return sbBlockContents.toString();
     }
 
-    protected void switchBlockType(Block bb, List<Node> contents) {
+    private void switchBlockType(Block bb, List<Node> contents) {
         switch (bb.getType()) {
             case REGULAR_BLOCK:
                 contents.addAll(((RegularBlock) bb).getContents());
@@ -161,7 +161,7 @@ public abstract class AbstractCFGVisualizer<
         return specialBlock;
     }
 
-    protected Node getLastNode(Block bb) {
+    private Node getLastNode(Block bb) {
         Node lastNode;
         switch (bb.getType()) {
             case REGULAR_BLOCK:

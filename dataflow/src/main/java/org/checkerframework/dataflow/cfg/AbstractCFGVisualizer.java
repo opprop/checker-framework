@@ -33,8 +33,51 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    protected String loopOverBlockContents(
-            Block bb, @Nullable Analysis<A, S, T> analysis, String lineSeparator) {
+    /**
+     * Produce a representation of the contests of a basic block.
+     *
+     * @param bb basic block to visualize
+     * @param analysis the current analysis
+     */
+    @Override
+    public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
+        StringBuilder sbBlock = new StringBuilder();
+        sbBlock.append(loopOverBlockContents(bb, analysis));
+
+        // handle case where no contents are present
+        boolean centered = false;
+        if (sbBlock.length() == 0) {
+            centered = true;
+            if (bb.getType() == Block.BlockType.SPECIAL_BLOCK) {
+                sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
+            } else if (bb.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
+                sbBlock.append(" \",];\n");
+                return sbBlock.toString();
+            } else {
+                sbBlock.append("?? empty ?? \",];\n");
+                return sbBlock.toString();
+            }
+        }
+
+        // visualize transfer input if necessary
+        if (analysis != null) {
+            // the transfer input before this block is added before the block content
+            sbBlock.insert(0, visualizeBlockTransferInput(bb, analysis));
+            if (verbose) {
+                Node lastNode = getLastNode(bb);
+                if (lastNode != null) {
+                    StringBuilder sbStore = new StringBuilder();
+                    sbStore.append("\\n~~~~~~~~~\\n");
+                    sbStore.append("After:");
+                    sbStore.append(visualizeStore(analysis.getResult().getStoreAfter(lastNode)));
+                    sbBlock.append(sbStore);
+                }
+            }
+        }
+        return sbBlock.toString() + (centered ? "" : "\\n");
+    }
+
+    protected String loopOverBlockContents(Block bb, @Nullable Analysis<A, S, T> analysis) {
 
         List<Node> contents = new ArrayList<>();
         StringBuilder sbBlockContents = new StringBuilder();
@@ -44,7 +87,7 @@ public abstract class AbstractCFGVisualizer<
 
         for (Node t : contents) {
             if (notFirst) {
-                sbBlockContents.append(lineSeparator);
+                sbBlockContents.append("\\n");
             }
             notFirst = true;
             sbBlockContents.append(visualizeBlockNode(t, analysis));
@@ -149,6 +192,16 @@ public abstract class AbstractCFGVisualizer<
             }
         }
         return sbBlockNode.toString();
+    }
+
+    @Override
+    public String visualizeStore(S store) {
+        return store.visualize(this);
+    }
+
+    @Override
+    public String visualizeStoreFooter() {
+        return ")";
     }
 
     private String prepareNodeType(Node t) {

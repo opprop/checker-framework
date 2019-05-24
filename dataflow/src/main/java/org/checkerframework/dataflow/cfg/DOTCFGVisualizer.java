@@ -21,7 +21,6 @@ import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGStatement;
 import org.checkerframework.dataflow.cfg.block.*;
 import org.checkerframework.dataflow.cfg.block.Block.BlockType;
-import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.UserError;
 
@@ -186,7 +185,7 @@ public class DOTCFGVisualizer<
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
                         .append("\\n");
             }
-            sbDotNodes.append(visualizeBlock(v, analysis));
+            sbDotNodes.append(visualizeBlock(v, analysis).replace("\\n", "\\l")).append(" \",];\n");
         }
 
         sbDotNodes.append("\n");
@@ -265,53 +264,6 @@ public class DOTCFGVisualizer<
     }
 
     /**
-     * Produce a representation of the contests of a basic block.
-     *
-     * @param bb basic block to visualize
-     * @param analysis the current analysis
-     */
-    @Override
-    public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
-        StringBuilder sbBlock = new StringBuilder();
-        String lineSeparator = "\\n";
-        sbBlock.append(loopOverBlockContents(bb, analysis, lineSeparator));
-
-        // handle case where no contents are present
-        boolean centered = false;
-        if (sbBlock.length() == 0) {
-            centered = true;
-            if (bb.getType() == BlockType.SPECIAL_BLOCK) {
-                sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
-            } else if (bb.getType() == BlockType.CONDITIONAL_BLOCK) {
-                sbBlock.append(" \",];\n");
-                return sbBlock.toString();
-            } else {
-                sbBlock.append("?? empty ?? \",];\n");
-                return sbBlock.toString();
-            }
-        }
-
-        // visualize transfer input if necessary
-        if (analysis != null) {
-            // the transfer input before this block is added before the block content
-            sbBlock.insert(0, visualizeBlockTransferInput(bb, analysis));
-
-            if (verbose) {
-                Node lastNode = getLastNode(bb);
-                if (lastNode != null) {
-                    StringBuilder sbStore = new StringBuilder();
-                    sbStore.append("\\n~~~~~~~~~\\n");
-                    sbStore.append("After:");
-                    sbStore.append(visualizeStore(analysis.getResult().getStoreAfter(lastNode)));
-                    sbBlock.append(sbStore);
-                }
-            }
-        }
-
-        return (sbBlock.toString() + (centered ? "" : "\\n")).replace("\\n", "\\l") + " \",];\n";
-    }
-
-    /**
      * Add an edge to the graph.
      *
      * @param sId Id of current block
@@ -320,17 +272,6 @@ public class DOTCFGVisualizer<
      */
     private String addDotEdge(long sId, long eId, String labelContent) {
         return "    " + sId + " -> " + eId + " [label=\"" + labelContent + "\"];\n";
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Do not call this method by hand. Use {@link StringCFGVisualizer} to see the String version
-     * of the value of store.
-     */
-    @Override
-    public String visualizeStore(S store) {
-        return store.visualize(this);
     }
 
     @Override
@@ -379,11 +320,6 @@ public class DOTCFGVisualizer<
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
         return classCanonicalName + " (\\n";
-    }
-
-    @Override
-    public String visualizeStoreFooter() {
-        return ")";
     }
 
     /**

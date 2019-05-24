@@ -21,9 +21,6 @@ public abstract class AbstractCFGVisualizer<
 
     protected boolean verbose;
 
-    protected StringBuilder sbStore;
-    protected StringBuilder sbBlock;
-
     @Override
     public void init(Map<String, Object> args) {
         {
@@ -34,21 +31,25 @@ public abstract class AbstractCFGVisualizer<
                                     ? Boolean.getBoolean((String) verb)
                                     : (boolean) verb);
         }
-        this.sbStore = new StringBuilder();
-        this.sbBlock = new StringBuilder();
     }
 
-    protected void loopOverContents(
-            Block bb, List<Node> contents, @Nullable Analysis<A, S, T> analysis) {
-        switchBlockType(bb, contents);
+    protected String loopOverBlockContents(
+            Block bb, @Nullable Analysis<A, S, T> analysis, String lineSeparator) {
+
+        List<Node> contents = new ArrayList<>();
+        StringBuilder sbBlockContents = new StringBuilder();
         boolean notFirst = false;
+
+        switchBlockType(bb, contents);
+
         for (Node t : contents) {
             if (notFirst) {
-                this.sbBlock.append("\\n");
+                sbBlockContents.append(lineSeparator);
             }
             notFirst = true;
-            visualizeBlockNode(t, analysis);
+            sbBlockContents.append(visualizeBlockNode(t, analysis));
         }
+        return sbBlockContents.toString();
     }
 
     protected void switchBlockType(Block bb, List<Node> contents) {
@@ -69,18 +70,52 @@ public abstract class AbstractCFGVisualizer<
     }
 
     @Override
-    public void visualizeSpecialBlock(SpecialBlock sbb) {
+    public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
+        assert analysis != null
+                : "analysis should be non-null when visualizing the transfer input of a block.";
+
+        TransferInput<A, S> input = analysis.getInput(bb);
+        assert input != null;
+
+        StringBuilder sbStore = new StringBuilder();
+
+        // split input representation to two lines
+        sbStore.append("Before:");
+        if (!input.containsTwoStores()) {
+            S regularStore = input.getRegularStore();
+            sbStore.append('[');
+            sbStore.append(visualizeStore(regularStore));
+            sbStore.append(']');
+        } else {
+            S thenStore = input.getThenStore();
+            sbStore.append("[then=");
+            sbStore.append(visualizeStore(thenStore));
+            S elseStore = input.getElseStore();
+            sbStore.append(", else=");
+            sbStore.append(visualizeStore(elseStore));
+            sbStore.append("]");
+        }
+        // separator
+        sbStore.append("\\n~~~~~~~~~\\n");
+
+        return sbStore.toString();
+    }
+
+    @Override
+    public String visualizeSpecialBlock(SpecialBlock sbb) {
+        String specialBlock = "";
         switch (sbb.getSpecialType()) {
             case ENTRY:
-                this.sbBlock.append("<entry>");
+                specialBlock = "<entry>";
                 break;
             case EXIT:
-                this.sbBlock.append("<exit>");
+                specialBlock = "<exit>";
                 break;
             case EXCEPTIONAL_EXIT:
-                this.sbBlock.append("<exceptional-exit>");
+                specialBlock = "<exceptional-exit>";
                 break;
         }
+        return specialBlock;
     }
 
     protected Node getLastNode(Block bb) {
@@ -100,8 +135,9 @@ public abstract class AbstractCFGVisualizer<
     }
 
     @Override
-    public void visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
-        this.sbBlock
+    public String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
+        StringBuilder sbBlockNode = new StringBuilder();
+        sbBlockNode
                 .append(prepareString(t.toString()))
                 .append("   [ ")
                 .append(prepareNodeType(t))
@@ -109,9 +145,10 @@ public abstract class AbstractCFGVisualizer<
         if (analysis != null) {
             A value = analysis.getValue(t);
             if (value != null) {
-                this.sbBlock.append("    > ").append(prepareString(value.toString()));
+                sbBlockNode.append("    > ").append(prepareString(value.toString()));
             }
         }
+        return sbBlockNode.toString();
     }
 
     private String prepareNodeType(Node t) {

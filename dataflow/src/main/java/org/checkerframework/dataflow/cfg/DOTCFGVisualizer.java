@@ -186,11 +186,7 @@ public class DOTCFGVisualizer<
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
                         .append("\\n");
             }
-            if (v.getType() == BlockType.CONDITIONAL_BLOCK) {
-                sbDotNodes.append(" \",];\n");
-                return sbDotNodes.toString();
-            }
-            sbDotNodes.append(visualizeBlock(v, analysis)).append(" \",];\n");
+            sbDotNodes.append(visualizeBlock(v, analysis));
         }
 
         sbDotNodes.append("\n");
@@ -281,11 +277,18 @@ public class DOTCFGVisualizer<
         sbBlock.append(loopOverBlockContents(bb, analysis, lineSeparator));
 
         // handle case where no contents are present
-        // in this situation, the type of block is SPECIAL_BLOCK
         boolean centered = false;
         if (sbBlock.length() == 0) {
             centered = true;
-            sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
+            if (bb.getType() == BlockType.SPECIAL_BLOCK) {
+                sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
+            } else if (bb.getType() == BlockType.CONDITIONAL_BLOCK) {
+                sbBlock.append(" \",];\n");
+                return sbBlock.toString();
+            } else {
+                sbBlock.append("?? empty ?? \",];\n");
+                return sbBlock.toString();
+            }
         }
 
         // visualize transfer input if necessary
@@ -305,7 +308,7 @@ public class DOTCFGVisualizer<
             }
         }
 
-        return (sbBlock.toString() + (centered ? "" : "\\n")).replace("\\n", "\\l");
+        return (sbBlock.toString() + (centered ? "" : "\\n")).replace("\\n", "\\l") + " \",];\n";
     }
 
     /**

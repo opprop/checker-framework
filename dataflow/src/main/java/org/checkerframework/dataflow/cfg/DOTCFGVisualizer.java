@@ -185,7 +185,7 @@ public class DOTCFGVisualizer<
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
                         .append("\\n");
             }
-            sbDotNodes.append(visualizeBlock(v, analysis).replace("\\n", "\\l")).append(" \",];\n");
+            sbDotNodes.append(visualizeBlock(v, analysis).replace("\\n", "\\l"));
         }
 
         sbDotNodes.append("\n");

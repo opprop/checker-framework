@@ -25,7 +25,7 @@ public class StringCFGVisualizer<
 
     @Override
     public @Nullable String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
-        return super.visualizeBlock(bb, analysis).replace("\\n", "\n") + " \",];\n";
+        return super.visualizeBlock(bb, analysis).replace("\\n", "\n");
     }
 
     @Override

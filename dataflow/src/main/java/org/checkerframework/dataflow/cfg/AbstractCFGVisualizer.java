@@ -74,7 +74,11 @@ public abstract class AbstractCFGVisualizer<
                 }
             }
         }
-        return sbBlock.toString() + (centered ? "" : "\\n");
+
+        sbBlock.append((centered ? "" : "\\n"));
+        sbBlock.append(" \",];\n");
+
+        return sbBlock.toString();
     }
 
     private String loopOverBlockContents(Block bb, @Nullable Analysis<A, S, T> analysis) {

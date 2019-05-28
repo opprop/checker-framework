@@ -1,12 +1,10 @@
 package org.checkerframework.dataflow.cfg;
 
 import java.util.*;
+import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.*;
-import org.checkerframework.dataflow.cfg.block.Block;
-import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
-import org.checkerframework.dataflow.cfg.block.RegularBlock;
-import org.checkerframework.dataflow.cfg.block.SpecialBlock;
+import org.checkerframework.dataflow.cfg.block.*;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
@@ -33,16 +31,108 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    /**
-     * Produce a representation of the contests of a basic block.
-     *
-     * @param bb basic block to visualize
-     * @param analysis the current analysis
-     */
-    @Override
-    public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
+    public String generateGraphHelper(
+            ControlFlowGraph cfg,
+            Block entry,
+            @Nullable Analysis<A, S, T> analysis,
+            String thenLabelContent,
+            String elseLabelContent) {
+        Set<Block> visited = new HashSet<>();
+
+        StringBuilder sbDigraph = new StringBuilder();
+        sbDigraph.append("digraph {\n");
+
+        Block cur = entry;
+        Queue<Block> workList = new ArrayDeque<>();
+        visited.add(entry);
+        // traverse control flow graph and define all arrows
+        while (cur != null) {
+            if (cur.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
+                ConditionalBlock ccur = ((ConditionalBlock) cur);
+                Block thenSuccessor = ccur.getThenSuccessor();
+                sbDigraph.append(
+                        addEdge(
+                                ccur.getId(),
+                                thenSuccessor.getId(),
+                                thenLabelContent + ccur.getThenFlowRule()));
+                if (!visited.contains(thenSuccessor)) {
+                    visited.add(thenSuccessor);
+                    workList.add(thenSuccessor);
+                }
+                Block elseSuccessor = ccur.getElseSuccessor();
+                sbDigraph.append(
+                        addEdge(
+                                ccur.getId(),
+                                elseSuccessor.getId(),
+                                elseLabelContent + ccur.getElseFlowRule()));
+                if (!visited.contains(elseSuccessor)) {
+                    visited.add(elseSuccessor);
+                    workList.add(elseSuccessor);
+                }
+            } else {
+                assert cur instanceof SingleSuccessorBlock;
+                Block b = ((SingleSuccessorBlock) cur).getSuccessor();
+                if (b != null) {
+                    sbDigraph.append(
+                            addEdge(
+                                    cur.getId(),
+                                    b.getId(),
+                                    ((SingleSuccessorBlock) cur).getFlowRule().name()));
+                    if (!visited.contains(b)) {
+                        visited.add(b);
+                        workList.add(b);
+                    }
+                }
+            }
+
+            // exceptional edges
+            if (cur.getType() == Block.BlockType.EXCEPTION_BLOCK) {
+                ExceptionBlock ecur = (ExceptionBlock) cur;
+                for (Map.Entry<TypeMirror, Set<Block>> e :
+                        ecur.getExceptionalSuccessors().entrySet()) {
+                    Set<Block> blocks = e.getValue();
+                    TypeMirror cause = e.getKey();
+                    String exception = cause.toString();
+                    if (exception.startsWith("java.lang.")) {
+                        exception = exception.replace("java.lang.", "");
+                    }
+
+                    for (Block b : blocks) {
+                        sbDigraph.append(addEdge(cur.getId(), b.getId(), exception));
+                        if (!visited.contains(b)) {
+                            visited.add(b);
+                            workList.add(b);
+                        }
+                    }
+                }
+            }
+
+            cur = workList.poll();
+        }
+
+        sbDigraph.append(generateNodes(visited, cfg, analysis));
+
+        // footer
+        sbDigraph.append("}\n");
+
+        return sbDigraph.toString();
+    }
+
+    public abstract String generateNodes(
+            Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
+
+    private String addEdge(long sId, long eId, String labelContent) {
+        return "    " + sId + " -> " + eId + " [label=\"" + labelContent + "\"];\n";
+    }
+
+    public String visualizeBlockHelper(
+            Block bb,
+            @Nullable Analysis<A, S, T> analysis,
+            String footer1,
+            String footer2,
+            String escapeCharacter) {
         StringBuilder sbBlock = new StringBuilder();
-        sbBlock.append(loopOverBlockContents(bb, analysis));
+        sbBlock.append(loopOverBlockContents(bb, analysis, escapeCharacter));
 
         // handle case where no contents are present
         boolean centered = false;
@@ -51,10 +141,10 @@ public abstract class AbstractCFGVisualizer<
             if (bb.getType() == Block.BlockType.SPECIAL_BLOCK) {
                 sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
             } else if (bb.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
-                sbBlock.append(" \",];\n");
+                sbBlock.append(footer1);
                 return sbBlock.toString();
             } else {
-                sbBlock.append("?? empty ?? \",];\n");
+                sbBlock.append(footer2);
                 return sbBlock.toString();
             }
         }
@@ -67,21 +157,23 @@ public abstract class AbstractCFGVisualizer<
                 Node lastNode = getLastNode(bb);
                 if (lastNode != null) {
                     StringBuilder sbStore = new StringBuilder();
-                    sbStore.append("\\n~~~~~~~~~\\n");
-                    sbStore.append("After:");
+                    sbStore.append(escapeCharacter).append("~~~~~~~~~").append(escapeCharacter);
+                    sbStore.append("After:[");
                     sbStore.append(visualizeStore(analysis.getResult().getStoreAfter(lastNode)));
+                    sbStore.append("]");
                     sbBlock.append(sbStore);
                 }
             }
         }
 
-        sbBlock.append((centered ? "" : "\\n"));
-        sbBlock.append(" \",];\n");
+        sbBlock.append((centered ? "" : escapeCharacter));
+        sbBlock.append(footer1);
 
         return sbBlock.toString();
     }
 
-    private String loopOverBlockContents(Block bb, @Nullable Analysis<A, S, T> analysis) {
+    private String loopOverBlockContents(
+            Block bb, @Nullable Analysis<A, S, T> analysis, String separator) {
 
         List<Node> contents = new ArrayList<>();
         StringBuilder sbBlockContents = new StringBuilder();
@@ -91,7 +183,7 @@ public abstract class AbstractCFGVisualizer<
 
         for (Node t : contents) {
             if (notFirst) {
-                sbBlockContents.append("\\n");
+                sbBlockContents.append(separator);
             }
             notFirst = true;
             sbBlockContents.append(visualizeBlockNode(t, analysis));
@@ -116,8 +208,8 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    @Override
-    public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
+    public String visualizeBlockTransferInputHelper(
+            Block bb, Analysis<A, S, T> analysis, String escapeCharacter) {
         assert analysis != null
                 : "analysis should be non-null when visualizing the transfer input of a block.";
 
@@ -143,23 +235,22 @@ public abstract class AbstractCFGVisualizer<
             sbStore.append("]");
         }
         // separator
-        sbStore.append("\\n~~~~~~~~~\\n");
+        sbStore.append(escapeCharacter).append("~~~~~~~~~").append(escapeCharacter);
 
         return sbStore.toString();
     }
 
-    @Override
-    public String visualizeSpecialBlock(SpecialBlock sbb) {
+    public String visualizeSpecialBlockHelper(SpecialBlock sbb, String separator) {
         String specialBlock = "";
         switch (sbb.getSpecialType()) {
             case ENTRY:
-                specialBlock = "<entry>";
+                specialBlock = "<entry>" + separator;
                 break;
             case EXIT:
-                specialBlock = "<exit>";
+                specialBlock = "<exit>" + separator;
                 break;
             case EXCEPTIONAL_EXIT:
-                specialBlock = "<exceptional-exit>";
+                specialBlock = "<exceptional-exit>" + separator;
                 break;
         }
         return specialBlock;
@@ -196,6 +287,21 @@ public abstract class AbstractCFGVisualizer<
             }
         }
         return sbBlockNode.toString();
+    }
+
+    /**
+     * Generate the order of processing blocks.
+     *
+     * @param cfg the current control flow graph
+     */
+    IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
+        IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
+        int count = 1;
+        for (Block b : cfg.getDepthFirstOrderedBlocks()) {
+            depthFirstOrder.computeIfAbsent(b, k -> new ArrayList<>());
+            depthFirstOrder.get(b).add(count++);
+        }
+        return depthFirstOrder;
     }
 
     @Override

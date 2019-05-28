@@ -4,17 +4,11 @@ import com.sun.tools.javac.tree.JCTree;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.Set;
-import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.*;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
@@ -34,6 +28,9 @@ public class DOTCFGVisualizer<
 
     /** Mapping from class/method representation to generated dot file. */
     protected Map<String, String> generated;
+
+    /** Using it to terminate the lines that are left justified. */
+    private final String leftJustified = "\\l";
 
     @Override
     public void init(Map<String, Object> args) {
@@ -75,84 +72,7 @@ public class DOTCFGVisualizer<
      */
     private String generateDotGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        Set<Block> visited = new HashSet<>();
-
-        StringBuilder sbDigraph = new StringBuilder();
-        sbDigraph.append("digraph {\n");
-
-        Block cur = entry;
-        Queue<Block> workList = new ArrayDeque<>();
-        visited.add(entry);
-        // traverse control flow graph and define all arrows
-        while (cur != null) {
-            if (cur.getType() == BlockType.CONDITIONAL_BLOCK) {
-                ConditionalBlock ccur = ((ConditionalBlock) cur);
-                Block thenSuccessor = ccur.getThenSuccessor();
-                sbDigraph.append(
-                        addDotEdge(
-                                ccur.getId(),
-                                thenSuccessor.getId(),
-                                "then\\n" + ccur.getThenFlowRule()));
-                if (!visited.contains(thenSuccessor)) {
-                    visited.add(thenSuccessor);
-                    workList.add(thenSuccessor);
-                }
-                Block elseSuccessor = ccur.getElseSuccessor();
-                sbDigraph.append(
-                        addDotEdge(
-                                ccur.getId(),
-                                elseSuccessor.getId(),
-                                "else\\n" + ccur.getElseFlowRule()));
-                if (!visited.contains(elseSuccessor)) {
-                    visited.add(elseSuccessor);
-                    workList.add(elseSuccessor);
-                }
-            } else {
-                assert cur instanceof SingleSuccessorBlock;
-                Block b = ((SingleSuccessorBlock) cur).getSuccessor();
-                if (b != null) {
-                    sbDigraph.append(
-                            addDotEdge(
-                                    cur.getId(),
-                                    b.getId(),
-                                    ((SingleSuccessorBlock) cur).getFlowRule().name()));
-                    if (!visited.contains(b)) {
-                        visited.add(b);
-                        workList.add(b);
-                    }
-                }
-            }
-
-            // exceptional edges
-            if (cur.getType() == BlockType.EXCEPTION_BLOCK) {
-                ExceptionBlock ecur = (ExceptionBlock) cur;
-                for (Entry<TypeMirror, Set<Block>> e : ecur.getExceptionalSuccessors().entrySet()) {
-                    Set<Block> blocks = e.getValue();
-                    TypeMirror cause = e.getKey();
-                    String exception = cause.toString();
-                    if (exception.startsWith("java.lang.")) {
-                        exception = exception.replace("java.lang.", "");
-                    }
-
-                    for (Block b : blocks) {
-                        sbDigraph.append(addDotEdge(cur.getId(), b.getId(), exception));
-                        if (!visited.contains(b)) {
-                            visited.add(b);
-                            workList.add(b);
-                        }
-                    }
-                }
-            }
-
-            cur = workList.poll();
-        }
-
-        sbDigraph.append(generateDotNodes(visited, cfg, analysis));
-
-        // footer
-        sbDigraph.append("}\n");
-
-        return sbDigraph.toString();
+        return super.generateGraphHelper(cfg, entry, analysis, "then\\n", "else\\n");
     }
 
     /**
@@ -162,7 +82,8 @@ public class DOTCFGVisualizer<
      * @param cfg the current control flow graph
      * @param analysis the current analysis
      */
-    private String generateDotNodes(
+    @Override
+    public String generateNodes(
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis) {
 
         StringBuilder sbDotNodes = new StringBuilder();
@@ -185,11 +106,27 @@ public class DOTCFGVisualizer<
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
                         .append("\\n");
             }
-            sbDotNodes.append(visualizeBlock(v, analysis).replace("\\n", "\\l"));
+            sbDotNodes.append(visualizeBlock(v, analysis));
         }
 
         sbDotNodes.append("\n");
         return sbDotNodes.toString();
+    }
+
+    @Override
+    public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
+        return super.visualizeBlockHelper(
+                bb, analysis, " \",];\n", "?? empty ?? \",];\n", leftJustified);
+    }
+
+    @Override
+    public String visualizeSpecialBlock(SpecialBlock sbb) {
+        return super.visualizeSpecialBlockHelper(sbb, "");
+    }
+
+    @Override
+    public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
+        return super.visualizeBlockTransferInputHelper(bb, analysis, leftJustified);
     }
 
     /**
@@ -248,65 +185,39 @@ public class DOTCFGVisualizer<
         return out;
     }
 
-    /**
-     * Generate the order of processing blocks.
-     *
-     * @param cfg the current control flow graph
-     */
-    private IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
-        IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
-        int count = 1;
-        for (Block b : cfg.getDepthFirstOrderedBlocks()) {
-            depthFirstOrder.computeIfAbsent(b, k -> new ArrayList<>());
-            depthFirstOrder.get(b).add(count++);
-        }
-        return depthFirstOrder;
-    }
-
-    /**
-     * Add an edge to the graph.
-     *
-     * @param sId Id of current block
-     * @param eId Id of successor
-     * @param labelContent the flow rule
-     */
-    private String addDotEdge(long sId, long eId, String labelContent) {
-        return "    " + sId + " -> " + eId + " [label=\"" + labelContent + "\"];\n";
-    }
-
     @Override
     public String visualizeStoreThisVal(A value) {
-        return "  this > " + value + "\\n";
+        return "  this > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return "  " + localVar + " > " + toStringEscapeDoubleQuotes(value) + "\\n";
+        return "  " + localVar + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return "  " + fieldAccess + " > " + toStringEscapeDoubleQuotes(value) + "\\n";
+        return "  " + fieldAccess + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return "  " + arrayValue + " > " + toStringEscapeDoubleQuotes(value) + "\\n";
+        return "  " + arrayValue + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return "  " + methodCall.toString().replace("\"", "\\\"");
+        return "  " + methodCall.toString().replace("\"", "\\\"") + " > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return "  " + className + " > " + toStringEscapeDoubleQuotes(value) + "\\n";
+        return "  " + className + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return "  " + keyName + " = " + value + "\\n";
+        return "  " + keyName + " = " + value + leftJustified;
     }
 
     private String escapeDoubleQuotes(final String str) {
@@ -319,7 +230,7 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
-        return classCanonicalName + " (\\n";
+        return classCanonicalName + " (" + leftJustified;
     }
 
     /**

@@ -222,9 +222,9 @@ public abstract class AbstractCFGVisualizer<
         sbStore.append("Before:");
         if (!input.containsTwoStores()) {
             S regularStore = input.getRegularStore();
-            sbStore.append('[');
+            sbStore.append("[");
             sbStore.append(visualizeStore(regularStore));
-            sbStore.append(']');
+            sbStore.append("]");
         } else {
             S thenStore = input.getThenStore();
             sbStore.append("[then=");

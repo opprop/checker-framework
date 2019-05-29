@@ -139,7 +139,7 @@ public class DOTCFGVisualizer<
         StringBuilder srcLoc = new StringBuilder();
         StringBuilder outFile = new StringBuilder(outDir);
 
-        outFile.append('/');
+        outFile.append("/");
 
         if (ast.getKind() == UnderlyingAST.Kind.ARBITRARY_CODE) {
             CFGStatement cfgStatement = (CFGStatement) ast;
@@ -148,32 +148,32 @@ public class DOTCFGVisualizer<
             outFile.append("-initializer-");
             outFile.append(ast.hashCode());
 
-            srcLoc.append('<');
+            srcLoc.append("<");
             srcLoc.append(clsName);
             srcLoc.append("::initializer::");
             srcLoc.append(((JCTree) cfgStatement.getCode()).pos);
-            srcLoc.append('>');
+            srcLoc.append(">");
         } else if (ast.getKind() == UnderlyingAST.Kind.METHOD) {
             CFGMethod cfgMethod = (CFGMethod) ast;
             String clsName = cfgMethod.getClassTree().getSimpleName().toString();
             String methodName = cfgMethod.getMethod().getName().toString();
             outFile.append(clsName);
-            outFile.append('-');
+            outFile.append("-");
             outFile.append(methodName);
 
-            srcLoc.append('<');
+            srcLoc.append("<");
             srcLoc.append(clsName);
             srcLoc.append("::");
             srcLoc.append(methodName);
-            srcLoc.append('(');
+            srcLoc.append("(");
             srcLoc.append(cfgMethod.getMethod().getParameters());
             srcLoc.append(")::");
             srcLoc.append(((JCTree) cfgMethod.getMethod()).pos);
-            srcLoc.append('>');
+            srcLoc.append(">");
         } else {
             throw new BugInCF("Unexpected AST kind: " + ast.getKind() + " value: " + ast);
         }
-        outFile.append('-');
+        outFile.append("-");
         outFile.append(checkerName);
         outFile.append(".dot");
 
@@ -245,9 +245,9 @@ public class DOTCFGVisualizer<
             BufferedWriter out = new BufferedWriter(fstream);
             for (Map.Entry<String, String> kv : generated.entrySet()) {
                 out.write(kv.getKey());
-                out.append('\t');
+                out.append("\t");
                 out.write(kv.getValue());
-                out.append('\n');
+                out.append("\n");
             }
             out.close();
         } catch (IOException e) {

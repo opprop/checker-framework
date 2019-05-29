@@ -11,8 +11,8 @@ public class StringCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
-    private final String lineSeparator = System.lineSeparator();
-    private final String escapeCharacter = "\n";
+    protected final String lineSeparator = System.lineSeparator();
+    protected final String escapeCharacter = "\n";
 
     @Override
     public void init(Map<String, Object> args) {
@@ -30,7 +30,7 @@ public class StringCFGVisualizer<
         return res;
     }
 
-    private String generateStringGraph(
+    protected String generateStringGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
         return super.generateGraphHelper(cfg, entry, analysis, "then ", "else ");
     }
@@ -38,24 +38,24 @@ public class StringCFGVisualizer<
     @Override
     public String generateNodes(
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis) {
-        StringBuilder sbDotNodes = new StringBuilder();
-        sbDotNodes.append("\n");
+        StringBuilder sbStringNodes = new StringBuilder();
+        sbStringNodes.append("\n");
 
         IdentityHashMap<Block, List<Integer>> processOrder = getProcessOrder(cfg);
 
         // definition of all nodes including their labels
         for (Block v : visited) {
-            sbDotNodes.append(v.getId()).append(":\n");
+            sbStringNodes.append(v.getId()).append(":\n");
             if (verbose) {
-                sbDotNodes
+                sbStringNodes
                         .append("Process order: ")
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
                         .append("\n");
             }
-            sbDotNodes.append(visualizeBlock(v, analysis));
+            sbStringNodes.append(visualizeBlock(v, analysis));
         }
 
-        return sbDotNodes.toString();
+        return sbStringNodes.toString();
     }
 
     @Override

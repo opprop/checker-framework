@@ -23,14 +23,14 @@ public class DOTCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
-    private String outDir;
-    private String checkerName;
+    protected String outDir;
+    protected String checkerName;
 
     /** Mapping from class/method representation to generated dot file. */
     protected Map<String, String> generated;
 
     /** Using it to terminate the lines that are left justified. */
-    private final String leftJustified = "\\l";
+    protected final String leftJustified = "\\l";
 
     @Override
     public void init(Map<String, Object> args) {
@@ -70,7 +70,7 @@ public class DOTCFGVisualizer<
      * @param entry the entry block of the control flow graph
      * @param analysis the current analysis
      */
-    private String generateDotGraph(
+    protected String generateDotGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
         return super.generateGraphHelper(cfg, entry, analysis, "then\\n", "else\\n");
     }
@@ -135,7 +135,7 @@ public class DOTCFGVisualizer<
      * @param ast an abstract syntax tree
      * @return the file name used for DOT output
      */
-    private String dotOutputFileName(UnderlyingAST ast) {
+    protected String dotOutputFileName(UnderlyingAST ast) {
         StringBuilder srcLoc = new StringBuilder();
         StringBuilder outFile = new StringBuilder(outDir);
 
@@ -220,11 +220,11 @@ public class DOTCFGVisualizer<
         return "  " + keyName + " = " + value + leftJustified;
     }
 
-    private String escapeDoubleQuotes(final String str) {
+    protected String escapeDoubleQuotes(final String str) {
         return str.replace("\"", "\\\"");
     }
 
-    private String toStringEscapeDoubleQuotes(final Object obj) {
+    protected String toStringEscapeDoubleQuotes(final Object obj) {
         return escapeDoubleQuotes(String.valueOf(obj));
     }
 

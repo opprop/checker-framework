@@ -31,7 +31,7 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    public String generateGraphHelper(
+    protected String generateGraphHelper(
             ControlFlowGraph cfg,
             Block entry,
             @Nullable Analysis<A, S, T> analysis,
@@ -118,14 +118,14 @@ public abstract class AbstractCFGVisualizer<
         return sbDigraph.toString();
     }
 
-    public abstract String generateNodes(
+    protected abstract String generateNodes(
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
 
-    private String addEdge(long sId, long eId, String labelContent) {
+    protected String addEdge(long sId, long eId, String labelContent) {
         return "    " + sId + " -> " + eId + " [label=\"" + labelContent + "\"];\n";
     }
 
-    public String visualizeBlockHelper(
+    protected String visualizeBlockHelper(
             Block bb,
             @Nullable Analysis<A, S, T> analysis,
             String footer1,
@@ -172,7 +172,7 @@ public abstract class AbstractCFGVisualizer<
         return sbBlock.toString();
     }
 
-    private String loopOverBlockContents(
+    protected String loopOverBlockContents(
             Block bb, @Nullable Analysis<A, S, T> analysis, String separator) {
 
         List<Node> contents = new ArrayList<>();
@@ -191,7 +191,7 @@ public abstract class AbstractCFGVisualizer<
         return sbBlockContents.toString();
     }
 
-    private void switchBlockType(Block bb, List<Node> contents) {
+    protected void switchBlockType(Block bb, List<Node> contents) {
         switch (bb.getType()) {
             case REGULAR_BLOCK:
                 contents.addAll(((RegularBlock) bb).getContents());
@@ -208,7 +208,7 @@ public abstract class AbstractCFGVisualizer<
         }
     }
 
-    public String visualizeBlockTransferInputHelper(
+    protected String visualizeBlockTransferInputHelper(
             Block bb, Analysis<A, S, T> analysis, String escapeCharacter) {
         assert analysis != null
                 : "analysis should be non-null when visualizing the transfer input of a block.";
@@ -240,7 +240,7 @@ public abstract class AbstractCFGVisualizer<
         return sbStore.toString();
     }
 
-    public String visualizeSpecialBlockHelper(SpecialBlock sbb, String separator) {
+    protected String visualizeSpecialBlockHelper(SpecialBlock sbb, String separator) {
         String specialBlock = "";
         switch (sbb.getSpecialType()) {
             case ENTRY:
@@ -256,7 +256,7 @@ public abstract class AbstractCFGVisualizer<
         return specialBlock;
     }
 
-    private Node getLastNode(Block bb) {
+    protected Node getLastNode(Block bb) {
         Node lastNode;
         switch (bb.getType()) {
             case REGULAR_BLOCK:
@@ -314,7 +314,7 @@ public abstract class AbstractCFGVisualizer<
         return ")";
     }
 
-    private String prepareNodeType(Node t) {
+    protected String prepareNodeType(Node t) {
         String name = t.getClass().getSimpleName();
         return name.replace("Node", "");
     }
@@ -324,7 +324,7 @@ public abstract class AbstractCFGVisualizer<
      *
      * @param s the String to be processed.
      */
-    private String prepareString(String s) {
+    protected String prepareString(String s) {
         return s.replace("\"", "\\\"");
     }
 }

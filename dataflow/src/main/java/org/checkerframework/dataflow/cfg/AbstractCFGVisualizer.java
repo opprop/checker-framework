@@ -125,11 +125,15 @@ public abstract class AbstractCFGVisualizer<
         return "    " + sId + " -> " + eId + " [label=\"" + labelContent + "\"];\n";
     }
 
+    /**
+     * @param cbFooter Footer for conditional block
+     * @param osFooter Footer for the other situations
+     */
     protected String visualizeBlockHelper(
             Block bb,
             @Nullable Analysis<A, S, T> analysis,
-            String footer1,
-            String footer2,
+            String cbFooter,
+            String osFooter,
             String escapeCharacter) {
         StringBuilder sbBlock = new StringBuilder();
         sbBlock.append(loopOverBlockContents(bb, analysis, escapeCharacter));
@@ -141,10 +145,10 @@ public abstract class AbstractCFGVisualizer<
             if (bb.getType() == Block.BlockType.SPECIAL_BLOCK) {
                 sbBlock.append(visualizeSpecialBlock((SpecialBlock) bb));
             } else if (bb.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
-                sbBlock.append(footer1);
+                sbBlock.append(cbFooter);
                 return sbBlock.toString();
             } else {
-                sbBlock.append(footer2);
+                sbBlock.append(osFooter);
                 return sbBlock.toString();
             }
         }
@@ -158,16 +162,15 @@ public abstract class AbstractCFGVisualizer<
                 if (lastNode != null) {
                     StringBuilder sbStore = new StringBuilder();
                     sbStore.append(escapeCharacter).append("~~~~~~~~~").append(escapeCharacter);
-                    sbStore.append("After:[");
+                    sbStore.append("After:");
                     sbStore.append(visualizeStore(analysis.getResult().getStoreAfter(lastNode)));
-                    sbStore.append("]");
                     sbBlock.append(sbStore);
                 }
             }
         }
 
         sbBlock.append((centered ? "" : escapeCharacter));
-        sbBlock.append(footer1);
+        sbBlock.append(cbFooter);
 
         return sbBlock.toString();
     }

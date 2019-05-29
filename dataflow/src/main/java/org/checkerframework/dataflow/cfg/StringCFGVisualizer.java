@@ -70,7 +70,7 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        return super.visualizeBlockTransferInputHelper(bb, analysis, escapeCharacter);
+        return super.visualizeBlockTransferInputHelper(bb, analysis, escapeCharacter, "", "");
     }
 
     @Override

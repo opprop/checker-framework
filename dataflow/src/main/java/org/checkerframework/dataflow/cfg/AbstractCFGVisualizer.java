@@ -209,7 +209,11 @@ public abstract class AbstractCFGVisualizer<
     }
 
     protected String visualizeBlockTransferInputHelper(
-            Block bb, Analysis<A, S, T> analysis, String escapeCharacter) {
+            Block bb,
+            Analysis<A, S, T> analysis,
+            String escapeCharacter,
+            String leftBracket,
+            String rightBracket) {
         assert analysis != null
                 : "analysis should be non-null when visualizing the transfer input of a block.";
 
@@ -222,17 +226,17 @@ public abstract class AbstractCFGVisualizer<
         sbStore.append("Before:");
         if (!input.containsTwoStores()) {
             S regularStore = input.getRegularStore();
-            sbStore.append("[");
+            sbStore.append(leftBracket);
             sbStore.append(visualizeStore(regularStore));
-            sbStore.append("]");
+            sbStore.append(rightBracket);
         } else {
             S thenStore = input.getThenStore();
-            sbStore.append("[then=");
+            sbStore.append(leftBracket).append("then=");
             sbStore.append(visualizeStore(thenStore));
             S elseStore = input.getElseStore();
             sbStore.append(", else=");
             sbStore.append(visualizeStore(elseStore));
-            sbStore.append("]");
+            sbStore.append(rightBracket);
         }
         // separator
         sbStore.append(escapeCharacter).append("~~~~~~~~~").append(escapeCharacter);

@@ -126,7 +126,7 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        return super.visualizeBlockTransferInputHelper(bb, analysis, leftJustified);
+        return super.visualizeBlockTransferInputHelper(bb, analysis, leftJustified, "[", "]");
     }
 
     /**

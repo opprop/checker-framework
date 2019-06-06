@@ -940,7 +940,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
     @SideEffectFree
     @Override
     public String toString() {
-        return "Use a CFGVisualizer to see the Store: " + this.hashCode();
+        return "Use visualize(new StringCFGVisualizer<> viz) to see the Store: " + this.hashCode();
     }
 
     @Override
@@ -949,15 +949,17 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
          * CFGVisualizer<Value, Store, TransferFunction> createCFGVisualizer() of GenericAnnotatedTypeFactory */
         @SuppressWarnings("unchecked")
         CFGVisualizer<V, S, ?> castedViz = (CFGVisualizer<V, S, ?>) viz;
-        String stringStoreHeader =
-                castedViz.visualizeStoreHeader(this.getClass().getCanonicalName());
-        String stringStoreVals = internalVisualize(castedViz);
-        String stringStoreFooter = castedViz.visualizeStoreFooter();
-        return stringStoreHeader + stringStoreVals + stringStoreFooter;
+        StringBuilder sbVisualize = new StringBuilder();
+        sbVisualize.append(castedViz.visualizeStoreHeader(this.getClass().getCanonicalName()));
+        sbVisualize.append(internalVisualize(castedViz));
+        sbVisualize.append(castedViz.visualizeStoreFooter());
+        return sbVisualize.toString();
     }
 
     /**
-     * Adds a representation of the internal information of this store to visualizer {@code viz}.
+     * Adds a representation of the internal information of this Store to visualizer {@code viz}.
+     *
+     * @return A String of the internal information of this Store.
      */
     protected String internalVisualize(CFGVisualizer<V, S, ?> viz) {
         StringBuilder res = new StringBuilder();

@@ -1,23 +1,30 @@
 package org.checkerframework.dataflow.cfg;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.analysis.*;
+import org.checkerframework.dataflow.analysis.AbstractValue;
+import org.checkerframework.dataflow.analysis.Analysis;
+import org.checkerframework.dataflow.analysis.FlowExpressions;
+import org.checkerframework.dataflow.analysis.Store;
+import org.checkerframework.dataflow.analysis.TransferFunction;
 import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
+import org.checkerframework.dataflow.cfg.node.Node;
 
-/** Generate a String version of a control flow graph. */
+/** Generate the String representation of the control flow graph. */
 public class StringCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
+    /** The line separator. */
     protected final String lineSeparator = System.lineSeparator();
-    protected final String escapeCharacter = "\n";
 
-    @Override
-    public void init(Map<String, Object> args) {
-        super.init(args);
-    }
+    /** The specify escape character which is used during generating control flow graph. */
+    protected final String escapeCharacter = "\n";
 
     @Override
     public Map<String, Object> visualize(
@@ -26,24 +33,32 @@ public class StringCFGVisualizer<
 
         Map<String, Object> res = new HashMap<>();
         res.put("stringGraph", stringGraph);
-
+        System.out.println(stringGraph);
         return res;
     }
 
+    /**
+     * Generate the control flow graph in String.
+     *
+     * @param cfg The current control flow graph.
+     * @param entry The entry block of the control flow graph.
+     * @param analysis The current analysis.
+     * @return The String representation of the control flow graph.
+     */
     protected String generateStringGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        return super.generateGraphHelper(cfg, entry, analysis, "then ", "else ");
+        return super.generateGraphHelper(cfg, entry, analysis);
     }
 
     @Override
     public String generateNodes(
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis) {
         StringBuilder sbStringNodes = new StringBuilder();
-        sbStringNodes.append("\n");
+        sbStringNodes.append(lineSeparator);
 
         IdentityHashMap<Block, List<Integer>> processOrder = getProcessOrder(cfg);
 
-        // definition of all nodes including their labels
+        // Definition of all nodes including their labels.
         for (Block v : visited) {
             sbStringNodes.append(v.getId()).append(":\n");
             if (verbose) {
@@ -54,8 +69,15 @@ public class StringCFGVisualizer<
             }
             sbStringNodes.append(visualizeBlock(v, analysis));
         }
-
         return sbStringNodes.toString();
+    }
+
+    @Override
+    protected String addEdge(long sId, long eId, String flowRule) {
+        if (this.verbose) {
+            return sId + " -> " + eId + " " + flowRule + "\n";
+        }
+        return sId + " -> " + eId + "\n";
     }
 
     @Override
@@ -71,6 +93,19 @@ public class StringCFGVisualizer<
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
         return super.visualizeBlockTransferInputHelper(bb, analysis, escapeCharacter, "", "");
+    }
+
+    @Override
+    public String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
+        StringBuilder sbBlockNode = new StringBuilder();
+        sbBlockNode.append(t.toString()).append("   [ ").append(t).append(" ]");
+        if (analysis != null) {
+            A value = analysis.getValue(t);
+            if (value != null) {
+                sbBlockNode.append(" > ").append(value.toString());
+            }
+        }
+        return sbBlockNode.toString();
     }
 
     @Override

@@ -10,11 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.analysis.*;
+import org.checkerframework.dataflow.analysis.AbstractValue;
+import org.checkerframework.dataflow.analysis.Analysis;
+import org.checkerframework.dataflow.analysis.FlowExpressions;
+import org.checkerframework.dataflow.analysis.Store;
+import org.checkerframework.dataflow.analysis.TransferFunction;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGStatement;
-import org.checkerframework.dataflow.cfg.block.*;
+import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.Block.BlockType;
+import org.checkerframework.dataflow.cfg.block.SpecialBlock;
+import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.UserError;
 
@@ -23,13 +29,16 @@ public class DOTCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
+    /** Designate the output directory. */
     protected String outDir;
+
+    /** Initialized in {@link #init(Map)}. Use it as a part of the name of the output dot file. */
     protected String checkerName;
 
     /** Mapping from class/method representation to generated dot file. */
     protected Map<String, String> generated;
 
-    /** Using it to terminate the lines that are left justified. */
+    /** Terminate the lines that are left justified. */
     protected final String leftJustified = "\\l";
 
     @Override
@@ -64,23 +73,29 @@ public class DOTCFGVisualizer<
     }
 
     /**
-     * Generate the dot representation as String.
+     * Generate the dot representation of the control flow graph as String.
      *
-     * @param cfg the current control flow graph
-     * @param entry the entry block of the control flow graph
-     * @param analysis the current analysis
+     * @param cfg The current control flow graph.
+     * @param entry The entry block of the control flow graph.
+     * @param analysis The current analysis.
+     * @return The String representation of the dot control flow graph.
      */
     protected String generateDotGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        return super.generateGraphHelper(cfg, entry, analysis, "then\\n", "else\\n");
+        StringBuilder sbDotGraph = new StringBuilder();
+        sbDotGraph.append("digraph {\n");
+        sbDotGraph.append(super.generateGraphHelper(cfg, entry, analysis));
+        sbDotGraph.append("}\n");
+        return sbDotGraph.toString();
     }
 
     /**
      * Generate the nodes of control flow graph as String.
      *
-     * @param visited a set of blocks
-     * @param cfg the current control flow graph
-     * @param analysis the current analysis
+     * @param visited The set of all the {@link Block}s.
+     * @param cfg The current control flow graph.
+     * @param analysis The current analysis.
+     * @return The String representation of the {@link Node}s.
      */
     @Override
     public String generateNodes(
@@ -111,6 +126,11 @@ public class DOTCFGVisualizer<
 
         sbDotNodes.append("\n");
         return sbDotNodes.toString();
+    }
+
+    @Override
+    protected String addEdge(long sId, long eId, String flowRule) {
+        return "    " + sId + " -> " + eId + " [label=\"" + flowRule + "\"];\n";
     }
 
     @Override
@@ -186,6 +206,23 @@ public class DOTCFGVisualizer<
     }
 
     @Override
+    public String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
+        StringBuilder sbBlockNode = new StringBuilder();
+        sbBlockNode
+                .append(toStringEscapeDoubleQuotes(t))
+                .append("   [ ")
+                .append(simplifyNodeType(t))
+                .append(" ]");
+        if (analysis != null) {
+            A value = analysis.getValue(t);
+            if (value != null) {
+                sbBlockNode.append("    > ").append(toStringEscapeDoubleQuotes(value));
+            }
+        }
+        return sbBlockNode.toString();
+    }
+
+    @Override
     public String visualizeStoreThisVal(A value) {
         return "  this > " + value + leftJustified;
     }
@@ -220,10 +257,23 @@ public class DOTCFGVisualizer<
         return "  " + keyName + " = " + value + leftJustified;
     }
 
+    /**
+     * Called by {@link #toStringEscapeDoubleQuotes(Object)}. Escape the double quotes in the input
+     * String. This is for the specification of dot file.
+     *
+     * @param str The String to be processed.
+     * @return The String that has been processed.
+     */
     protected String escapeDoubleQuotes(final String str) {
         return str.replace("\"", "\\\"");
     }
 
+    /**
+     * Escape the double quotes in the input {@code Object.toString()}.
+     *
+     * @param obj The input Object.
+     * @return The String representation of the Object that has been processed.
+     */
     protected String toStringEscapeDoubleQuotes(final Object obj) {
         return escapeDoubleQuotes(String.valueOf(obj));
     }
@@ -255,5 +305,16 @@ public class DOTCFGVisualizer<
                     "Error creating methods.txt file in: " + outDir + "; ensure the path is valid",
                     e);
         }
+    }
+
+    /**
+     * Remove the String "Node" from the name of the {@link Node}.
+     *
+     * @param t {@link Node}.
+     * @return The String representation of the {@link Node}'s simple name.
+     */
+    protected String simplifyNodeType(Node t) {
+        String name = t.getClass().getSimpleName();
+        return name.replace("Node", "");
     }
 }

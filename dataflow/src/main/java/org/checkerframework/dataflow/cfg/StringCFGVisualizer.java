@@ -33,7 +33,6 @@ public class StringCFGVisualizer<
 
         Map<String, Object> res = new HashMap<>();
         res.put("stringGraph", stringGraph);
-        System.out.println(stringGraph);
         return res;
     }
 

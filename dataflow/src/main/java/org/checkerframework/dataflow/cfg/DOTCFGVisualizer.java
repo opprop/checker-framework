@@ -211,7 +211,7 @@ public class DOTCFGVisualizer<
         sbBlockNode
                 .append(toStringEscapeDoubleQuotes(t))
                 .append("   [ ")
-                .append(simplifyNodeType(t))
+                .append(getNodeSimpleName(t))
                 .append(" ]");
         if (analysis != null) {
             A value = analysis.getValue(t);
@@ -313,7 +313,7 @@ public class DOTCFGVisualizer<
      * @param t {@link Node}.
      * @return The String representation of the {@link Node}'s simple name.
      */
-    protected String simplifyNodeType(Node t) {
+    protected String getNodeSimpleName(Node t) {
         String name = t.getClass().getSimpleName();
         return name.replace("Node", "");
     }

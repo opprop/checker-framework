@@ -68,25 +68,8 @@ public abstract class AbstractCFGVisualizer<
         Set<Block> visited = new HashSet<>();
         StringBuilder sbDigraph = new StringBuilder();
         Queue<Block> workList = new ArrayDeque<>();
-
+        Block cur = entry;
         visited.add(entry);
-        visited = traverseControlFlowGraphHelper(visited, entry, workList, sbDigraph);
-        sbDigraph.append(generateNodes(visited, cfg, analysis));
-
-        return sbDigraph.toString();
-    }
-
-    /**
-     * Traverse control flow graph and define all arrows.
-     *
-     * @param visited The set to store the visited {@link Block}s.
-     * @param cur The current conditional {@link Block}.
-     * @param workList The working queue.
-     * @param sbDigraph The digraph StringBuilder.
-     * @return The set that contains all the visited {@link Block}s.
-     */
-    protected Set<Block> traverseControlFlowGraphHelper(
-            Set<Block> visited, Block cur, Queue<Block> workList, StringBuilder sbDigraph) {
         while (cur != null) {
             if (cur.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
                 ConditionalBlock ccur = ((ConditionalBlock) cur);
@@ -125,7 +108,6 @@ public abstract class AbstractCFGVisualizer<
                     }
                 }
             }
-
             if (cur.getType() == Block.BlockType.EXCEPTION_BLOCK) {
                 ExceptionBlock ecur = (ExceptionBlock) cur;
                 for (Map.Entry<TypeMirror, Set<Block>> e :
@@ -147,7 +129,8 @@ public abstract class AbstractCFGVisualizer<
             }
             cur = workList.poll();
         }
-        return visited;
+        sbDigraph.append(generateNodes(visited, cfg, analysis));
+        return sbDigraph.toString();
     }
 
     /**

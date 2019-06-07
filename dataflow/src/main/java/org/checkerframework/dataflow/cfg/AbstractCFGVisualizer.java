@@ -151,7 +151,10 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Generate a String representation of the nodes of a control flow graph.
+     * This is an abstract method which aims to generate a String representation of the nodes of a
+     * control flow graph.
+     *
+     * <p>It needs to be implemented.
      *
      * @param visited The set of the visited {@link Block}s.
      * @param cfg The control flow graph.
@@ -162,7 +165,9 @@ public abstract class AbstractCFGVisualizer<
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
 
     /**
-     * Generate an String representation of the edge.
+     * This is an abstract method which aims to generate a String representation of the edge.
+     *
+     * <p>It needs to be implemented.
      *
      * @param sId The ID of current {@link Block}.
      * @param eId The ID of successor {@link Block}.

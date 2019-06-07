@@ -209,14 +209,14 @@ public class DOTCFGVisualizer<
     public String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
         StringBuilder sbBlockNode = new StringBuilder();
         sbBlockNode
-                .append(toStringEscapeDoubleQuotes(t))
+                .append(escapeDoubleQuotes(t))
                 .append("   [ ")
                 .append(getNodeSimpleName(t))
                 .append(" ]");
         if (analysis != null) {
             A value = analysis.getValue(t);
             if (value != null) {
-                sbBlockNode.append("    > ").append(toStringEscapeDoubleQuotes(value));
+                sbBlockNode.append("    > ").append(escapeDoubleQuotes(value));
             }
         }
         return sbBlockNode.toString();
@@ -229,27 +229,27 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return "  " + localVar + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
+        return "  " + localVar + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return "  " + fieldAccess + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
+        return "  " + fieldAccess + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return "  " + arrayValue + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
+        return "  " + arrayValue + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return "  " + methodCall.toString().replace("\"", "\\\"") + " > " + value + leftJustified;
+        return "  " + escapeDoubleQuotes(methodCall) + " > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return "  " + className + " > " + toStringEscapeDoubleQuotes(value) + leftJustified;
+        return "  " + className + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
@@ -258,23 +258,23 @@ public class DOTCFGVisualizer<
     }
 
     /**
-     * Called by {@link #toStringEscapeDoubleQuotes(Object)}. Escape the double quotes in the input
-     * String. This is for the specification of dot file.
+     * Escape the double quotes from the input String. This is for the specification of the dot
+     * files.
      *
      * @param str The String to be processed.
      * @return The String that has been processed.
      */
-    protected String escapeDoubleQuotes(final String str) {
+    private String escapeDoubleQuotes(final String str) {
         return str.replace("\"", "\\\"");
     }
 
     /**
-     * Escape the double quotes in the input {@code Object.toString()}.
+     * Escape the double quotes from the input {@code Object}.
      *
      * @param obj The input Object.
      * @return The String representation of the Object that has been processed.
      */
-    protected String toStringEscapeDoubleQuotes(final Object obj) {
+    private String escapeDoubleQuotes(final Object obj) {
         return escapeDoubleQuotes(String.valueOf(obj));
     }
 

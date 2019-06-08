@@ -385,4 +385,24 @@ public abstract class AbstractCFGVisualizer<
     public String visualizeStoreFooter() {
         return ")";
     }
+
+    /**
+     * This is an abstract method which aims to return the header of the generated graph. Called by
+     * {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}.
+     *
+     * <p>It needed to be implemented.
+     *
+     * @return The String representation of the header of the control flow graph.
+     */
+    protected abstract String visualizeGraphHeader();
+
+    /**
+     * This is an abstract method which aims to return the footer of the generated graph. Called by
+     * {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}.
+     *
+     * <p>It needed to be implemented.
+     *
+     * @return The String representation of the footer of the control flow graph.
+     */
+    protected abstract String visualizeGraphFooter();
 }

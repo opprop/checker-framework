@@ -82,11 +82,9 @@ public class DOTCFGVisualizer<
      */
     protected String generateDotGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        StringBuilder sbDotGraph = new StringBuilder();
-        sbDotGraph.append("digraph {\n");
-        sbDotGraph.append(super.generateGraphHelper(cfg, entry, analysis));
-        sbDotGraph.append("}\n");
-        return sbDotGraph.toString();
+        return visualizeGraphHeader()
+                + super.generateGraphHelper(cfg, entry, analysis)
+                + visualizeGraphFooter();
     }
 
     /**
@@ -316,5 +314,15 @@ public class DOTCFGVisualizer<
     protected String getNodeSimpleName(Node t) {
         String name = t.getClass().getSimpleName();
         return name.replace("Node", "");
+    }
+
+    @Override
+    protected String visualizeGraphHeader() {
+        return "digraph {\n";
+    }
+
+    @Override
+    protected String visualizeGraphFooter() {
+        return "}\n";
     }
 }

@@ -43,7 +43,9 @@ public class StringCFGVisualizer<
      */
     protected String generateStringGraph(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        return super.generateGraphHelper(cfg, entry, analysis);
+        return visualizeGraphHeader()
+                + super.generateGraphHelper(cfg, entry, analysis)
+                + visualizeGraphFooter();
     }
 
     @Override
@@ -148,4 +150,22 @@ public class StringCFGVisualizer<
     /** StringCFGVisualizer does not write into file, so left intentionally blank. */
     @Override
     public void shutdown() {}
+
+    /**
+     * {@inheritDoc} StringCFGVisualizer does not need a specific header, so just return the blank
+     * String.
+     */
+    @Override
+    protected String visualizeGraphHeader() {
+        return "";
+    }
+
+    /**
+     * {@inheritDoc} StringCFGVisualizer does not need a specific footer, so just return the blank
+     * String.
+     */
+    @Override
+    protected String visualizeGraphFooter() {
+        return "";
+    }
 }

@@ -74,66 +74,75 @@ public abstract class AbstractCFGVisualizer<
         Block cur = entry;
         visited.add(entry);
         while (cur != null) {
-            if (cur.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
-                ConditionalBlock ccur = ((ConditionalBlock) cur);
-                Block thenSuccessor = ccur.getThenSuccessor();
-                sbDigraph.append(
-                        addEdge(
-                                ccur.getId(),
-                                thenSuccessor.getId(),
-                                ccur.getThenFlowRule().toString()));
-                if (!visited.contains(thenSuccessor)) {
-                    visited.add(thenSuccessor);
-                    workList.add(thenSuccessor);
-                }
-                Block elseSuccessor = ccur.getElseSuccessor();
-                sbDigraph.append(
-                        addEdge(
-                                ccur.getId(),
-                                elseSuccessor.getId(),
-                                ccur.getElseFlowRule().toString()));
-                if (!visited.contains(elseSuccessor)) {
-                    visited.add(elseSuccessor);
-                    workList.add(elseSuccessor);
-                }
-            } else {
-                assert cur instanceof SingleSuccessorBlock;
-                Block b = ((SingleSuccessorBlock) cur).getSuccessor();
-                if (b != null) {
-                    sbDigraph.append(
-                            addEdge(
-                                    cur.getId(),
-                                    b.getId(),
-                                    ((SingleSuccessorBlock) cur).getFlowRule().name()));
-                    if (!visited.contains(b)) {
-                        visited.add(b);
-                        workList.add(b);
-                    }
-                }
-            }
-            if (cur.getType() == Block.BlockType.EXCEPTION_BLOCK) {
-                ExceptionBlock ecur = (ExceptionBlock) cur;
-                for (Map.Entry<TypeMirror, Set<Block>> e :
-                        ecur.getExceptionalSuccessors().entrySet()) {
-                    Set<Block> blocks = e.getValue();
-                    TypeMirror cause = e.getKey();
-                    String exception = cause.toString();
-                    if (exception.startsWith("java.lang.")) {
-                        exception = exception.replace("java.lang.", "");
-                    }
-                    for (Block b : blocks) {
-                        sbDigraph.append(addEdge(cur.getId(), b.getId(), exception));
-                        if (!visited.contains(b)) {
-                            visited.add(b);
-                            workList.add(b);
-                        }
-                    }
-                }
-            }
+            handleSuccessorsHelper(cur, visited, workList, sbDigraph);
             cur = workList.poll();
         }
         sbDigraph.append(generateNodes(visited, cfg, analysis));
         return sbDigraph.toString();
+    }
+
+    /**
+     * This is a help method called by {@link #generateGraphHelper(ControlFlowGraph, Block,
+     * Analysis)}. It checks the successors of the {@link Block}s, if possible, add all the
+     * successors to the work list and the visited {@link Block}s list.
+     */
+    protected void handleSuccessorsHelper(
+            Block cur, Set<Block> visited, Queue<Block> workList, StringBuilder sbDigraph) {
+        if (cur.getType() == Block.BlockType.CONDITIONAL_BLOCK) {
+            ConditionalBlock ccur = ((ConditionalBlock) cur);
+            Block thenSuccessor = ccur.getThenSuccessor();
+            sbDigraph.append(
+                    addEdge(
+                            ccur.getId(),
+                            thenSuccessor.getId(),
+                            ccur.getThenFlowRule().toString()));
+            addBlock(thenSuccessor, visited, workList);
+            Block elseSuccessor = ccur.getElseSuccessor();
+            sbDigraph.append(
+                    addEdge(
+                            ccur.getId(),
+                            elseSuccessor.getId(),
+                            ccur.getElseFlowRule().toString()));
+            addBlock(elseSuccessor, visited, workList);
+        } else {
+            assert cur instanceof SingleSuccessorBlock;
+            Block b = ((SingleSuccessorBlock) cur).getSuccessor();
+            if (b != null) {
+                sbDigraph.append(
+                        addEdge(
+                                cur.getId(),
+                                b.getId(),
+                                ((SingleSuccessorBlock) cur).getFlowRule().name()));
+                addBlock(b, visited, workList);
+            }
+        }
+        if (cur.getType() == Block.BlockType.EXCEPTION_BLOCK) {
+            ExceptionBlock ecur = (ExceptionBlock) cur;
+            for (Map.Entry<TypeMirror, Set<Block>> e : ecur.getExceptionalSuccessors().entrySet()) {
+                Set<Block> blocks = e.getValue();
+                TypeMirror cause = e.getKey();
+                String exception = cause.toString();
+                if (exception.startsWith("java.lang.")) {
+                    exception = exception.replace("java.lang.", "");
+                }
+                for (Block b : blocks) {
+                    sbDigraph.append(addEdge(cur.getId(), b.getId(), exception));
+                    addBlock(b, visited, workList);
+                }
+            }
+        }
+    }
+
+    /**
+     * Called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}, check if it
+     * exists in the visited {@link Block}s list, if not, add it to the visited {@link Block}s list
+     * and the work list.
+     */
+    protected void addBlock(Block b, Set<Block> visited, Queue<Block> workList) {
+        if (!visited.contains(b)) {
+            visited.add(b);
+            workList.add(b);
+        }
     }
 
     /**

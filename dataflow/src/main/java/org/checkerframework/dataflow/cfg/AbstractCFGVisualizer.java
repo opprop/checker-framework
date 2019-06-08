@@ -400,7 +400,24 @@ public abstract class AbstractCFGVisualizer<
      */
     protected abstract String visualizeGraphFooter();
 
-    protected String getSimpleStringProcessOrder(List<Integer> order) {
+    /**
+     * Return the simple String of the process order of a {@link Node}. Called by {@link
+     * #generateNodes(Set, ControlFlowGraph, Analysis)}.
+     *
+     * @return The String representation of the process order of a {@link Node}.
+     */
+    protected String getProcessOrderSimpleString(List<Integer> order) {
         return "Process order: " + order.toString().replaceAll("[\\[\\]]", "");
+    }
+
+    /**
+     * Remove the String "Node" from the name of the {@link Node}.
+     *
+     * @param t {@link Node}.
+     * @return The String representation of the {@link Node}'s simple name.
+     */
+    protected String getNodeSimpleName(Node t) {
+        String name = t.getClass().getSimpleName();
+        return name.replace("Node", "");
     }
 }

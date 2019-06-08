@@ -118,7 +118,7 @@ public class DOTCFGVisualizer<
             sbDotNodes.append("label=\"");
             if (verbose) {
                 sbDotNodes
-                        .append(getSimpleStringProcessOrder(processOrder.get(v)))
+                        .append(getProcessOrderSimpleString(processOrder.get(v)))
                         .append(leftJustified);
             }
             sbDotNodes.append(visualizeBlock(v, analysis));
@@ -309,17 +309,6 @@ public class DOTCFGVisualizer<
                     "Error creating methods.txt file in: " + outDir + "; ensure the path is valid",
                     e);
         }
-    }
-
-    /**
-     * Remove the String "Node" from the name of the {@link Node}.
-     *
-     * @param t {@link Node}.
-     * @return The String representation of the {@link Node}'s simple name.
-     */
-    protected String getNodeSimpleName(Node t) {
-        String name = t.getClass().getSimpleName();
-        return name.replace("Node", "");
     }
 
     @Override

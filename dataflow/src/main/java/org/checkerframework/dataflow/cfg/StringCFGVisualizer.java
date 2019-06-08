@@ -58,7 +58,7 @@ public class StringCFGVisualizer<
             sbStringNodes.append(v.getId()).append(":").append(lineSeparator);
             if (verbose) {
                 sbStringNodes
-                        .append(getSimpleStringProcessOrder(processOrder.get(v)))
+                        .append(getProcessOrderSimpleString(processOrder.get(v)))
                         .append(lineSeparator);
             }
             sbStringNodes.append(visualizeBlock(v, analysis));
@@ -93,7 +93,7 @@ public class StringCFGVisualizer<
     @Override
     public String visualizeBlockNode(Node t, @Nullable Analysis<A, S, T> analysis) {
         StringBuilder sbBlockNode = new StringBuilder();
-        sbBlockNode.append(t.toString()).append("   [ ").append(t).append(" ]");
+        sbBlockNode.append(t.toString()).append("   [ ").append(getNodeSimpleName(t)).append(" ]");
         if (analysis != null) {
             A value = analysis.getValue(t);
             if (value != null) {

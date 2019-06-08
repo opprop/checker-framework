@@ -154,7 +154,7 @@ public class StringCFGVisualizer<
     /**
      * {@inheritDoc}
      *
-     * <p>StringCFGVisualizer does not need a specific header, so just return the blank String.</>
+     * <p>StringCFGVisualizer does not need a specific header, so just return the blank String.
      */
     @Override
     protected String visualizeGraphHeader() {
@@ -164,7 +164,7 @@ public class StringCFGVisualizer<
     /**
      * {@inheritDoc}
      *
-     * <p>StringCFGVisualizer does not need a specific footer, so just return the blank String.</>
+     * <p>StringCFGVisualizer does not need a specific footer, so just return the blank String.
      */
     @Override
     protected String visualizeGraphFooter() {

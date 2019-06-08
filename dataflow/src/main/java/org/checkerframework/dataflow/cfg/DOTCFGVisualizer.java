@@ -100,7 +100,10 @@ public class DOTCFGVisualizer<
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis) {
 
         StringBuilder sbDotNodes = new StringBuilder();
-        sbDotNodes.append("    node [shape=rectangle];\n\n");
+        sbDotNodes
+                .append("    node [shape=rectangle];")
+                .append(lineSeparator)
+                .append(lineSeparator);
 
         IdentityHashMap<Block, List<Integer>> processOrder = getProcessOrder(cfg);
 
@@ -115,26 +118,29 @@ public class DOTCFGVisualizer<
             sbDotNodes.append("label=\"");
             if (verbose) {
                 sbDotNodes
-                        .append("Process order: ")
-                        .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
-                        .append("\\n");
+                        .append(getSimpleStringProcessOrder(processOrder.get(v)))
+                        .append(leftJustified);
             }
             sbDotNodes.append(visualizeBlock(v, analysis));
         }
 
-        sbDotNodes.append("\n");
+        sbDotNodes.append(lineSeparator);
         return sbDotNodes.toString();
     }
 
     @Override
     protected String addEdge(long sId, long eId, String flowRule) {
-        return "    " + sId + " -> " + eId + " [label=\"" + flowRule + "\"];\n";
+        return "    " + sId + " -> " + eId + " [label=\"" + flowRule + "\"];" + lineSeparator;
     }
 
     @Override
     public String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
         return super.visualizeBlockHelper(
-                bb, analysis, " \",];\n", "?? empty ?? \",];\n", leftJustified);
+                bb,
+                analysis,
+                " \",];" + lineSeparator,
+                "?? empty ?? \",];" + lineSeparator,
+                leftJustified);
     }
 
     @Override
@@ -144,7 +150,7 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        return super.visualizeBlockTransferInputHelper(bb, analysis, leftJustified, "[", "]");
+        return super.visualizeBlockTransferInputHelper(bb, analysis, leftJustified);
     }
 
     /**
@@ -295,7 +301,7 @@ public class DOTCFGVisualizer<
                 out.write(kv.getKey());
                 out.append("\t");
                 out.write(kv.getValue());
-                out.append("\n");
+                out.append(lineSeparator);
             }
             out.close();
         } catch (IOException e) {
@@ -318,11 +324,11 @@ public class DOTCFGVisualizer<
 
     @Override
     protected String visualizeGraphHeader() {
-        return "digraph {\n";
+        return "digraph {" + lineSeparator;
     }
 
     @Override
     protected String visualizeGraphFooter() {
-        return "}\n";
+        return "}" + lineSeparator;
     }
 }

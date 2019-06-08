@@ -20,9 +20,6 @@ public class StringCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
         extends AbstractCFGVisualizer<A, S, T> {
 
-    /** The line separator. */
-    protected final String lineSeparator = System.lineSeparator();
-
     @Override
     public Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
@@ -61,8 +58,7 @@ public class StringCFGVisualizer<
             sbStringNodes.append(v.getId()).append(":").append(lineSeparator);
             if (verbose) {
                 sbStringNodes
-                        .append("Process order: ")
-                        .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
+                        .append(getSimpleStringProcessOrder(processOrder.get(v)))
                         .append(lineSeparator);
             }
             sbStringNodes.append(visualizeBlock(v, analysis));
@@ -91,7 +87,7 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        return super.visualizeBlockTransferInputHelper(bb, analysis, lineSeparator, "", "");
+        return super.visualizeBlockTransferInputHelper(bb, analysis, lineSeparator);
     }
 
     @Override

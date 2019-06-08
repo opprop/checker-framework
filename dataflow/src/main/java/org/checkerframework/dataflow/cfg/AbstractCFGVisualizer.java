@@ -44,6 +44,9 @@ public abstract class AbstractCFGVisualizer<
      */
     protected boolean verbose;
 
+    /** The line separator. */
+    protected final String lineSeparator = System.lineSeparator();
+
     @Override
     public void init(Map<String, Object> args) {
         Object verb = args.get("verbose");
@@ -269,23 +272,17 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Helper method to simplify visualizing the tranferinput of a {@link Block}, it is useful when
-     * implementing custom CFGVisualizer.
+     * Helper method to simplify visualizing the transfer input of a {@link Block}, it is useful
+     * when implementing custom CFGVisualizer.
      *
      * @param bb The {@link Block}.
      * @param analysis The current analysis.
      * @param escapeCharacter The specific escape character that we want to use(It is necessary for
      *     {@link DOTCFGVisualizer}). For example, "\\l" in {@link DOTCFGVisualizer}.
-     * @param leftBracket The specific left bracket that we want to use.
-     * @param rightBracket The specific right bracket that we want to use.
-     * @return The String representation of the tranferinput of a {@link Block}.
+     * @return The String representation of the transfer input of a {@link Block}.
      */
     protected String visualizeBlockTransferInputHelper(
-            Block bb,
-            Analysis<A, S, T> analysis,
-            String escapeCharacter,
-            String leftBracket,
-            String rightBracket) {
+            Block bb, Analysis<A, S, T> analysis, String escapeCharacter) {
         assert analysis != null
                 : "analysis should be non-null when visualizing the transfer input of a block.";
 
@@ -298,17 +295,14 @@ public abstract class AbstractCFGVisualizer<
         sbStore.append("Before:");
         if (!input.containsTwoStores()) {
             S regularStore = input.getRegularStore();
-            sbStore.append(leftBracket);
             sbStore.append(visualizeStore(regularStore));
-            sbStore.append(rightBracket);
         } else {
             S thenStore = input.getThenStore();
-            sbStore.append(leftBracket).append("then=");
+            sbStore.append("then=");
             sbStore.append(visualizeStore(thenStore));
             S elseStore = input.getElseStore();
             sbStore.append(", else=");
             sbStore.append(visualizeStore(elseStore));
-            sbStore.append(rightBracket);
         }
         sbStore.append(escapeCharacter).append("~~~~~~~~~").append(escapeCharacter);
         return sbStore.toString();
@@ -405,4 +399,8 @@ public abstract class AbstractCFGVisualizer<
      * @return The String representation of the footer of the control flow graph.
      */
     protected abstract String visualizeGraphFooter();
+
+    protected String getSimpleStringProcessOrder(List<Integer> order) {
+        return "Process order: " + order.toString().replaceAll("[\\[\\]]", "");
+    }
 }

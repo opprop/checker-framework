@@ -83,7 +83,7 @@ public abstract class AbstractCFGVisualizer<
 
     /**
      * This is a help method called by {@link #generateGraphHelper(ControlFlowGraph, Block,
-     * Analysis)}. It checks the successors of the {@link Block}s, if possible, add all the
+     * Analysis)}. It checks the successors of the {@link Block}s, if possible, adds all the
      * successors to the work list and the visited {@link Block}s list.
      */
     protected void handleSuccessorsHelper(
@@ -134,8 +134,8 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}, check if it
-     * exists in the visited {@link Block}s list, if not, add it to the visited {@link Block}s list
+     * Called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}. It checks if it
+     * exists in the visited {@link Block}s list, if not, adds it to the visited {@link Block}s list
      * and the work list.
      */
     protected void addBlock(Block b, Set<Block> visited, Queue<Block> workList) {

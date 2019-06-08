@@ -23,9 +23,6 @@ public class StringCFGVisualizer<
     /** The line separator. */
     protected final String lineSeparator = System.lineSeparator();
 
-    /** The specify escape character which is used during generating control flow graph. */
-    protected final String escapeCharacter = "\n";
-
     @Override
     public Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
@@ -59,12 +56,12 @@ public class StringCFGVisualizer<
 
         // Definition of all nodes including their labels.
         for (Block v : visited) {
-            sbStringNodes.append(v.getId()).append(":\n");
+            sbStringNodes.append(v.getId()).append(":").append(lineSeparator);
             if (verbose) {
                 sbStringNodes
                         .append("Process order: ")
                         .append(processOrder.get(v).toString().replaceAll("[\\[\\]]", ""))
-                        .append("\n");
+                        .append(lineSeparator);
             }
             sbStringNodes.append(visualizeBlock(v, analysis));
         }
@@ -74,14 +71,14 @@ public class StringCFGVisualizer<
     @Override
     protected String addEdge(long sId, long eId, String flowRule) {
         if (this.verbose) {
-            return sId + " -> " + eId + " " + flowRule + "\n";
+            return sId + " -> " + eId + " " + flowRule + lineSeparator;
         }
-        return sId + " -> " + eId + "\n";
+        return sId + " -> " + eId + lineSeparator;
     }
 
     @Override
     public @Nullable String visualizeBlock(Block bb, @Nullable Analysis<A, S, T> analysis) {
-        return super.visualizeBlockHelper(bb, analysis, "\n", "\n", escapeCharacter);
+        return super.visualizeBlockHelper(bb, analysis, "\n", "\n", lineSeparator);
     }
 
     @Override
@@ -91,7 +88,7 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        return super.visualizeBlockTransferInputHelper(bb, analysis, escapeCharacter, "", "");
+        return super.visualizeBlockTransferInputHelper(bb, analysis, lineSeparator, "", "");
     }
 
     @Override

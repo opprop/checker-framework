@@ -53,7 +53,7 @@ public class StringCFGVisualizer<
 
         IdentityHashMap<Block, List<Integer>> processOrder = getProcessOrder(cfg);
 
-        // Definition of all nodes including their labels.
+        // Generate all the Nodes.
         for (Block v : visited) {
             sbStringNodes.append(v.getId()).append(":").append(lineSeparator);
             if (verbose) {

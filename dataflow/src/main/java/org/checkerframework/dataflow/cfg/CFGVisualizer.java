@@ -96,7 +96,7 @@ public interface CFGVisualizer<
      *
      * @param arrayValue the array
      * @param value the value of the array
-     * @return the String representation of the value of arrays of this {@link Store}.
+     * @return the String representation of the value of arrays of this {@link Store}
      */
     String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value);
 

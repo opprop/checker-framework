@@ -104,6 +104,11 @@ public abstract class AbstractCFGVisualizer<
      * Helper method called by {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}. It
      * checks the successors of the {@link Block}s, and, if possible, adds all the successors to the
      * work list and the visited {@link Block}s list.
+     *
+     * @param cur the current {@link Block}
+     * @param visited the set of {@link Block}s that have already been visited
+     * @param workList the queue of {@link Block}s to be processed
+     * @param sbDigraph the {@link StringBuilder} to store the graph
      */
     protected void handleSuccessorsHelper(
             Block cur, Set<Block> visited, Queue<Block> workList, StringBuilder sbDigraph) {
@@ -156,6 +161,10 @@ public abstract class AbstractCFGVisualizer<
      * Helper method called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}.
      * Checks whether a block exists in the visited {@link Block}s list, and, if not, adds it to the
      * visited {@link Block}s list and the work list.
+     *
+     * @param b the {@link Block} to check
+     * @param visited the set of {@link Block}s that have already been visited
+     * @param workList the queue of {@link Block}s to be processed
      */
     protected void addBlock(Block b, Set<Block> visited, Queue<Block> workList) {
         if (!visited.contains(b)) {
@@ -426,6 +435,7 @@ public abstract class AbstractCFGVisualizer<
      * Return the simple String of the process order of a {@link Node}. Called by {@link
      * #generateNodes(Set, ControlFlowGraph, Analysis)}.
      *
+     * @param order the list of the process order to be processed.
      * @return the String representation of the process order of a {@link Node}
      */
     protected String getProcessOrderSimpleString(List<Integer> order) {

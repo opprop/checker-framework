@@ -84,8 +84,8 @@ public interface Store<S extends Store<S>> {
     /**
      * Delegate visualization responsibility to a visualizer.
      *
-     * @param viz The visualizer to visualize this store.
-     * @return The String of the value of this store.
+     * @param viz the visualizer to visualize this store
+     * @return the String of the value of this store
      */
     String visualize(CFGVisualizer<?, S, ?> viz);
 }

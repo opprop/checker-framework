@@ -23,26 +23,10 @@ public class StringCFGVisualizer<
     @Override
     public Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        String stringGraph = generateStringGraph(cfg, entry, analysis);
-
+        String stringGraph = generateGraph(cfg, entry, analysis);
         Map<String, Object> res = new HashMap<>();
         res.put("stringGraph", stringGraph);
         return res;
-    }
-
-    /**
-     * Generate the control flow graph in String.
-     *
-     * @param cfg The current control flow graph.
-     * @param entry The entry block of the control flow graph.
-     * @param analysis The current analysis.
-     * @return The String representation of the control flow graph.
-     */
-    protected String generateStringGraph(
-            ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        return visualizeGraphHeader()
-                + super.generateGraphHelper(cfg, entry, analysis)
-                + visualizeGraphFooter();
     }
 
     @Override
@@ -105,42 +89,47 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        return "this > " + value + lineSeparator;
+        return stringIndent + "this > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return localVar + " > " + value + lineSeparator;
+        return stringIndent + localVar + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return fieldAccess + " > " + value + lineSeparator;
+        return stringIndent + fieldAccess + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return arrayValue + " > " + value + lineSeparator;
+        return stringIndent + arrayValue + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return methodCall + " > " + value + lineSeparator;
+        return stringIndent + methodCall + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return className + " > " + value + lineSeparator;
+        return stringIndent + className + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return keyName + " = " + value + lineSeparator;
+        return stringIndent + keyName + " = " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
         return classCanonicalName + " (" + lineSeparator;
+    }
+
+    @Override
+    public String visualizeStoreFooter() {
+        return ")";
     }
 
     /**

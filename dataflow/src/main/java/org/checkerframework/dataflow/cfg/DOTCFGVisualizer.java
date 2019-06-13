@@ -53,7 +53,7 @@ public class DOTCFGVisualizer<
     public @Nullable Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
 
-        String dotGraph = generateDotGraph(cfg, entry, analysis);
+        String dotGraph = generateGraph(cfg, entry, analysis);
         String dotFileName = dotOutputFileName(cfg.underlyingAST);
 
         try {
@@ -73,27 +73,12 @@ public class DOTCFGVisualizer<
     }
 
     /**
-     * Generate the dot representation of the control flow graph as String.
-     *
-     * @param cfg The current control flow graph.
-     * @param entry The entry block of the control flow graph.
-     * @param analysis The current analysis.
-     * @return The String representation of the dot control flow graph.
-     */
-    protected String generateDotGraph(
-            ControlFlowGraph cfg, Block entry, @Nullable Analysis<A, S, T> analysis) {
-        return visualizeGraphHeader()
-                + super.generateGraphHelper(cfg, entry, analysis)
-                + visualizeGraphFooter();
-    }
-
-    /**
      * Generate the nodes of control flow graph as String.
      *
-     * @param visited The set of all the {@link Block}s.
-     * @param cfg The current control flow graph.
-     * @param analysis The current analysis.
-     * @return The String representation of the {@link Node}s.
+     * @param visited the set of all the {@link Block}s
+     * @param cfg the current control flow graph
+     * @param analysis the current analysis
+     * @return the String representation of the {@link Node}s
      */
     @Override
     public String generateNodes(
@@ -228,45 +213,45 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        return "  this > " + value + leftJustified;
+        return stringIndent + "this > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return "  " + localVar + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return stringIndent + localVar + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return "  " + fieldAccess + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return stringIndent + fieldAccess + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return "  " + arrayValue + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return stringIndent + arrayValue + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return "  " + escapeDoubleQuotes(methodCall) + " > " + value + leftJustified;
+        return stringIndent + escapeDoubleQuotes(methodCall) + " > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return "  " + className + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return stringIndent + className + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return "  " + keyName + " = " + value + leftJustified;
+        return stringIndent + keyName + " = " + value + leftJustified;
     }
 
     /**
      * Escape the double quotes from the input String. This is for the specification of the dot
      * files.
      *
-     * @param str The String to be processed.
-     * @return The String that has been processed.
+     * @param str the String to be processed
+     * @return the String that has been processed
      */
     private String escapeDoubleQuotes(final String str) {
         return str.replace("\"", "\\\"");
@@ -275,8 +260,8 @@ public class DOTCFGVisualizer<
     /**
      * Escape the double quotes from the input {@code Object}.
      *
-     * @param obj The input Object.
-     * @return The String representation of the Object that has been processed.
+     * @param obj the input Object
+     * @return the String representation of the Object that has been processed
      */
     private String escapeDoubleQuotes(final Object obj) {
         return escapeDoubleQuotes(String.valueOf(obj));
@@ -285,6 +270,11 @@ public class DOTCFGVisualizer<
     @Override
     public String visualizeStoreHeader(String classCanonicalName) {
         return classCanonicalName + " (" + leftJustified;
+    }
+
+    @Override
+    public String visualizeStoreFooter() {
+        return ")";
     }
 
     /**

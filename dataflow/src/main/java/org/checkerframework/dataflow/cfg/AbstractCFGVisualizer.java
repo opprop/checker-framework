@@ -50,7 +50,7 @@ public abstract class AbstractCFGVisualizer<
     /**
      * Indicate 2 white space characters as the indentation to the elements of the {@link Store}.
      */
-    protected String stringIndent = "  ";
+    protected final String storeEntryIndent = "  ";
 
     @Override
     public void init(Map<String, Object> args) {
@@ -174,31 +174,6 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Generate the String representation of the nodes of a control flow graph.
-     *
-     * <p>This abstract method needs to be implemented to customize the output.
-     *
-     * @param visited the set of the visited {@link Block}s
-     * @param cfg the control flow graph
-     * @param analysis the current analysis
-     * @return the String representation of the {@link Node}s
-     */
-    protected abstract String generateNodes(
-            Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
-
-    /**
-     * Generate the String representation of an edge.
-     *
-     * <p>This abstract method needs to be implemented to customize the output.
-     *
-     * @param sId the ID of current {@link Block}
-     * @param eId the ID of successor {@link Block}
-     * @param flowRule the content of the edge
-     * @return the String representation of the edge
-     */
-    protected abstract String addEdge(long sId, long eId, String flowRule);
-
-    /**
      * Helper method to simplify visualizing a {@link Block}.
      *
      * @param bb the {@link Block}
@@ -282,8 +257,8 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Helper method called by {@link #loopOverBlockContents}. If possible, add a sequence of {@link
-     * Node}s to {@code contents} for further processing.
+     * Helper method called by {@link #loopOverBlockContents}. If possible, get a sequence of {@link
+     * Node}s for further processing.
      *
      * @param bb the {@link Block}
      * @return a list of {@link Node}s
@@ -410,6 +385,31 @@ public abstract class AbstractCFGVisualizer<
     public String visualizeStore(S store) {
         return store.visualize(this);
     }
+
+    /**
+     * Generate the String representation of the nodes of a control flow graph.
+     *
+     * <p>This abstract method needs to be implemented to customize the output.
+     *
+     * @param visited the set of the visited {@link Block}s
+     * @param cfg the control flow graph
+     * @param analysis the current analysis
+     * @return the String representation of the {@link Node}s
+     */
+    protected abstract String generateNodes(
+            Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
+
+    /**
+     * Generate the String representation of an edge.
+     *
+     * <p>This abstract method needs to be implemented to customize the output.
+     *
+     * @param sId the ID of current {@link Block}
+     * @param eId the ID of successor {@link Block}
+     * @param flowRule the content of the edge
+     * @return the String representation of the edge
+     */
+    protected abstract String addEdge(long sId, long eId, String flowRule);
 
     /**
      * Return the header of the generated graph. Called by {@link

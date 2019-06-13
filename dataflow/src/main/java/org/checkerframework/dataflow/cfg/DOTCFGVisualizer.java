@@ -213,37 +213,37 @@ public class DOTCFGVisualizer<
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        return stringIndent + "this > " + value + leftJustified;
+        return storeEntryIndent + "this > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return stringIndent + localVar + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return storeEntryIndent + localVar + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return stringIndent + fieldAccess + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return storeEntryIndent + fieldAccess + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return stringIndent + arrayValue + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return storeEntryIndent + arrayValue + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return stringIndent + escapeDoubleQuotes(methodCall) + " > " + value + leftJustified;
+        return storeEntryIndent + escapeDoubleQuotes(methodCall) + " > " + value + leftJustified;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return stringIndent + className + " > " + escapeDoubleQuotes(value) + leftJustified;
+        return storeEntryIndent + className + " > " + escapeDoubleQuotes(value) + leftJustified;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return stringIndent + keyName + " = " + value + leftJustified;
+        return storeEntryIndent + keyName + " = " + value + leftJustified;
     }
 
     /**

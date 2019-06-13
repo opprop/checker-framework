@@ -89,37 +89,37 @@ public class StringCFGVisualizer<
 
     @Override
     public String visualizeStoreThisVal(A value) {
-        return stringIndent + "this > " + value + lineSeparator;
+        return storeEntryIndent + "this > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreLocalVar(FlowExpressions.LocalVariable localVar, A value) {
-        return stringIndent + localVar + " > " + value + lineSeparator;
+        return storeEntryIndent + localVar + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreFieldVals(FlowExpressions.FieldAccess fieldAccess, A value) {
-        return stringIndent + fieldAccess + " > " + value + lineSeparator;
+        return storeEntryIndent + fieldAccess + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreArrayVal(FlowExpressions.ArrayAccess arrayValue, A value) {
-        return stringIndent + arrayValue + " > " + value + lineSeparator;
+        return storeEntryIndent + arrayValue + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreMethodVals(FlowExpressions.MethodCall methodCall, A value) {
-        return stringIndent + methodCall + " > " + value + lineSeparator;
+        return storeEntryIndent + methodCall + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreClassVals(FlowExpressions.ClassName className, A value) {
-        return stringIndent + className + " > " + value + lineSeparator;
+        return storeEntryIndent + className + " > " + value + lineSeparator;
     }
 
     @Override
     public String visualizeStoreKeyVal(String keyName, Object value) {
-        return stringIndent + keyName + " = " + value + lineSeparator;
+        return storeEntryIndent + keyName + " = " + value + lineSeparator;
     }
 
     @Override

@@ -24,15 +24,15 @@ import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
- * An abstract class of control flow graph visualizer. To achieve this abstract class, you need to
- * implement some of the methods in {@link CFGVisualizer}. Some of the other necessary methods in
- * {@link CFGVisualizer} has already been implemented in this abstract class, override them if
- * necessary.
+ * This abstract class makes implementing a {@link CFGVisualizer} easier. Some of the methods in
+ * {@link CFGVisualizer} are already implemented in this abstract class, but can be overridden if
+ * necessary. Some of the simpler methods in {@link CFGVisualizer} need to be implemented by
+ * subclasses. Additional abstract methods make customizations easy.
  *
- * <p>There are some helper methods in the class to make building custom CFGVisualizer easier.
+ * <p>This class also provides some helper methods to make building custom CFGVisualizers easier.
  *
- * <p>Two Examples of the implementation of {@link AbstractCFGVisualizer}: {@link DOTCFGVisualizer}
- * and {@link StringCFGVisualizer}.
+ * @see DOTCFGVisualizer
+ * @see StringCFGVisualizer
  */
 public abstract class AbstractCFGVisualizer<
                 A extends AbstractValue<A>, S extends Store<S>, T extends TransferFunction<A, S>>
@@ -58,8 +58,7 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Helper method to simplify generating a control flow graph, it will be useful when
-     * implementing custom CFGVisualizer.
+     * Helper method to simplify generating a control flow graph.
      *
      * @param cfg The control flow graph.
      * @param entry The entry {@link Block}.
@@ -82,8 +81,8 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * This is a help method called by {@link #generateGraphHelper(ControlFlowGraph, Block,
-     * Analysis)}. It checks the successors of the {@link Block}s, if possible, adds all the
+     * Helper method called by {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}.
+     * It checks the successors of the {@link Block}s, and, if possible, adds all the
      * successors to the work list and the visited {@link Block}s list.
      */
     protected void handleSuccessorsHelper(
@@ -134,9 +133,9 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}. It checks if it
-     * exists in the visited {@link Block}s list, if not, adds it to the visited {@link Block}s list
-     * and the work list.
+     * Helper method called by {@link #handleSuccessorsHelper(Block, Set, Queue, StringBuilder)}. Checks whether a
+     * block exists in the visited {@link Block}s list, and, if not, adds it to the visited {@link Block}s
+     * list and the work list.
      */
     protected void addBlock(Block b, Set<Block> visited, Queue<Block> workList) {
         if (!visited.contains(b)) {
@@ -146,10 +145,9 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * This is an abstract method which aims to generate a String representation of the nodes of a
-     * control flow graph.
+     * Generate the String representation of the nodes of a control flow graph.
      *
-     * <p>It needs to be implemented.
+     * <p>This abstract method needs to be implemented to customize the output.
      *
      * @param visited The set of the visited {@link Block}s.
      * @param cfg The control flow graph.
@@ -160,9 +158,9 @@ public abstract class AbstractCFGVisualizer<
             Set<Block> visited, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis);
 
     /**
-     * This is an abstract method which aims to generate a String representation of the edge.
+     * Generate the String representation of an edge.
      *
-     * <p>It needs to be implemented.
+     * <p>This abstract method needs to be implemented to customize the output.
      *
      * @param sId The ID of current {@link Block}.
      * @param eId The ID of successor {@link Block}.
@@ -178,8 +176,7 @@ public abstract class AbstractCFGVisualizer<
      * @param analysis The current analysis.
      * @param cbFooter Footer for conditional {@link Block}.
      * @param osFooter Footer for the other situations.
-     * @param escapeCharacter The specific escape character that we want to use(It is necessary for
-     *     {@link DOTCFGVisualizer}). For example, "\\l" in {@link DOTCFGVisualizer}.
+     * @param escapeCharacter The escape String to use.
      * @return The String representation of the {@link Block}.
      */
     protected String visualizeBlockHelper(
@@ -229,12 +226,12 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Called by {@link #visualizeBlockHelper}, iterate over {@code contents} and visualize all the
-     * {@link Node}s in it.
+     * Helper method called by {@link #visualizeBlockHelper}. Iterates over the block content and
+     * visualizes all the {@link Node}s in it.
      *
      * @param bb The {@link Block}.
      * @param analysis The current analysis.
-     * @param separator The separator character that we want to use.
+     * @param separator The separator String to use.
      * @return The String representation of the contents of the {@link Block}.
      */
     protected String loopOverBlockContents(
@@ -257,11 +254,11 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Called by {@link #loopOverBlockContents}. If possible, add a sequence of {@link Node}s to
-     * {@code contents} for further processing.
+     * Helper method called by {@link #loopOverBlockContents}. If possible, add a sequence of
+     * {@link Node}s to {@code contents} for further processing.
      *
      * @param bb The {@link Block}.
-     * @param contents An empty list which will store {@link Node}s.
+     * @param contents An empty list which will store {@link Node}s. TODO.
      */
     protected void addBlockContent(Block bb, List<Node> contents) {
         switch (bb.getType()) {
@@ -281,13 +278,12 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Helper method to simplify visualizing the transfer input of a {@link Block}, it is useful
-     * when implementing custom CFGVisualizer.
+     * Helper method to simplify visualizing the transfer input of a Block; it is useful when
+     * implementing a custom CFGVisualizer.
      *
      * @param bb The {@link Block}.
      * @param analysis The current analysis.
-     * @param escapeCharacter The specific escape character that we want to use(It is necessary for
-     *     {@link DOTCFGVisualizer}). For example, "\\l" in {@link DOTCFGVisualizer}.
+     * @param escapeCharacter The escape String to use.
      * @return The String representation of the transfer input of a {@link Block}.
      */
     protected String visualizeBlockTransferInputHelper(
@@ -318,11 +314,11 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Helper method to simplify visualizing the special Block, it is useful when implementing
-     * custom CFGVisualizer.
+     * Helper method to simplify visualizing a special Block; it is useful when implementing
+     * a custom CFGVisualizer.
      *
      * @param sbb The special {@link Block}.
-     * @param separator The specific separator character that we want to use.
+     * @param separator The separator String to use.
      * @return The String representation of the special {@link Block}.
      */
     protected String visualizeSpecialBlockHelper(SpecialBlock sbb, String separator) {
@@ -342,7 +338,8 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Called by {@link #visualizeBlockHelper}. If possible, get the last {@link Node}.
+     * Helper method called by {@link #visualizeBlockHelper}. If possible, get the last
+     * {@link Node} of a {@link Block}.
      *
      * @param bb The {@link Block}.
      * @return The last {@link Node} or {@code null}.
@@ -369,7 +366,7 @@ public abstract class AbstractCFGVisualizer<
      * @param cfg The current control flow graph.
      * @return The IdentityHashMap which maps from {@link Block}s to their orders.
      */
-    IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
+    protected IdentityHashMap<Block, List<Integer>> getProcessOrder(ControlFlowGraph cfg) {
         IdentityHashMap<Block, List<Integer>> depthFirstOrder = new IdentityHashMap<>();
         int count = 1;
         for (Block b : cfg.getDepthFirstOrderedBlocks()) {
@@ -390,20 +387,20 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * This is an abstract method which aims to return the header of the generated graph. Called by
+     * Return the header of the generated graph. Called by
      * {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}.
      *
-     * <p>It needed to be implemented.
+     * <p>This abstract method needs to be implemented to customize the output.
      *
      * @return The String representation of the header of the control flow graph.
      */
     protected abstract String visualizeGraphHeader();
 
     /**
-     * This is an abstract method which aims to return the footer of the generated graph. Called by
+     * Return the footer of the generated graph. Called by
      * {@link #generateGraphHelper(ControlFlowGraph, Block, Analysis)}.
      *
-     * <p>It needed to be implemented.
+     * <p>This abstract method needs to be implemented to customize the output.
      *
      * @return The String representation of the footer of the control flow graph.
      */

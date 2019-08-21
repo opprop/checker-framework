@@ -53,7 +53,7 @@ script:
 - echo "TRAVIS_PULL_REQUEST_SLUG=${TRAVIS_PULL_REQUEST_SLUG}"
 - echo "TRAVIS_REPO_SLUG=${TRAVIS_REPO_SLUG}"
 - >-
-  if [ $JDKVER = jdkany ] ; then
+  if [ $JDKVER = jdk8-plus ] ; then
     DOCKERIMAGE=mdernst/cf-$OS-$JDKVER
   else
     DOCKERIMAGE=charleszhuochen/$OS-for-cfi-$JDKVER

@@ -2,13 +2,14 @@ package org.checkerframework.framework.flow;
 
 import java.util.List;
 import java.util.Set;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.lang.model.util.Types;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.dataflow.analysis.Analysis;
+import org.checkerframework.dataflow.analysis.ForwardAnalysisImpl;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.framework.source.SourceChecker;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
@@ -36,7 +37,7 @@ public abstract class CFAbstractAnalysis<
                 V extends CFAbstractValue<V>,
                 S extends CFAbstractStore<V, S>,
                 T extends CFAbstractTransfer<V, S, T>>
-        extends Analysis<V, S, T> {
+        extends ForwardAnalysisImpl<V, S, T> {
     /** The qualifier hierarchy for which to track annotations. */
     protected final QualifierHierarchy qualifierHierarchy;
 
@@ -58,15 +59,21 @@ public abstract class CFAbstractAnalysis<
     /** Initial abstract types for fields. */
     protected final List<Pair<VariableElement, V>> fieldValues;
 
+    private ProcessingEnvironment env;
+
+    private Types types;
+
     public CFAbstractAnalysis(
             BaseTypeChecker checker,
             GenericAnnotatedTypeFactory<V, S, T, ? extends CFAbstractAnalysis<V, S, T>> factory,
             List<Pair<VariableElement, V>> fieldValues,
             int maxCountBeforeWidening) {
-        super(null, maxCountBeforeWidening, checker.getProcessingEnvironment());
+        super(maxCountBeforeWidening);
         qualifierHierarchy = factory.getQualifierHierarchy();
         typeHierarchy = factory.getTypeHierarchy();
         dependentTypesHelper = factory.getDependentTypesHelper();
+        this.env = checker.getProcessingEnvironment();
+        this.types = env.getTypeUtils();
         this.atypeFactory = factory;
         this.checker = checker;
         this.transferFunction = createTransferFunction();
@@ -114,7 +121,7 @@ public abstract class CFAbstractAnalysis<
      *
      * @return an abstract value containing the given annotated {@code type}.
      */
-    public @Nullable V createAbstractValue(AnnotatedTypeMirror type) {
+    public /*@Nullable*/ V createAbstractValue(AnnotatedTypeMirror type) {
         Set<AnnotationMirror> annos;
         if (type.getKind() == TypeKind.WILDCARD) {
             annos = ((AnnotatedWildcardType) type).getExtendsBound().getAnnotations();
@@ -128,7 +135,7 @@ public abstract class CFAbstractAnalysis<
      * @return an abstract value containing the given {@code annotations} and {@code
      *     underlyingType}.
      */
-    public abstract @Nullable V createAbstractValue(
+    public abstract /*@Nullable*/ V createAbstractValue(
             Set<AnnotationMirror> annotations, TypeMirror underlyingType);
 
     /** Default implementation for {@link #createAbstractValue(Set, TypeMirror)}. */
@@ -140,6 +147,14 @@ public abstract class CFAbstractAnalysis<
             return null;
         }
         return new CFValue(analysis, annotations, underlyingType);
+    }
+
+    public ProcessingEnvironment getEnv() {
+        return env;
+    }
+
+    public Types getTypes() {
+        return types;
     }
 
     public TypeHierarchy getTypeHierarchy() {
@@ -168,5 +183,11 @@ public abstract class CFAbstractAnalysis<
         annos.remove(f);
         annos.add(anno);
         return createAbstractValue(annos, underlyingType);
+    }
+
+    /** @see GenericAnnotatedTypeFactory#getTypeFactoryOfSubchecker(Class) */
+    public <W extends GenericAnnotatedTypeFactory<?, ?, ?, ?>, U extends BaseTypeChecker>
+            W getTypeFactoryOfSubchecker(Class<U> checkerClass) {
+        return atypeFactory.getTypeFactoryOfSubchecker(checkerClass);
     }
 }

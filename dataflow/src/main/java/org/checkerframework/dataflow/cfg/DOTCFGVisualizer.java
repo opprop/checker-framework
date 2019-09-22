@@ -33,6 +33,7 @@ public class DOTCFGVisualizer<
     protected String outDir;
 
     /** Initialized in {@link #init(Map)}. Use it as a part of the name of the output dot file. */
+    // TODO: This is checker-framework specific field, should be removed or have a better name
     protected String checkerName;
 
     /** Mapping from class/method representation to generated dot file. */
@@ -180,8 +181,10 @@ public class DOTCFGVisualizer<
         } else {
             throw new BugInCF("Unexpected AST kind: " + ast.getKind() + " value: " + ast);
         }
-        outFile.append("-");
-        outFile.append(checkerName);
+        if (checkerName != null) {
+            outFile.append('-');
+            outFile.append(checkerName);
+        }
         outFile.append(".dot");
 
         // make path safe for Windows

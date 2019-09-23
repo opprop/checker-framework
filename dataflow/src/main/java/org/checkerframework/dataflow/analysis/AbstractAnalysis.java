@@ -46,18 +46,6 @@ public abstract class AbstractAnalysis<
     protected ControlFlowGraph cfg;
 
     /**
-     * Number of times every block has been analyzed since the last time widening was applied. Null,
-     * if maxCountBeforeWidening is -1 which implies widening isn't used for this analysis.
-     */
-    protected final IdentityHashMap<Block, Integer> blockCount;
-
-    /**
-     * Number of times a block can be analyzed before widening. -1 implies that widening shouldn't
-     * be used.
-     */
-    protected final int maxCountBeforeWidening;
-
-    /**
      * The transfer inputs of every basic block (assumed to be 'no information' if not present,
      * inputs before blocks in forward analysis, after blocks in backward analysis).
      */
@@ -110,13 +98,7 @@ public abstract class AbstractAnalysis<
     }
 
     public AbstractAnalysis(Direction direction) {
-        this(direction, -1);
-    }
-
-    public AbstractAnalysis(Direction direction, int maxCountBeforeWidening) {
         this.direction = direction;
-        this.maxCountBeforeWidening = maxCountBeforeWidening;
-        this.blockCount = maxCountBeforeWidening == -1 ? null : new IdentityHashMap<>();
         this.inputs = new IdentityHashMap<>();
         this.worklist = new Worklist(this.direction);
         this.nodeValues = new IdentityHashMap<>();
@@ -223,13 +205,15 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Get the {@link Node} for a given {@link Tree}.
-     *
-     * @param t a {@link Tree}
-     * @return the corresponding {@link Node}s for this tree
+     * Get the set of {@link Node}s for a given {@link Tree}. Returns null for trees that don't
+     * produce a value.
      */
     public Set<Node> getNodesForTree(Tree t) {
-        return cfg.getNodesCorrespondingToTree(t);
+        if (cfg == null) {
+            return null;
+        }
+        Set<Node> nodes = cfg.getNodesCorrespondingToTree(t);
+        return nodes;
     }
 
     /**
@@ -263,11 +247,8 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Get the {@link MethodTree} of the current CFG.
-     *
-     * @param t a {@link Tree} that maps to a {@link Node} in the CFG
-     * @return the {@link MethodTree} of current CFG if the argument {@link Tree} maps to a {@link
-     *     Node} in the CFG or null otherwise.
+     * Get the {@link MethodTree} of the current CFG if the argument {@link Tree} maps to a {@link
+     * Node} in the CFG or null otherwise.
      */
     public /*@Nullable*/ MethodTree getContainingMethod(Tree t) {
         return cfg.getContainingMethod(t);
@@ -295,7 +276,6 @@ public abstract class AbstractAnalysis<
         currentNode = node;
         TransferResult<V, S> transferResult = node.accept(transferFunction, store);
         currentNode = null;
-        // TODO Why some code at here is deleted by ZhuoChen?
         if (node instanceof AssignmentNode) {
             // Store the flow-refined value for effectively final local variables
             AssignmentNode assignment = (AssignmentNode) node;
@@ -353,8 +333,7 @@ public abstract class AbstractAnalysis<
     }
 
     /**
-     * Add a basic block to the worklist. If <code>b</code> is already present, the method does
-     * nothing.
+     * Add a basic block to the Worklist. If {@code b} is already present, the method does nothing.
      */
     protected void addToWorklist(Block b) {
         // TODO: use a more efficient way to check if b is already present

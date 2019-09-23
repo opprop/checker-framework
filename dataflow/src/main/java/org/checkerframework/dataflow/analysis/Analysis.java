@@ -39,7 +39,7 @@ public interface Analysis<
     /**
      * Get the status of the analysis that whether it is currently running.
      *
-     * @return true if the analysis is running currently.
+     * @return true if the analysis is running currently
      */
     boolean isRunning();
 
@@ -106,6 +106,11 @@ public interface Analysis<
      * Runs the analysis again within the block of {@code node} and returns the store at the
      * location of {@code node}. If {@code before} is true, then the store immediately before the
      * {@link Node} {@code node} is returned. Otherwise, the store after {@code node} is returned.
+     * If {@code analysisCaches} is not null, this method uses a cache. {@code analysisCaches} is a
+     * map to a cache for analysis result from an input of the block of the node. If the cache for
+     * {@code transferInput} is not in {@code analysisCaches}, this method create new cache and
+     * store it in {@code analysisCaches}. The cache is a map from a node to the analysis result of
+     * the node.
      */
     S runAnalysisFor(
             Node node,

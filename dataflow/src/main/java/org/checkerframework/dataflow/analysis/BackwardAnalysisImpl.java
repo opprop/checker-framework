@@ -36,7 +36,7 @@ public class BackwardAnalysisImpl<
     protected S storeAtEntry;
 
     public BackwardAnalysisImpl() {
-        super(Direction.BACKWARD, -1);
+        super(Direction.BACKWARD);
     }
 
     public BackwardAnalysisImpl(T transfer) {
@@ -161,12 +161,11 @@ public class BackwardAnalysisImpl<
         if (!isRunning) {
             throw new BugInCF(
                     "BackwardAnalysisImpl::performAnalysis() when just finished the analysis loop"
-                            + " on worklist, isRunning flag is expected to be true!");
+                            + " on Worklist, isRunning flag is expected to be true!");
         }
         isRunning = false;
     }
 
-    /** return the TransferInput for Block b */
     @Override
     public TransferInput<V, S> getInput(Block b) {
         return inputs.get(b);
@@ -306,7 +305,7 @@ public class BackwardAnalysisImpl<
         Node oldCurrentNode = currentNode;
 
         // TODO: why if analysis is running, then the Store of passing node is
-        // analysis.currentInput.getRegularStore()?
+        //  analysis.currentInput.getRegularStore()?
         if (isRunning) {
             return currentInput.getRegularStore();
         }
@@ -351,7 +350,7 @@ public class BackwardAnalysisImpl<
                         if (eBlock.getNode() != node) {
                             throw new BugInCF(
                                     "BackwardAnalysisImpl::runAnalysisFor() it is expected node is equal to the node"
-                                            + "in excetion block, but get: node: "
+                                            + "in exception block, but get: node: "
                                             + node
                                             + "\teBlock.getNode(): "
                                             + eBlock.getNode());

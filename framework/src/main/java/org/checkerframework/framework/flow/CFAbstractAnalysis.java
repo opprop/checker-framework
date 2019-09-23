@@ -184,10 +184,4 @@ public abstract class CFAbstractAnalysis<
         annos.add(anno);
         return createAbstractValue(annos, underlyingType);
     }
-
-    /** @see GenericAnnotatedTypeFactory#getTypeFactoryOfSubchecker(Class) */
-    public <W extends GenericAnnotatedTypeFactory<?, ?, ?, ?>, U extends BaseTypeChecker>
-            W getTypeFactoryOfSubchecker(Class<U> checkerClass) {
-        return atypeFactory.getTypeFactoryOfSubchecker(checkerClass);
-    }
 }

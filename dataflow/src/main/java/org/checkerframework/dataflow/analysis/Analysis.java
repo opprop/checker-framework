@@ -14,7 +14,7 @@ import org.checkerframework.dataflow.cfg.node.Node;
  * transfer function, and a backward analysis should be given a backward transfer function.
  *
  * @param <V> the abstract value type to be tracked by the analysis
- * @param <S> the store type used in the analysis.
+ * @param <S> the store type used in the analysis
  * @param <T> the transfer function type that is used to approximated runtime behavior
  */
 public interface Analysis<

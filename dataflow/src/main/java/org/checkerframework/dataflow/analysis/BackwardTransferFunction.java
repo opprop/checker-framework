@@ -35,8 +35,8 @@ public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends 
         extends TransferFunction<V, S> {
 
     /**
-     * Return the initial store that should be used at the normal exit block, given the underlying
-     * AST and return nodes of a control flow graph.
+     * Return the initial store that should be used at the normal exit block or given the underlying
+     * AST, return nodes of a control flow graph.
      *
      * @param underlyingAST the underlying AST of the given control flow graph.
      * @param returnNodes the return nodes of the given control flow graph if the underlying AST of
@@ -46,7 +46,7 @@ public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends 
     S initialNormalExitStore(UnderlyingAST underlyingAST, @Nullable List<ReturnNode> returnNodes);
 
     /**
-     * Return the initial store that should be used at the exceptional exit block, given the
+     * Return the initial store that should be used at the exceptional exit block or given the
      * underlying AST of a control flow graph.
      *
      * @param underlyingAST the underlying AST of the given control flow graph.

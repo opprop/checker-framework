@@ -60,9 +60,9 @@ public abstract class CFAbstractAnalysis<
     /** Initial abstract types for fields. */
     protected final List<Pair<VariableElement, V>> fieldValues;
 
-    private ProcessingEnvironment env;
+    private final ProcessingEnvironment env;
 
-    private Types types;
+    private final Types types;
 
     public CFAbstractAnalysis(
             BaseTypeChecker checker,

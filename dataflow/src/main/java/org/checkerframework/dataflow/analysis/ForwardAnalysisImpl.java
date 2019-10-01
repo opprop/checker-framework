@@ -28,7 +28,7 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.Pair;
 
 /**
- * An implementation of an iterative algorithm to solve a org.checkerframework.dataflow problem,
+ * An implementation of an iterative algorithm to solve a org.checkerframework.dataflow problem
  * given a control flow graph and a transfer function.
  *
  * @param <V> The abstract value type to be tracked by the analysis.
@@ -42,8 +42,8 @@ public class ForwardAnalysisImpl<
         extends AbstractAnalysis<V, S, T> implements ForwardAnalysis<V, S, T> {
 
     /**
-     * Number of times every block has been analyzed since the last time widening was applied. Null,
-     * if maxCountBeforeWidening is -1 which implies widening isn't used for this analysis.
+     * Number of times each block has been analyzed since the last time widening was applied. Null
+     * if maxCountBeforeWidening is -1, which implies widening isn't used for this analysis.
      */
     protected final IdentityHashMap<Block, Integer> blockCount;
 
@@ -74,7 +74,7 @@ public class ForwardAnalysisImpl<
 
     /**
      * Construct an object that can perform a org.checkerframework.dataflow analysis over a control
-     * flow graph, given a transfer function.
+     * flow graph given a transfer function.
      */
     public ForwardAnalysisImpl(T transfer) {
         this(-1);
@@ -113,7 +113,7 @@ public class ForwardAnalysisImpl<
                 {
                     RegularBlock rb = (RegularBlock) b;
 
-                    // apply transfer function to contents
+                    // Apply transfer function to contents
                     TransferInput<V, S> inputBefore = getInputBefore(rb);
                     currentInput = inputBefore.copy();
                     TransferResult<V, S> transferResult = null;
@@ -125,9 +125,9 @@ public class ForwardAnalysisImpl<
                         currentInput = new TransferInput<>(n, this, transferResult);
                         lastNode = n;
                     }
-                    // loop will run at least one, making transferResult non-null
+                    // Loop will run at least once, making transferResult non-null
 
-                    // propagate store to successors
+                    // Propagate store to successors
                     Block succ = rb.getSuccessor();
 
                     if (succ == null) {
@@ -287,7 +287,7 @@ public class ForwardAnalysisImpl<
                             if (cache != null && cache.containsKey(n)) {
                                 transferResult = cache.get(n);
                             } else {
-                                // Copy the store not to change the state in the cache
+                                // Copy the store to preserve to change the state in the cache
                                 transferResult = callTransferFunction(n, store.copy());
                                 if (cache != null) {
                                     cache.put(n, transferResult);
@@ -396,8 +396,8 @@ public class ForwardAnalysisImpl<
         TransferResult<V, S> transferResult = super.callTransferFunction(node, input);
 
         if (node instanceof ReturnNode) {
-            // save a copy of the store to later check if some property held at
-            // a given return statement
+            // save a copy of the store to later check if some property holds at a given return
+            // statement
             storesAtReturnStatements.put((ReturnNode) node, transferResult);
         }
         return transferResult;

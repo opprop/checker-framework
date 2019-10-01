@@ -106,7 +106,7 @@ public abstract class AbstractAnalysis<
         this.finalLocalValues = new HashMap<>();
     }
 
-    /** Initialized the transfer inputs of every basic block before performing the analysis. */
+    /** Initialize the transfer inputs of every basic block before performing the analysis. */
     protected abstract void initInitialInputs();
 
     /**
@@ -268,9 +268,8 @@ public abstract class AbstractAnalysis<
      */
     protected TransferResult<V, S> callTransferFunction(Node node, TransferInput<V, S> store) {
         if (node.isLValue()) {
-            // TODO: should the default behavior be to return either a regular
-            //  transfer result or a conditional transfer result (depending on
-            //  store.hasTwoStores()), or is the following correct?
+            // TODO: should the default behavior return a regular transfer result, a conditional
+            // transfer result (depending on store.hasTwoStores()), or is the following correct?
             return new RegularTransferResult<>(null, store.getRegularStore());
         }
         store.node = node;
@@ -278,7 +277,7 @@ public abstract class AbstractAnalysis<
         TransferResult<V, S> transferResult = node.accept(transferFunction, store);
         currentNode = null;
         if (node instanceof AssignmentNode) {
-            // Store the flow-refined value for effectively final local variables
+            // Store the flow-refined value effectively for final local variables
             AssignmentNode assignment = (AssignmentNode) node;
             Node lhst = assignment.getTarget();
             if (lhst instanceof LocalVariableNode) {
@@ -310,7 +309,7 @@ public abstract class AbstractAnalysis<
 
     /**
      * Updates the value of node {@code node} to the value of the {@code transferResult}. Returns
-     * true if the node's value changed, or a store was updated.
+     * true if the nodes' value changed, or a store was updated.
      */
     protected boolean updateNodeValues(Node node, TransferResult<V, S> transferResult) {
         V newVal = transferResult.getResultValue();

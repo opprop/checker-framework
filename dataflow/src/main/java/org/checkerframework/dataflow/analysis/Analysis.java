@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.node.Node;
 
 /**
- * General Dataflow Analysis Interface This interface defines general behaviors of a data-flow
+ * General Dataflow Analysis Interface. This interface defines general behaviors of a data-flow
  * analysis, given a control flow graph and a transfer function. A data-flow analysis should only
  * has one direction, either forward or backward. The direction of corresponding transfer function
  * should be consistent with the analysis, i.e. a forward analysis should be given a forward
@@ -51,7 +51,7 @@ public interface Analysis<
 
     /**
      * Get the analysis result of this analysis. Should only be called after the analysis has been
-     * performed the analysis.
+     * performed.
      *
      * @return the result of a org.checkerframework.dataflow analysis
      */
@@ -90,15 +90,15 @@ public interface Analysis<
     /**
      * Get the regular exit store of this analysis.
      *
-     * @return the regular exit store, or {@code null}, if there is no such store (because the
-     *     method cannot exit through the regular exit block).
+     * @return the regular exit store, or {@code null} if there is no such store (because the method
+     *     cannot exit through the regular exit block).
      */
     S getRegularExitStore();
 
     /**
      * Get the exceptional exit store of this analysis.
      *
-     * @return the exceptional exit store, or {@code null}, if there is no such store
+     * @return the exceptional exit store, or {@code null} if there is no such store
      */
     S getExceptionalExitStore();
 
@@ -107,10 +107,9 @@ public interface Analysis<
      * location of {@code node}. If {@code before} is true, then the store immediately before the
      * {@link Node} {@code node} is returned. Otherwise, the store after {@code node} is returned.
      * If {@code analysisCaches} is not null, this method uses a cache. {@code analysisCaches} is a
-     * map to a cache for analysis result from an input of the block of the node. If the cache for
-     * {@code transferInput} is not in {@code analysisCaches}, this method create new cache and
-     * store it in {@code analysisCaches}. The cache is a map from a node to the analysis result of
-     * the node.
+     * map of a block of node to the cached analysis result. If the cache for {@code transferInput}
+     * is not in {@code analysisCaches}, this method create new cache and store it in {@code
+     * analysisCaches}. The cache is a map of a node to the analysis result of the node.
      */
     S runAnalysisFor(
             Node node,

@@ -309,7 +309,7 @@ public abstract class AbstractAnalysis<
 
     /**
      * Updates the value of node {@code node} to the value of the {@code transferResult}. Returns
-     * true if the nodes' value changed, or a store was updated.
+     * true if the node's value changed, or a store was updated.
      */
     protected boolean updateNodeValues(Node node, TransferResult<V, S> transferResult) {
         V newVal = transferResult.getResultValue();

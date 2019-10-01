@@ -252,12 +252,17 @@ public abstract class AbstractCFGVisualizer<
      * @param escapeString the escape String for the special need of visualization, e.g., "\\l" for
      *     {@link DOTCFGVisualizer} to keep line left-justification, "\n" for {@link
      *     StringCFGVisualizer} to simply add a new line
+     * @param before if true, visualize the transfer input before given Block, otherwise visualize
+     *     the transfer input after given Block
      * @return the String representation of the transfer input of the block
      */
     protected String visualizeBlockTransferInputHelper(
             Block bb, Analysis<A, S, T> analysis, String escapeString, boolean before) {
-        assert analysis != null
-                : "analysis should be non-null when visualizing the transfer input of a block.";
+
+        if (analysis == null) {
+            throw new BugInCF(
+                    "analysis should be non-null when visualizing the transfer input of a block.");
+        }
 
         S regularStore;
         S thenStore = null;

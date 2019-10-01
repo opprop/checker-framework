@@ -164,7 +164,8 @@ public interface CFGVisualizer<
      *
      * @param bb the block
      * @param analysis the current analysis
-     * @return the String representation of the transferInput of the given block
+     * @return a pair of String representations of the transferInput before and after the given
+     *     block, if {@code verbose == false}, {@code Pair.second == null}
      */
     Pair<String, String> visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis);
 

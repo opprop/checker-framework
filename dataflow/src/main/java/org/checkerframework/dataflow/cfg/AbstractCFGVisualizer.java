@@ -199,7 +199,7 @@ public abstract class AbstractCFGVisualizer<
                 sbBlock.append(storePair.second);
             }
         }
-        if (!centered) {
+        if (!centered || verbose) {
             sbBlock.append(escapeString);
         }
         return sbBlock.toString();
@@ -292,15 +292,12 @@ public abstract class AbstractCFGVisualizer<
         }
 
         if (!isTwoStores) {
-            sbStore.append('[');
             sbStore.append(visualizeStore(regularStore));
-            sbStore.append(']');
         } else {
-            sbStore.append("[then=");
+            sbStore.append("then=");
             sbStore.append(visualizeStore(thenStore));
             sbStore.append(", else=");
             sbStore.append(visualizeStore(elseStore));
-            sbStore.append("]");
         }
         if (before) {
             sbStore.append(separator);
@@ -327,24 +324,6 @@ public abstract class AbstractCFGVisualizer<
                 return "<exceptional-exit>" + separator;
             default:
                 return "";
-        }
-    }
-
-    /**
-     * Returns the last node of a block, or null if none.
-     *
-     * @param bb the block
-     * @return the last node of this block or {@code null}
-     */
-    protected Node getLastNode(Block bb) {
-        switch (bb.getType()) {
-            case REGULAR_BLOCK:
-                List<Node> blockContents = ((RegularBlock) bb).getContents();
-                return blockContents.get(blockContents.size() - 1);
-            case EXCEPTION_BLOCK:
-                return ((ExceptionBlock) bb).getNode();
-            default:
-                return null;
         }
     }
 

@@ -103,14 +103,14 @@ public class DOTCFGVisualizer<
             if (strBlock.length() == 0) {
                 if (v.getType() == BlockType.CONDITIONAL_BLOCK) {
                     // The footer of the conditional block.
-                    sbDotNodes.append(" \",];").append(lineSeparator);
+                    sbDotNodes.append(" \"];").append(lineSeparator);
                 } else {
                     // The footer of the block which has no content and is not a special or
                     // conditional block.
-                    sbDotNodes.append("?? empty ?? \",];").append(lineSeparator);
+                    sbDotNodes.append("?? empty ?? \"];").append(lineSeparator);
                 }
             } else {
-                sbDotNodes.append(strBlock).append(" \",];").append(lineSeparator);
+                sbDotNodes.append(strBlock).append(" \"];").append(lineSeparator);
             }
         }
 

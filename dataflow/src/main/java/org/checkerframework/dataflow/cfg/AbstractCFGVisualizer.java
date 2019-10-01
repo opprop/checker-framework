@@ -243,7 +243,7 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Visualize the transfer input of a block.
+     * Visualize the transfer input after the block.
      *
      * @param bb the block
      * @param analysis the current analysis
@@ -293,7 +293,7 @@ public abstract class AbstractCFGVisualizer<
     }
 
     /**
-     * Visualize the transfer input of a block.
+     * Visualize the transfer input before the block.
      *
      * @param bb the block
      * @param analysis the current analysis

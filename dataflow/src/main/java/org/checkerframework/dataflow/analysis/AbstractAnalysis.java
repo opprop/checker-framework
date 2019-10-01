@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 import javax.lang.model.element.Element;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
@@ -154,7 +155,7 @@ public abstract class AbstractAnalysis<
     }
 
     @Override
-    public /*@Nullable*/ V getValue(Node n) {
+    public @Nullable V getValue(Node n) {
         if (isRunning) {
             // we do not yet have a org.checkerframework.dataflow fact about the current node
             if (currentNode == null
@@ -184,7 +185,7 @@ public abstract class AbstractAnalysis<
     }
 
     @Override
-    public /*@Nullable*/ S getRegularExitStore() {
+    public @Nullable S getRegularExitStore() {
         SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
         if (inputs.containsKey(regularExitBlock)) {
             S regularExitStore = inputs.get(regularExitBlock).getRegularStore();
@@ -195,7 +196,7 @@ public abstract class AbstractAnalysis<
     }
 
     @Override
-    public /*@Nullable*/ S getExceptionalExitStore() {
+    public @Nullable S getExceptionalExitStore() {
         SpecialBlock exceptionalExitBlock = cfg.getExceptionalExitBlock();
         if (inputs.containsKey(exceptionalExitBlock)) {
             S exceptionalExitStore = inputs.get(exceptionalExitBlock).getRegularStore();
@@ -222,7 +223,7 @@ public abstract class AbstractAnalysis<
      *     available. Note that if the analysis has not finished yet, this value might not represent
      *     the final value for this node.
      */
-    public /*@Nullable*/ V getValue(Tree t) {
+    public @Nullable V getValue(Tree t) {
         // we do not yet have a org.checkerframework.dataflow fact about the current node
         if (t == currentTree) {
             return null;
@@ -250,7 +251,7 @@ public abstract class AbstractAnalysis<
      * Get the {@link MethodTree} of the current CFG if the argument {@link Tree} maps to a {@link
      * Node} in the CFG or null otherwise.
      */
-    public /*@Nullable*/ MethodTree getContainingMethod(Tree t) {
+    public @Nullable MethodTree getContainingMethod(Tree t) {
         return cfg.getContainingMethod(t);
     }
 
@@ -258,7 +259,7 @@ public abstract class AbstractAnalysis<
      * Get the {@link ClassTree} of the current CFG if the argument {@link Tree} maps to a {@link
      * Node} in the CFG or null otherwise.
      */
-    public /*@Nullable*/ ClassTree getContainingClass(Tree t) {
+    public @Nullable ClassTree getContainingClass(Tree t) {
         return cfg.getContainingClass(t);
     }
 
@@ -328,7 +329,7 @@ public abstract class AbstractAnalysis<
      * Read the store for a particular basic block from a map of stores (or {@code null} if none
      * exists yet).
      */
-    protected static <S> /*@Nullable*/ S readFromStore(Map<Block, S> stores, Block b) {
+    protected static <S> @Nullable S readFromStore(Map<Block, S> stores, Block b) {
         return stores.get(b);
     }
 

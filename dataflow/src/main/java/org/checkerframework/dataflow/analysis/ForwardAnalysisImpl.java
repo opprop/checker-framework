@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.lang.model.type.TypeMirror;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGLambda;
@@ -225,7 +226,7 @@ public class ForwardAnalysisImpl<
     }
 
     @Override
-    public /*@Nullable*/ TransferInput<V, S> getInput(Block b) {
+    public @Nullable TransferInput<V, S> getInput(Block b) {
         return getInputBefore(b);
     }
 
@@ -568,7 +569,7 @@ public class ForwardAnalysisImpl<
     }
 
     /** @return the store corresponding to the location right before the basic block {@code b}. */
-    protected /*@Nullable*/ S getStoreBefore(Block b, Store.Kind kind) {
+    protected @Nullable S getStoreBefore(Block b, Store.Kind kind) {
         switch (kind) {
             case THEN:
                 return readFromStore(thenStores, b);
@@ -583,7 +584,7 @@ public class ForwardAnalysisImpl<
      * @return the transfer input corresponding to the location right before the basic block {@code
      *     b}.
      */
-    protected /*@Nullable*/ TransferInput<V, S> getInputBefore(Block b) {
+    protected @Nullable TransferInput<V, S> getInputBefore(Block b) {
         return inputs.get(b);
     }
 

@@ -22,7 +22,6 @@ import org.checkerframework.dataflow.cfg.block.Block.BlockType;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.UserError;
 
 /** Generate a graph description in the DOT language of a control graph. */
@@ -134,15 +133,13 @@ public class DOTCFGVisualizer<
     }
 
     @Override
-    public Pair<String, String> visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        String before =
-                visualizeBlockTransferInputHelper(bb, analysis, leftJustifiedTerminator, true);
-        String after =
-                verbose
-                        ? visualizeBlockTransferInputHelper(
-                                bb, analysis, leftJustifiedTerminator, false)
-                        : null;
-        return Pair.of(before, after);
+    public String visualizeBlockTransferInputBefore(Block bb, Analysis<A, S, T> analysis) {
+        return super.visualizeBlockTransferInputBeforeHelper(bb, analysis, leftJustifiedTerminator);
+    }
+
+    @Override
+    public String visualizeBlockTransferInputAfter(Block bb, Analysis<A, S, T> analysis) {
+        return super.visualizeBlockTransferInputAfterHelper(bb, analysis, leftJustifiedTerminator);
     }
 
     /**

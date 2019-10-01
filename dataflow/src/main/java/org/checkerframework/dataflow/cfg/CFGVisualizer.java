@@ -10,7 +10,6 @@ import org.checkerframework.dataflow.analysis.TransferFunction;
 import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.javacutil.Pair;
 
 /**
  * Perform some visualization on a control flow graph. The particular operations depend on the
@@ -160,14 +159,22 @@ public interface CFGVisualizer<
     String visualizeSpecialBlock(SpecialBlock sbb);
 
     /**
-     * Visualize the transferInput of a Block based on the analysis.
+     * Visualize the transferInput before a Block based on the analysis.
      *
      * @param bb the block
      * @param analysis the current analysis
-     * @return a pair of String representations of the transferInput before and after the given
-     *     block, if {@code verbose == false}, {@code Pair.second == null}
+     * @return the String representations of the transferInput before the given block
      */
-    Pair<String, String> visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis);
+    String visualizeBlockTransferInputBefore(Block bb, Analysis<A, S, T> analysis);
+
+    /**
+     * Visualize the transferInput after a Block based on the analysis.
+     *
+     * @param bb the block
+     * @param analysis the current analysis
+     * @return the String representations of the transferInput after the given block
+     */
+    String visualizeBlockTransferInputAfter(Block bb, Analysis<A, S, T> analysis);
 
     /**
      * Visualize a Node based on the analysis.

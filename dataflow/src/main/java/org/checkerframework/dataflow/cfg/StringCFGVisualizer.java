@@ -14,7 +14,6 @@ import org.checkerframework.dataflow.analysis.TransferFunction;
 import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.javacutil.Pair;
 
 /** Generate the String representation of a control flow graph. */
 public class StringCFGVisualizer<
@@ -75,13 +74,13 @@ public class StringCFGVisualizer<
     }
 
     @Override
-    public Pair<String, String> visualizeBlockTransferInput(Block bb, Analysis<A, S, T> analysis) {
-        String before = visualizeBlockTransferInputHelper(bb, analysis, lineSeparator, true);
-        String after =
-                verbose
-                        ? visualizeBlockTransferInputHelper(bb, analysis, lineSeparator, false)
-                        : null;
-        return Pair.of(before, after);
+    public String visualizeBlockTransferInputBefore(Block bb, Analysis<A, S, T> analysis) {
+        return super.visualizeBlockTransferInputBeforeHelper(bb, analysis, lineSeparator);
+    }
+
+    @Override
+    public String visualizeBlockTransferInputAfter(Block bb, Analysis<A, S, T> analysis) {
+        return super.visualizeBlockTransferInputAfterHelper(bb, analysis, lineSeparator);
     }
 
     @Override

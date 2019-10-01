@@ -26,7 +26,6 @@ import org.checkerframework.dataflow.cfg.block.SingleSuccessorBlock;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.Pair;
 
 /**
  * This abstract class makes implementing a {@link CFGVisualizer} easier. Some of the methods in
@@ -193,10 +192,9 @@ public abstract class AbstractCFGVisualizer<
 
         // Visualize transfer input if necessary.
         if (analysis != null) {
-            Pair<String, String> storePair = visualizeBlockTransferInput(bb, analysis);
-            sbBlock.insert(0, storePair.first);
+            sbBlock.insert(0, visualizeBlockTransferInputBefore(bb, analysis));
             if (verbose) {
-                sbBlock.append(storePair.second);
+                sbBlock.append(visualizeBlockTransferInputAfter(bb, analysis));
             }
         }
         if (!centered || verbose) {
@@ -252,12 +250,10 @@ public abstract class AbstractCFGVisualizer<
      * @param escapeString the escape String for the special need of visualization, e.g., "\\l" for
      *     {@link DOTCFGVisualizer} to keep line left-justification, "\n" for {@link
      *     StringCFGVisualizer} to simply add a new line
-     * @param before if true, visualize the transfer input before given Block, otherwise visualize
-     *     the transfer input after given Block
      * @return the String representation of the transfer input of the block
      */
-    protected String visualizeBlockTransferInputHelper(
-            Block bb, Analysis<A, S, T> analysis, String escapeString, boolean before) {
+    protected String visualizeBlockTransferInputBeforeHelper(
+            Block bb, Analysis<A, S, T> analysis, String escapeString) {
 
         if (analysis == null) {
             throw new BugInCF(
@@ -270,25 +266,18 @@ public abstract class AbstractCFGVisualizer<
         boolean isTwoStores = false;
 
         StringBuilder sbStore = new StringBuilder();
-        String title = before ? "Before: " : "After: ";
-        String separator = escapeString + "~~~~~~~~~" + escapeString;
-        sbStore.append(title);
+        sbStore.append("Before: ");
 
         Direction analysisDirection = analysis.getDirection();
 
-        if ((before && analysisDirection == Direction.FORWARD)
-                || (!before && analysisDirection == Direction.BACKWARD)) {
+        if (analysisDirection == Direction.FORWARD) {
             TransferInput<A, S> input = analysis.getInput(bb);
             isTwoStores = input.containsTwoStores();
             regularStore = input.getRegularStore();
             thenStore = input.getThenStore();
             elseStore = input.getElseStore();
-        } else if (!before && analysisDirection == Direction.FORWARD) {
-            regularStore = analysis.getResult().getStoreAfter(bb);
-        } else if (before && analysisDirection == Direction.BACKWARD) {
-            regularStore = analysis.getResult().getStoreBefore(bb);
         } else {
-            throw new BugInCF("this point should never be reached!");
+            regularStore = analysis.getResult().getStoreBefore(bb);
         }
 
         if (!isTwoStores) {
@@ -299,11 +288,57 @@ public abstract class AbstractCFGVisualizer<
             sbStore.append(", else=");
             sbStore.append(visualizeStore(elseStore));
         }
-        if (before) {
-            sbStore.append(separator);
-        } else {
-            sbStore.insert(0, separator);
+        sbStore.append(escapeString).append("~~~~~~~~~").append(escapeString);
+        return sbStore.toString();
+    }
+
+    /**
+     * Visualize the transfer input of a block.
+     *
+     * @param bb the block
+     * @param analysis the current analysis
+     * @param escapeString the escape String for the special need of visualization, e.g., "\\l" for
+     *     {@link DOTCFGVisualizer} to keep line left-justification, "\n" for {@link
+     *     StringCFGVisualizer} to simply add a new line
+     * @return the String representation of the transfer input of the block
+     */
+    protected String visualizeBlockTransferInputAfterHelper(
+            Block bb, Analysis<A, S, T> analysis, String escapeString) {
+
+        if (analysis == null) {
+            throw new BugInCF(
+                    "analysis should be non-null when visualizing the transfer input of a block.");
         }
+
+        S regularStore;
+        S thenStore = null;
+        S elseStore = null;
+        boolean isTwoStores = false;
+
+        StringBuilder sbStore = new StringBuilder();
+        sbStore.append("After: ");
+
+        Direction analysisDirection = analysis.getDirection();
+
+        if (analysisDirection == Direction.FORWARD) {
+            regularStore = analysis.getResult().getStoreAfter(bb);
+        } else {
+            TransferInput<A, S> input = analysis.getInput(bb);
+            isTwoStores = input.containsTwoStores();
+            regularStore = input.getRegularStore();
+            thenStore = input.getThenStore();
+            elseStore = input.getElseStore();
+        }
+
+        if (!isTwoStores) {
+            sbStore.append(visualizeStore(regularStore));
+        } else {
+            sbStore.append("then=");
+            sbStore.append(visualizeStore(thenStore));
+            sbStore.append(", else=");
+            sbStore.append(visualizeStore(elseStore));
+        }
+        sbStore.insert(0, escapeString + "~~~~~~~~~" + escapeString);
         return sbStore.toString();
     }
 

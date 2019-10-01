@@ -157,17 +157,17 @@ public abstract class AbstractAnalysis<
     @Override
     public @Nullable V getValue(Node n) {
         if (isRunning) {
-            // we do not yet have a org.checkerframework.dataflow fact about the current node
+            // We do not yet have a org.checkerframework.dataflow fact about the current node
             if (currentNode == null
                     || currentNode == n
                     || (currentTree != null && currentTree == n.getTree())) {
                 return null;
             }
-            // check that 'n' is a subnode of 'node'. Check immediate operands
+            // Check that 'n' is a subnode of 'node'. Check immediate operands
             // first for efficiency.
             assert !n.isLValue() : "Did not expect an lvalue, but got " + n;
 
-            // check that 'n' is a subnode of 'node'. Check immediate operands
+            // Check that 'n' is a subnode of 'node'. Check immediate operands
             // first for efficiency.
             if (!(currentNode != n
                     && (currentNode.getOperands().contains(n)
@@ -224,7 +224,7 @@ public abstract class AbstractAnalysis<
      *     the final value for this node.
      */
     public @Nullable V getValue(Tree t) {
-        // we do not yet have a org.checkerframework.dataflow fact about the current node
+        // We do not yet have a org.checkerframework.dataflow fact about the current node
         if (t == currentTree) {
             return null;
         }

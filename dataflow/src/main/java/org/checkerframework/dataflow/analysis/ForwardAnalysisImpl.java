@@ -262,8 +262,8 @@ public class ForwardAnalysisImpl<
             cache = null;
         }
 
-        // TODO: why if analysis is running, then the Store of passing node is
-        //  analysis.currentInput.getRegularStore()?
+        // TODO: Understand why the Store of passing node is analysis.currentInput.getRegularStore()
+        //  when the analysis is running
         if (isRunning) {
             return currentInput.getRegularStore();
         }

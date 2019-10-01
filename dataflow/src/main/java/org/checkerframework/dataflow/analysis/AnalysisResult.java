@@ -227,7 +227,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
                             firstNode = null;
                     }
                     if (firstNode == null) {
-                        // this block doesn't contains any node, return store in transfer input
+                        // This block doesn't contains any node, return store in transfer input
                         return transferInput.getRegularStore();
                     }
                     return analysis.runAnalysisFor(
@@ -262,7 +262,7 @@ public class AnalysisResult<A extends AbstractValue<A>, S extends Store<S>> {
                             lastNode = null;
                     }
                     if (lastNode == null) {
-                        // this block doesn't contains any node, return store in transfer input
+                        // This block doesn't contains any node, return store in transfer input
                         return transferInput.getRegularStore();
                     }
                     return analysis.runAnalysisFor(

@@ -77,10 +77,7 @@ public class DOTCFGVisualizer<
             Set<Block> blocks, ControlFlowGraph cfg, @Nullable Analysis<A, S, T> analysis) {
 
         StringBuilder sbDotNodes = new StringBuilder();
-        sbDotNodes
-                .append("    node [shape=rectangle];")
-                .append(lineSeparator)
-                .append(lineSeparator);
+        sbDotNodes.append(lineSeparator);
 
         IdentityHashMap<Block, List<Integer>> processOrder = getProcessOrder(cfg);
 

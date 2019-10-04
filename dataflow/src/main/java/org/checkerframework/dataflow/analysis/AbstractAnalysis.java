@@ -269,7 +269,7 @@ public abstract class AbstractAnalysis<
     protected TransferResult<V, S> callTransferFunction(Node node, TransferInput<V, S> store) {
         if (node.isLValue()) {
             // TODO: should the default behavior return a regular transfer result, a conditional
-            // transfer result (depending on store.hasTwoStores()), or is the following correct?
+            //  transfer result (depending on store.hasTwoStores()), or is the following correct?
             return new RegularTransferResult<>(null, store.getRegularStore());
         }
         store.node = node;

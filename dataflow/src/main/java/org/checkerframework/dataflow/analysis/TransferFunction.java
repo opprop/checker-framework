@@ -17,8 +17,8 @@ import org.checkerframework.dataflow.cfg.node.NodeVisitor;
  * </ul>
  *
  * <p><em>Note</em>: Initial store method(s) is different between forward and backward transfer
- * function. Thus, in this general interface it doesn't define any intial store method(s), and leave
- * this to sub-interface {@link ForwardTransferFunction} and {@link BackwardTransferFunction}.
+ * function. Thus, in this general interface it doesn't define any initial store method(s), and
+ * leave this to sub-interface {@link ForwardTransferFunction} and {@link BackwardTransferFunction}.
  *
  * <p><em>Important</em>: The individual transfer functions ( {@code visit*}) are allowed to use
  * (and modify) the stores contained in the argument passed; the ownership is transferred from the

@@ -31,9 +31,9 @@ import org.checkerframework.javacutil.Pair;
  * An implementation of an iterative algorithm to solve a org.checkerframework.dataflow problem
  * given a control flow graph and a transfer function.
  *
- * @param <V> The abstract value type to be tracked by the analysis.
- * @param <S> The store type used in the analysis.
- * @param <T> The transfer function type that is used to approximated runtime behavior.
+ * @param <V> The abstract value type to be tracked by the analysis
+ * @param <S> The store type used in the analysis
+ * @param <T> The transfer function type that is used to approximated runtime behavior
  */
 public class ForwardAnalysisImpl<
                 V extends AbstractValue<V>,
@@ -78,7 +78,7 @@ public class ForwardAnalysisImpl<
      */
     public ForwardAnalysisImpl(T transfer) {
         this(-1);
-        this.transferFunction = transfer;
+        setTransferFunction(transfer);
     }
 
     /**
@@ -107,7 +107,7 @@ public class ForwardAnalysisImpl<
     }
 
     /** Perform the actual analysis on one block. */
-    protected void performAnalysisBlock(Block b) {
+    private void performAnalysisBlock(Block b) {
         switch (b.getType()) {
             case REGULAR_BLOCK:
                 {
@@ -115,12 +115,12 @@ public class ForwardAnalysisImpl<
 
                     // Apply transfer function to contents
                     TransferInput<V, S> inputBefore = getInputBefore(rb);
+                    assert inputBefore != null;
                     currentInput = inputBefore.copy();
-                    TransferResult<V, S> transferResult = null;
                     Node lastNode = null;
                     boolean addToWorklistAgain = false;
                     for (Node n : rb.getContents()) {
-                        transferResult = callTransferFunction(n, currentInput);
+                        TransferResult<V, S> transferResult = callTransferFunction(n, currentInput);
                         addToWorklistAgain |= updateNodeValues(n, transferResult);
                         currentInput = new TransferInput<>(n, this, transferResult);
                         lastNode = n;
@@ -144,14 +144,15 @@ public class ForwardAnalysisImpl<
                 {
                     ExceptionBlock eb = (ExceptionBlock) b;
 
-                    // apply transfer function to content
+                    // Apply transfer function to content
                     TransferInput<V, S> inputBefore = getInputBefore(eb);
+                    assert inputBefore != null;
                     currentInput = inputBefore.copy();
                     Node node = eb.getNode();
                     TransferResult<V, S> transferResult = callTransferFunction(node, currentInput);
                     boolean addToWorklistAgain = updateNodeValues(node, transferResult);
 
-                    // propagate store to successor
+                    // Propagate store to successor
                     Block succ = eb.getSuccessor();
                     if (succ != null) {
                         currentInput = new TransferInput<>(node, this, transferResult);
@@ -161,7 +162,7 @@ public class ForwardAnalysisImpl<
                                 succ, node, currentInput, eb.getFlowRule(), addToWorklistAgain);
                     }
 
-                    // propagate store to exceptional successors
+                    // Propagate store to exceptional successors
                     for (Entry<TypeMirror, Set<Block>> e :
                             eb.getExceptionalSuccessors().entrySet()) {
                         TypeMirror cause = e.getKey();
@@ -193,11 +194,12 @@ public class ForwardAnalysisImpl<
                 {
                     ConditionalBlock cb = (ConditionalBlock) b;
 
-                    // get store before
+                    // Get store before
                     TransferInput<V, S> inputBefore = getInputBefore(cb);
+                    assert inputBefore != null;
                     TransferInput<V, S> input = inputBefore.copy();
 
-                    // propagate store to successor
+                    // Propagate store to successor
                     Block thenSucc = cb.getThenSuccessor();
                     Block elseSucc = cb.getElseSuccessor();
 
@@ -208,7 +210,7 @@ public class ForwardAnalysisImpl<
 
             case SPECIAL_BLOCK:
                 {
-                    // special basic blocks are empty and cannot throw exceptions,
+                    // Special basic blocks are empty and cannot throw exceptions,
                     // thus there is no need to perform any analysis.
                     SpecialBlock sb = (SpecialBlock) b;
                     Block succ = sb.getSuccessor();
@@ -308,7 +310,7 @@ public class ForwardAnalysisImpl<
                     {
                         ExceptionBlock eb = (ExceptionBlock) block;
 
-                        // apply transfer function to content
+                        // Apply transfer function to content
                         if (eb.getNode() != node) {
                             throw new BugInCF(
                                     "ForwardAnalysisImpl::runAnalysisFor() it is expected node is equal to the node"
@@ -396,7 +398,7 @@ public class ForwardAnalysisImpl<
         TransferResult<V, S> transferResult = super.callTransferFunction(node, input);
 
         if (node instanceof ReturnNode) {
-            // save a copy of the store to later check if some property holds at a given return
+            // Save a copy of the store to later check if some property holds at a given return
             // statement
             storesAtReturnStatements.put((ReturnNode) node, transferResult);
         }

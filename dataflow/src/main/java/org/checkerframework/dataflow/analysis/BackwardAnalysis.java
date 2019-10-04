@@ -22,7 +22,7 @@ public interface BackwardAnalysis<
      * SpecialBlock}, for a backward analysis, the output store should contains the analyzed flow
      * information from exit blocks to entry block.
      *
-     * @return the output store at the entry block of a given CFG.
+     * @return the output store at the entry block of a given CFG
      */
     S getEntryStore();
 }

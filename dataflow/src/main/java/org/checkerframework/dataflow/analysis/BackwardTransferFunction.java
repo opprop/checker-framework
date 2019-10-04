@@ -26,8 +26,8 @@ import org.checkerframework.dataflow.cfg.node.ReturnNode;
  * (and modify) the stores contained in the argument passed; the ownership is transfered from the
  * caller to that function.
  *
- * @param <V> The abstract value.
- * @param <S> The {@link Store} used to keep track of intermediate results.
+ * @param <V> The abstract value
+ * @param <S> The {@link Store} used to keep track of intermediate results
  */
 public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends Store<S>>
         extends TransferFunction<V, S> {
@@ -37,7 +37,7 @@ public interface BackwardTransferFunction<V extends AbstractValue<V>, S extends 
      *
      * @param underlyingAST the underlying AST of the given control flow graph
      * @param returnNodes the return nodes of the given control flow graph if the underlying AST of
-     *     this graph is a method. Otherwise will be set to null.
+     *     this graph is a method. Otherwise will be set to null
      * @return the initial store that should be used at the normal exit block
      */
     S initialNormalExitStore(UnderlyingAST underlyingAST, @Nullable List<ReturnNode> returnNodes);

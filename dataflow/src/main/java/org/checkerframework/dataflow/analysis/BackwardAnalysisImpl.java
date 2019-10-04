@@ -80,7 +80,7 @@ public class BackwardAnalysisImpl<
                             firstNode = node;
                         }
 
-                        // propagate store to predecessors
+                        // Propagate store to predecessors
                         for (Block pred : rBlock.getPredecessors()) {
                             propagateStoresTo(
                                     pred,
@@ -133,7 +133,7 @@ public class BackwardAnalysisImpl<
 
                 case SPECIAL_BLOCK:
                     {
-                        // special basic blocks are empty and cannot throw exceptions,
+                        // Special basic blocks are empty and cannot throw exceptions,
                         // thus there is no need to perform any analysis.
                         SpecialBlock sBlock = (SpecialBlock) block;
                         final SpecialBlockType sType = sBlock.getSpecialType();
@@ -317,7 +317,6 @@ public class BackwardAnalysisImpl<
                         // Apply transfer function to contents until we found the node we are
                         // looking for.
                         TransferInput<V, S> store = transferInput;
-                        TransferResult<V, S> transferResult = null;
 
                         List<Node> nodeList = rBlock.getContents();
                         ListIterator<Node> reverseIter = nodeList.listIterator(nodeList.size());
@@ -328,7 +327,7 @@ public class BackwardAnalysisImpl<
                             if (n == node && !before) {
                                 return store.getRegularStore();
                             }
-                            transferResult = callTransferFunction(n, store);
+                            TransferResult<V, S> transferResult = callTransferFunction(n, store);
                             if (n == node) {
                                 return transferResult.getRegularStore();
                             }

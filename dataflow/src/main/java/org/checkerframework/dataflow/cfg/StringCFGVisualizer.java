@@ -132,6 +132,11 @@ public class StringCFGVisualizer<
     }
 
     @Override
+    public String visualizeSotreVal(Object value) {
+        return storeEntryIndent + value.toString() + lineSeparator;
+    }
+
+    @Override
     public String visualizeStoreHeader(String classCanonicalName) {
         return classCanonicalName + " (" + lineSeparator;
     }

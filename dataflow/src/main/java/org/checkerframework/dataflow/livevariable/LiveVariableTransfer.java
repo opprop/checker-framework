@@ -84,7 +84,7 @@ public class LiveVariableTransfer
         return transferResult;
     }
 
-    protected void processLiveVarInAssignment(
+    private void processLiveVarInAssignment(
             Node variable, Node expression, LiveVariableStore store) {
         store.killLiveVar(new LiveVar(variable));
         store.addUseInExpression(expression);

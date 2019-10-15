@@ -115,7 +115,7 @@ public class CFGVisualizeLauncher {
     private static void producePDF(String file) {
         try {
             String command = "dot -Tpdf \"" + file + "\" -o \"" + file + ".pdf\"";
-            Process child = Runtime.getRuntime().exec(command);
+            Process child = Runtime.getRuntime().exec(new String[] {"/bin/sh", "-c", command});
             child.waitFor();
             System.out.println("generating pdf, command is:\n" + command);
             System.out.println("success!");

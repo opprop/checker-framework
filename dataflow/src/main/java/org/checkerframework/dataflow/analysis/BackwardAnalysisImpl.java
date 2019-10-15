@@ -187,6 +187,7 @@ public class BackwardAnalysisImpl<
 
     @Override
     protected void initInitialInputs() {
+        worklist.process(cfg);
         SpecialBlock regularExitBlock = cfg.getRegularExitBlock();
         SpecialBlock exceptionExitBlock = cfg.getExceptionalExitBlock();
 

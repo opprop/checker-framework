@@ -15,10 +15,11 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 && apt-get -qqy install \
   python3 \
   python3-pip \
-&& ln -s /usr/bin/python3 python \
+  python-pip \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir lithium
+RUN pip3 install --no-cache-dir lithium \
+&& pip install --no-cache-dir subprocess32 lithium
 
 RUN export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8

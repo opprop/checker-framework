@@ -125,6 +125,32 @@ public class CFGVisualizeLauncher {
         }
     }
 
+    /**
+     * Generate the String representation of the CFG for a method.
+     *
+     * @param inputFile Java source input file
+     * @param method Method name to generate the CFG for
+     * @param analysis Analysis to perform before the visualization (or {@code null} if no analysis
+     *     is to be performed)
+     */
+    public static <V extends AbstractValue<V>, S extends Store<S>, T extends TransferFunction<V, S>>
+            Map<String, Object> generateStringOfCFG(
+                    String inputFile, String method, String clas, Analysis<V, S, T> analysis) {
+        ControlFlowGraph cfg = JavaSource2CFG.generateMethodCFG(inputFile, clas, method);
+        if (analysis != null) {
+            analysis.performAnalysis(cfg);
+        }
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("checkerName", "");
+
+        CFGVisualizer<V, S, T> viz = new StringCFGVisualizer<>();
+        viz.init(args);
+        Map<String, Object> res = viz.visualize(cfg, cfg.getEntryBlock(), analysis);
+        viz.shutdown();
+        return res;
+    }
+
     // TODO: refresh usage
     /** Print usage information. */
     private static void printUsage() {

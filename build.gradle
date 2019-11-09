@@ -603,7 +603,9 @@ subprojects {
                             }
                         } else {
                             args += [
-                                    "-vmoptions:-Xmx4096m",
+                                    // Without this, the test throw "java.lang.OutOfMemoryError: Java heap space"
+                                    // TODO: This is a particular setting for opprop/CF, need to find why the OutOfMemoryError occurs.
+                                    "-vmoptions:-Xmx2048m",
                                     // checker/jtreg/nullness/defaultsPersist/ReferenceInfoUtil.java
                                     // uses the jdk.jdeps module.
                                     "-javacoptions:--add-modules jdk.jdeps",

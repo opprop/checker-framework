@@ -603,6 +603,7 @@ subprojects {
                             }
                         } else {
                             args += [
+                                    "-vmoptions:-Xmx4096m",
                                     // checker/jtreg/nullness/defaultsPersist/ReferenceInfoUtil.java
                                     // uses the jdk.jdeps module.
                                     "-javacoptions:--add-modules jdk.jdeps",
@@ -644,7 +645,6 @@ subprojects {
                 // Without this, the test throw "java.lang.OutOfMemoryError: Java heap space"
                 forkEvery(1)
                 jvmArgs += [
-                        "-Xmx2048m",
                         "--illegal-access=warn",
                         "--add-opens", "jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED",
                 ]

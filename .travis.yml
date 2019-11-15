@@ -62,7 +62,7 @@ script:
   else
     DOCKERIMAGE=mdernst/cf-$OS-$JDKVER
   fi &&
-  echo "Using" $DOCKERIMAGE
+  echo "Using docker image: " $DOCKERIMAGE
   docker run -v $HOME/.gradle:/root/.gradle -v $HOME/.m2:/root/.m2 $DOCKERIMAGE /bin/bash -c "true &&
      if [ $TRAVIS_EVENT_TYPE = pull_request ] ; then
        git clone --quiet $REMOTE_ORIGIN_URL $THIS_REPO || git clone --quiet $REMOTE_ORIGIN_URL $THIS_REPO

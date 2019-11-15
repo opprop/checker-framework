@@ -58,9 +58,9 @@ script:
 - echo "TRAVIS_REPO_SLUG=${TRAVIS_REPO_SLUG}"
 - >-
   if [ $GROUP = checker-framework-inference || $GROUP = downstream ] ; then
-      DOCKERIMAGE=xingweitian/$OS-for-cfi-$JDKVER
+    DOCKERIMAGE=xingweitian/$OS-for-cfi-$JDKVER
   else
-      DOCKERIMAGE=mdernst/cf-$OS-$JDKVER
+    DOCKERIMAGE=mdernst/cf-$OS-$JDKVER
   fi &&
   docker run -v $HOME/.gradle:/root/.gradle -v $HOME/.m2:/root/.m2 $DOCKERIMAGE /bin/bash -c "true &&
      if [ $TRAVIS_EVENT_TYPE = pull_request ] ; then

@@ -1,17 +1,17 @@
-FROM mdernst/ubuntu-for-cf-jdk8
+FROM mdernst/cf-ubuntu-jdk8
 
 LABEL MAINTAINER="w23xing@uwaterloo.ca"
 
-RUN export DEBIAN_FRONTEND=noninteractive \
-&& apt-get -qqy update \
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get -qqy update \
 && apt-get -qqy install \
   binutils \
   build-essential \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
 
-RUN export DEBIAN_FRONTEND=noninteractive \
-&& apt-get -qqy update \
+RUN apt-get -qqy update \
 && apt-get -qqy install \
   python3 \
   python3-pip \

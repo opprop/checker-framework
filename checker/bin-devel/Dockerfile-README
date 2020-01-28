@@ -27,7 +27,7 @@ For opprop's Docker images building:
 # 5. opprop_dockerhub_repository_prefix: prefix for opprop Docker Hub's repos
 # 5. auth_config: username and password for opprop's Docker Hub
 #
-# Replace these fields with the latest information.
+# Update these fields with the latest information.
 
 Preliminaries:
 

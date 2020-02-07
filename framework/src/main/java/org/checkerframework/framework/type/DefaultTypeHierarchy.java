@@ -464,9 +464,9 @@ public class DefaultTypeHierarchy extends AbstractAtmComboVisitor<Boolean, Void>
         if (subtype.atypeFactory.ignoreUninferredTypeArguments
                 && (subtype.containsUninferredTypeArguments()
                         || supertype.containsUninferredTypeArguments())) {
-            // Calling castedAsSuper may cause the uninferredTypeArguments to be lost. So, just
-            // return true here.
-            return true;
+            // Calling castedAsSuper may cause the uninferredTypeArguments to be lost. So, only
+            // check primary annotations here.
+            return isPrimarySubtype(subtype, supertype);
         }
         AnnotatedDeclaredType subtypeAsSuper =
                 AnnotatedTypes.castedAsSuper(subtype.atypeFactory, subtype, supertype);

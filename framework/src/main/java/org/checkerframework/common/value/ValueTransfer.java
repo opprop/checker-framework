@@ -441,6 +441,9 @@ public class ValueTransfer extends CFTransfer {
             MethodInvocationNode n, TransferInput<CFValue, CFStore> p) {
         TransferResult<CFValue, CFStore> result = super.visitMethodInvocation(n, p);
         refineStringAtLengthInvocation(n, result.getRegularStore());
+        if (atypefactory.propertyFileHandler != null) {
+            atypefactory.propertyFileHandler.handle(n, result);
+        }
         return result;
     }
 

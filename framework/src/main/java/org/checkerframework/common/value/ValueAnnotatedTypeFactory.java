@@ -45,6 +45,9 @@ import org.checkerframework.common.value.qual.IntVal;
 import org.checkerframework.common.value.qual.MinLen;
 import org.checkerframework.common.value.qual.MinLenFieldInvariant;
 import org.checkerframework.common.value.qual.PolyValue;
+import org.checkerframework.common.value.qual.PropertyFile;
+import org.checkerframework.common.value.qual.PropertyFileBottom;
+import org.checkerframework.common.value.qual.PropertyFileUnknown;
 import org.checkerframework.common.value.qual.StaticallyExecutable;
 import org.checkerframework.common.value.qual.StringVal;
 import org.checkerframework.common.value.qual.UnknownVal;
@@ -164,11 +167,18 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** Helper class that holds references to special methods. */
     private final ValueMethodIdentifier methods;
 
+    /** The property file handler. */
+    public PropertyFileHandler propertyFileHandler = null;
+
     public ValueAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
 
         reportEvalWarnings = checker.hasOption(ValueChecker.REPORT_EVAL_WARNS);
         Range.ignoreOverflow = checker.hasOption(ValueChecker.IGNORE_RANGE_OVERFLOW);
+        if (checker.hasOption(ValueChecker.HANDLE_PROPERTY_FILE)) {
+            propertyFileHandler =
+                    new PropertyFileHandler(getProcessingEnv(), this, (ValueChecker) checker);
+        }
         evaluator = new ReflectiveEvaluator(checker, this, reportEvalWarnings);
 
         addAliasedAnnotation("android.support.annotation.IntRange", IntRange.class, true);
@@ -237,21 +247,30 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         // Because the Value Checker includes its own alias annotations,
         // the qualifiers have to be explicitly defined.
-        return new LinkedHashSet<>(
-                Arrays.asList(
-                        ArrayLen.class,
-                        ArrayLenRange.class,
-                        IntVal.class,
-                        IntRange.class,
-                        BoolVal.class,
-                        StringVal.class,
-                        DoubleVal.class,
-                        BottomVal.class,
-                        UnknownVal.class,
-                        IntRangeFromPositive.class,
-                        IntRangeFromNonNegative.class,
-                        IntRangeFromGTENegativeOne.class,
-                        PolyValue.class));
+        LinkedHashSet<Class<? extends Annotation>> supportedTypeQualifiers =
+                new LinkedHashSet<>(
+                        Arrays.asList(
+                                ArrayLen.class,
+                                ArrayLenRange.class,
+                                IntVal.class,
+                                IntRange.class,
+                                BoolVal.class,
+                                StringVal.class,
+                                DoubleVal.class,
+                                BottomVal.class,
+                                UnknownVal.class,
+                                IntRangeFromPositive.class,
+                                IntRangeFromNonNegative.class,
+                                IntRangeFromGTENegativeOne.class,
+                                PolyValue.class));
+        if (propertyFileHandler != null) {
+            Collections.addAll(
+                    supportedTypeQualifiers,
+                    PropertyFile.class,
+                    PropertyFileUnknown.class,
+                    PropertyFileBottom.class);
+        }
+        return supportedTypeQualifiers;
     }
 
     @Override
@@ -872,6 +891,31 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
          */
         @Override
         public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
+            if (propertyFileHandler != null) {
+                if (inPropertyFileQualifierHierarchy(subAnno)
+                        && inPropertyFileQualifierHierarchy(superAnno)) {
+                    if (AnnotationUtils.areSameByClass(subAnno, PropertyFileBottom.class)
+                            || AnnotationUtils.areSameByClass(
+                                    superAnno, PropertyFileUnknown.class)) {
+                        return true;
+                    } else if (AnnotationUtils.areSameByClass(subAnno, PropertyFileUnknown.class)
+                            || AnnotationUtils.areSameByClass(
+                                    superAnno, PropertyFileBottom.class)) {
+                        return false;
+                    } else if (AnnotationUtils.areSameByClass(subAnno, PropertyFile.class)
+                            && AnnotationUtils.areSameByClass(superAnno, PropertyFile.class)) {
+                        return comparePropFileElementValue(subAnno, superAnno);
+                    } else {
+                        throw new BugInCF("We should never reach here.");
+                    }
+                } else if (inValueQualifierHierarchy(subAnno)
+                        && inPropertyFileQualifierHierarchy(superAnno)) {
+                    return false;
+                } else if (inPropertyFileQualifierHierarchy(subAnno)
+                        && inValueQualifierHierarchy(superAnno)) {
+                    return false;
+                }
+            }
             subAnno = convertSpecialIntRangeToStandardIntRange(subAnno);
             superAnno = convertSpecialIntRangeToStandardIntRange(superAnno);
             String subQual = AnnotationUtils.annotationName(subAnno);
@@ -967,6 +1011,49 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 default:
                     return false;
             }
+        }
+
+        /**
+         * Return true if the target annotation is in the original value qualifier hierarchy.
+         *
+         * @param anno the annotation to check
+         * @return true if the target annotation is in the original value qualifier hierarchy
+         */
+        private boolean inValueQualifierHierarchy(AnnotationMirror anno) {
+            return AnnotationUtils.areSameByName(anno, ARRAYLEN_NAME)
+                    || AnnotationUtils.areSameByName(anno, ARRAYLENRANGE_NAME)
+                    || AnnotationUtils.areSameByName(anno, INTVAL_NAME)
+                    || AnnotationUtils.areSameByName(anno, INTRANGE_NAME)
+                    || AnnotationUtils.areSameByName(anno, BOOLVAL_NAME)
+                    || AnnotationUtils.areSameByName(anno, STRINGVAL_NAME)
+                    || AnnotationUtils.areSameByName(anno, DOUBLEVAL_NAME)
+                    || AnnotationUtils.areSameByName(anno, BOTTOMVAL_NAME)
+                    || AnnotationUtils.areSameByName(anno, UNKNOWN_NAME)
+                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMPOS_NAME)
+                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMNONNEG_NAME)
+                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMGTENEGONE_NAME)
+                    || AnnotationUtils.areSameByName(anno, POLY_NAME);
+        }
+
+        /**
+         * Return true if the target annotation is in the property file qualifier hierarchy.
+         *
+         * @param anno the annotation to check
+         * @return true if the target annotation is in the property file qualifier hierarchy.
+         */
+        private boolean inPropertyFileQualifierHierarchy(AnnotationMirror anno) {
+            return AnnotationUtils.areSameByClass(anno, PropertyFile.class)
+                    || AnnotationUtils.areSameByClass(anno, PropertyFileUnknown.class)
+                    || AnnotationUtils.areSameByClass(anno, PropertyFileBottom.class);
+        }
+
+        private boolean comparePropFileElementValue(
+                AnnotationMirror subAnno, AnnotationMirror superAnno) {
+            String subAnnoElementValue =
+                    AnnotationUtils.getElementValue(subAnno, "value", String.class, false);
+            String superAnnoElementValue =
+                    AnnotationUtils.getElementValue(superAnno, "value", String.class, false);
+            return superAnnoElementValue.equals(subAnnoElementValue);
         }
     }
 
@@ -1360,6 +1447,11 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
         @Override
         public Void visitMethodInvocation(MethodInvocationTree tree, AnnotatedTypeMirror type) {
+
+            if (propertyFileHandler != null) {
+                propertyFileHandler.handle(tree, type);
+            }
+
             if (type.hasAnnotation(UNKNOWNVAL)) {
                 Range range = getRangeForMathMinMax(tree);
                 if (range != null) {

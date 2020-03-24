@@ -170,6 +170,11 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** The property file handler. */
     public PropertyFileHandler propertyFileHandler = null;
 
+    /**
+     * Create a new ValueAnnotatedTypeFactory.
+     *
+     * @param checker the checker to use
+     */
     public ValueAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
 
@@ -1047,6 +1052,13 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                     || AnnotationUtils.areSameByClass(anno, PropertyFileBottom.class);
         }
 
+        /**
+         * Compare two {@literal @}PropertyFile annotations.
+         *
+         * @param subAnno the sub annotation
+         * @param superAnno the super annotation
+         * @return true if the two annotations' values are the same
+         */
         private boolean comparePropFileElementValue(
                 AnnotationMirror subAnno, AnnotationMirror superAnno) {
             String subAnnoElementValue =

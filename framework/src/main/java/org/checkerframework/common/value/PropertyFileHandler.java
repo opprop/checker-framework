@@ -55,6 +55,13 @@ public class PropertyFileHandler {
     /** The Properties.load(String) method. */
     protected final ExecutableElement propertiesLoad;
 
+    /**
+     * Create a new PropertyFileHandler.
+     *
+     * @param env the processing environment
+     * @param factory the annotated type factory
+     * @param checker the checker to use
+     */
     public PropertyFileHandler(
             ProcessingEnvironment env, ValueAnnotatedTypeFactory factory, ValueChecker checker) {
         this.env = env;

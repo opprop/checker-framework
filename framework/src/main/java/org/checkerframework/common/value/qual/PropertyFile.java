@@ -1,5 +1,6 @@
 package org.checkerframework.common.value.qual;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -13,6 +14,7 @@ import org.checkerframework.framework.qual.SubtypeOf;
 @SubtypeOf({PropertyFileUnknown.class})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
+@Documented
 public @interface PropertyFile {
     String value();
 }

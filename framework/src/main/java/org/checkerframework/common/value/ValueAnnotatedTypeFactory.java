@@ -899,20 +899,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             if (propertyFileHandler != null) {
                 if (inPropertyFileQualifierHierarchy(subAnno)
                         && inPropertyFileQualifierHierarchy(superAnno)) {
-                    if (AnnotationUtils.areSameByClass(subAnno, PropertyFileBottom.class)
-                            || AnnotationUtils.areSameByClass(
-                                    superAnno, PropertyFileUnknown.class)) {
-                        return true;
-                    } else if (AnnotationUtils.areSameByClass(subAnno, PropertyFileUnknown.class)
-                            || AnnotationUtils.areSameByClass(
-                                    superAnno, PropertyFileBottom.class)) {
-                        return false;
-                    } else if (AnnotationUtils.areSameByClass(subAnno, PropertyFile.class)
-                            && AnnotationUtils.areSameByClass(superAnno, PropertyFile.class)) {
-                        return comparePropFileElementValue(subAnno, superAnno);
-                    } else {
-                        throw new BugInCF("We should never reach here.");
-                    }
+                    return propertyFileHandler.isSubtype(subAnno, superAnno);
                 } else if (inValueQualifierHierarchy(subAnno)
                         && inPropertyFileQualifierHierarchy(superAnno)) {
                     return false;
@@ -1050,22 +1037,6 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             return AnnotationUtils.areSameByClass(anno, PropertyFile.class)
                     || AnnotationUtils.areSameByClass(anno, PropertyFileUnknown.class)
                     || AnnotationUtils.areSameByClass(anno, PropertyFileBottom.class);
-        }
-
-        /**
-         * Compare two {@literal @}PropertyFile annotations.
-         *
-         * @param subAnno the sub annotation
-         * @param superAnno the super annotation
-         * @return true if the two annotations' values are the same
-         */
-        private boolean comparePropFileElementValue(
-                AnnotationMirror subAnno, AnnotationMirror superAnno) {
-            String subAnnoElementValue =
-                    AnnotationUtils.getElementValue(subAnno, "value", String.class, false);
-            String superAnnoElementValue =
-                    AnnotationUtils.getElementValue(superAnno, "value", String.class, false);
-            return superAnnoElementValue.equals(subAnnoElementValue);
         }
     }
 

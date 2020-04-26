@@ -85,6 +85,18 @@ public class PropertyFileHandler {
     }
 
     /**
+     * Return true if the target annotation is in the property file qualifier hierarchy.
+     *
+     * @param anno the annotation to check
+     * @return true if the target annotation is in the property file qualifier hierarchy.
+     */
+    public static boolean inPropertyFileQualifierHierarchy(AnnotationMirror anno) {
+        return AnnotationUtils.areSameByClass(anno, PropertyFile.class)
+                || AnnotationUtils.areSameByClass(anno, PropertyFileUnknown.class)
+                || AnnotationUtils.areSameByClass(anno, PropertyFileBottom.class);
+    }
+
+    /**
      * Handle the property file. Used in {@link
      * org.checkerframework.common.value.ValueAnnotatedTypeFactory.ValueTreeAnnotator#visitMethodInvocation(MethodInvocationTree,
      * AnnotatedTypeMirror)}.

@@ -1,5 +1,7 @@
 package org.checkerframework.common.value;
 
+import static org.checkerframework.common.value.PropertyFileHandler.inPropertyFileQualifierHierarchy;
+
 import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.LiteralTree;
@@ -170,6 +172,24 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** The property file handler. */
     public PropertyFileHandler propertyFileHandler = null;
 
+    /** Set of supported type qualifiers in the original value hierarchy. */
+    protected static final LinkedHashSet<Class<? extends Annotation>> supportedValueQualifiers =
+            new LinkedHashSet<>(
+                    Arrays.asList(
+                            ArrayLen.class,
+                            ArrayLenRange.class,
+                            IntVal.class,
+                            IntRange.class,
+                            BoolVal.class,
+                            StringVal.class,
+                            DoubleVal.class,
+                            BottomVal.class,
+                            UnknownVal.class,
+                            IntRangeFromPositive.class,
+                            IntRangeFromNonNegative.class,
+                            IntRangeFromGTENegativeOne.class,
+                            PolyValue.class));
+
     /**
      * Create a new ValueAnnotatedTypeFactory.
      *
@@ -253,21 +273,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         // Because the Value Checker includes its own alias annotations,
         // the qualifiers have to be explicitly defined.
         LinkedHashSet<Class<? extends Annotation>> supportedTypeQualifiers =
-                new LinkedHashSet<>(
-                        Arrays.asList(
-                                ArrayLen.class,
-                                ArrayLenRange.class,
-                                IntVal.class,
-                                IntRange.class,
-                                BoolVal.class,
-                                StringVal.class,
-                                DoubleVal.class,
-                                BottomVal.class,
-                                UnknownVal.class,
-                                IntRangeFromPositive.class,
-                                IntRangeFromNonNegative.class,
-                                IntRangeFromGTENegativeOne.class,
-                                PolyValue.class));
+                new LinkedHashSet<>(supportedValueQualifiers);
         if (propertyFileHandler != null) {
             Collections.addAll(
                     supportedTypeQualifiers,
@@ -900,11 +906,11 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 if (inPropertyFileQualifierHierarchy(subAnno)
                         && inPropertyFileQualifierHierarchy(superAnno)) {
                     return propertyFileHandler.isSubtype(subAnno, superAnno);
-                } else if (inValueQualifierHierarchy(subAnno)
-                        && inPropertyFileQualifierHierarchy(superAnno)) {
-                    return false;
-                } else if (inPropertyFileQualifierHierarchy(subAnno)
-                        && inValueQualifierHierarchy(superAnno)) {
+                } else if ((inValueQualifierHierarchy(subAnno)
+                                && inPropertyFileQualifierHierarchy(superAnno))
+                        || (inPropertyFileQualifierHierarchy(subAnno)
+                                && inValueQualifierHierarchy(superAnno))) {
+                    // Fall through when two are in the different type hierarchy.
                     return false;
                 }
             }
@@ -1012,31 +1018,12 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
          * @return true if the target annotation is in the original value qualifier hierarchy
          */
         private boolean inValueQualifierHierarchy(AnnotationMirror anno) {
-            return AnnotationUtils.areSameByName(anno, ARRAYLEN_NAME)
-                    || AnnotationUtils.areSameByName(anno, ARRAYLENRANGE_NAME)
-                    || AnnotationUtils.areSameByName(anno, INTVAL_NAME)
-                    || AnnotationUtils.areSameByName(anno, INTRANGE_NAME)
-                    || AnnotationUtils.areSameByName(anno, BOOLVAL_NAME)
-                    || AnnotationUtils.areSameByName(anno, STRINGVAL_NAME)
-                    || AnnotationUtils.areSameByName(anno, DOUBLEVAL_NAME)
-                    || AnnotationUtils.areSameByName(anno, BOTTOMVAL_NAME)
-                    || AnnotationUtils.areSameByName(anno, UNKNOWN_NAME)
-                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMPOS_NAME)
-                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMNONNEG_NAME)
-                    || AnnotationUtils.areSameByName(anno, INTRANGE_FROMGTENEGONE_NAME)
-                    || AnnotationUtils.areSameByName(anno, POLY_NAME);
-        }
-
-        /**
-         * Return true if the target annotation is in the property file qualifier hierarchy.
-         *
-         * @param anno the annotation to check
-         * @return true if the target annotation is in the property file qualifier hierarchy.
-         */
-        private boolean inPropertyFileQualifierHierarchy(AnnotationMirror anno) {
-            return AnnotationUtils.areSameByClass(anno, PropertyFile.class)
-                    || AnnotationUtils.areSameByClass(anno, PropertyFileUnknown.class)
-                    || AnnotationUtils.areSameByClass(anno, PropertyFileBottom.class);
+            for (Class<? extends Annotation> each : supportedValueQualifiers) {
+                if (AnnotationUtils.areSameByClass(anno, each)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

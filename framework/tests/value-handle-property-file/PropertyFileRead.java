@@ -27,4 +27,21 @@ class PropertyFileRead {
         prop.load(inputStream);
         @StringVal("default value") String host = prop.getProperty("NOSUCHKEY", "default value");
     }
+
+    void d() throws IOException {
+        Properties prop = new Properties();
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFile);
+        prop.load(inputStream);
+        // :: error: (assignment.type.incompatible)
+        @StringVal("8081") String port = prop.getProperty("PORT");
+    }
+
+    void e() throws IOException {
+        Properties prop = new Properties();
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFile);
+        prop.load(inputStream);
+        // :: error: (assignment.type.incompatible)
+        @StringVal("8081") String port = prop.getProperty("PORT");
+        @StringVal("http://www.example.com") String url = prop.getProperty("URL");
+    }
 }

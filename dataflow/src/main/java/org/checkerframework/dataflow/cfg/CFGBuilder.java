@@ -4297,13 +4297,19 @@ public class CFGBuilder {
                 extendWithNode(
                         new MarkerNode(
                                 tree,
-                                "start of catch block for " + c.getClass() + " #" + tree.hashCode(),
+                                "start of catch block for "
+                                        + c.getParameter().getType()
+                                        + " #"
+                                        + tree.hashCode(),
                                 env.getTypeUtils()));
                 scan(c, p);
                 extendWithNode(
                         new MarkerNode(
                                 tree,
-                                "end of catch block for " + c.getClass() + " #" + tree.hashCode(),
+                                "end of catch block for "
+                                        + c.getParameter().getType()
+                                        + " #"
+                                        + tree.hashCode(),
                                 env.getTypeUtils()));
 
                 catchIndex++;

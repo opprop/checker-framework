@@ -4878,8 +4878,34 @@ public class CFGBuilder {
 
             // Condition
             addLabelForNextNode(conditionStart);
+
+            boolean isWhileTrue = false;
+            int firstConditionPos = nodeList.size();
+            String output = "First condition position" + String.valueOf(firstConditionPos) + "\n";
             if (tree.getCondition() != null) {
                 unbox(scan(tree.getCondition(), p));
+                output = output + "current node counts" + String.valueOf(nodeList.size()) + "\n";
+                Node node = nodeList.get(firstConditionPos).getNode();
+                // Node node = nodeList.get(nodeList.size()-1).getNode();
+                if (node instanceof BooleanLiteralNode) {
+                    output += "contain boolean literal\n";
+                    BooleanLiteralNode booleanLiteralNode = (BooleanLiteralNode) node;
+                    if (booleanLiteralNode.getValue() == true) {
+                        output += "boolean literal is true\n";
+                        isWhileTrue = true;
+                    } else {
+                        if (nodeList.size() > firstConditionPos + 1) {
+                            Node nextNode = nodeList.get(firstConditionPos + 1).getNode();
+                            if (nextNode instanceof ConditionalNotNode) {
+                                isWhileTrue = true;
+                            }
+                        }
+                    }
+                }
+            }
+            //	assert false: output;
+
+            if (!isWhileTrue) {
                 ConditionalJump cjump = new ConditionalJump(loopEntry, loopExit);
                 extendWithExtendedNode(cjump);
             }
@@ -4889,7 +4915,11 @@ public class CFGBuilder {
             if (tree.getStatement() != null) {
                 scan(tree.getStatement(), p);
             }
-            extendWithExtendedNode(new UnconditionalJump(conditionStart));
+            if (isWhileTrue) {
+                extendWithExtendedNode(new UnconditionalJump(loopEntry));
+            } else {
+                extendWithExtendedNode(new UnconditionalJump(conditionStart));
+            }
 
             // Loop exit
             addLabelForNextNode(loopExit);

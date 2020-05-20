@@ -75,6 +75,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -176,9 +177,11 @@ import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
 import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
 import org.checkerframework.dataflow.cfg.node.WideningConversionNode;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
+import org.checkerframework.dataflow.qual.ThrowsException;
 import org.checkerframework.dataflow.util.IdentityMostlySingleton;
 import org.checkerframework.dataflow.util.MostlySingleton;
 import org.checkerframework.javacutil.AnnotationProvider;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BasicAnnotationProvider;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
@@ -2579,6 +2582,31 @@ public class CFGBuilder {
                     new MethodInvocationNode(tree, target, arguments, getCurrentPath());
 
             Set<TypeMirror> thrownSet = new HashSet<>();
+
+            Element methodElement = TreeUtils.elementFromTree(tree);
+            // detect the existence of ThrowsException annotation
+            AnnotationMirror throwAnno =
+                    annotationProvider.getDeclAnnotation(methodElement, ThrowsException.class);
+            if (throwAnno != null) {
+                TypeMirror thrown;
+                // get type of thrown exception
+                String cls =
+                        AnnotationUtils.getElementValueClassName(throwAnno, "value", false)
+                                .toString();
+                if (cls == null) { // thrown type is Throwable by default
+                    thrown = elements.getTypeElement("java.lang.Throwable").asType();
+                } else {
+                    thrown = elements.getTypeElement(cls).asType();
+                }
+                thrownSet.add(thrown);
+                NodeWithExceptionsHolder exNode = extendWithNodeWithException(node, thrown);
+                // in unconditional cases, the exceptional block has exactly one exceptional
+                // successor
+                exNode.setTerminatesExecution(true);
+
+                return node;
+            }
+
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
@@ -2589,7 +2617,6 @@ public class CFGBuilder {
             ExtendedNode extendedNode = extendWithNodeWithExceptions(node, thrownSet);
 
             /* Check for the TerminatesExecution annotation. */
-            Element methodElement = TreeUtils.elementFromTree(tree);
             boolean terminatesExecution =
                     annotationProvider.getDeclAnnotation(methodElement, TerminatesExecution.class)
                             != null;

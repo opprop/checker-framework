@@ -98,7 +98,7 @@ public class PropertyFileHandler {
 
     /**
      * Handle the property file. Used in {@link
-     * org.checkerframework.common.value.ValueAnnotatedTypeFactory.ValueTreeAnnotator#visitMethodInvocation(MethodInvocationTree,
+     * org.checkerframework.common.value.ValueTreeAnnotator#visitMethodInvocation(MethodInvocationTree,
      * AnnotatedTypeMirror)}.
      *
      * @param node the method invocation tree

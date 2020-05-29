@@ -13,7 +13,6 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.checker.index.IndexUtil;
 import org.checkerframework.checker.index.Subsequence;
 import org.checkerframework.checker.index.qual.HasSubsequence;
 import org.checkerframework.checker.index.qual.LTLengthOf;
@@ -22,13 +21,14 @@ import org.checkerframework.checker.index.upperbound.UBQualifier.LessThanLengthO
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.value.ValueAnnotatedTypeFactory;
+import org.checkerframework.common.value.ValueCheckerUtils;
 import org.checkerframework.dataflow.analysis.FlowExpressions;
 import org.checkerframework.dataflow.analysis.FlowExpressions.FieldAccess;
 import org.checkerframework.dataflow.analysis.FlowExpressions.LocalVariable;
 import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.FlowExpressions.ThisReference;
 import org.checkerframework.dataflow.analysis.FlowExpressions.ValueLiteral;
-import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.util.FlowExpressionParseUtil;
@@ -36,6 +36,7 @@ import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressio
 import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionParseException;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 /** Warns about array accesses that could be too high. */
@@ -75,7 +76,7 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
     @Override
     public Void visitAnnotation(AnnotationTree node, Void p) {
         AnnotationMirror anno = TreeUtils.annotationFromAnnotationTree(node);
-        if (AnnotationUtils.areSameByClass(anno, LTLengthOf.class)) {
+        if (atypeFactory.areSameByClass(anno, LTLengthOf.class)) {
             List<? extends ExpressionTree> args = node.getArguments();
             if (args.size() == 2) {
                 // If offsets are provided, there must be the same number of them as there are
@@ -85,16 +86,15 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
                 List<String> offsets =
                         AnnotationUtils.getElementValueArray(anno, "offset", String.class, true);
                 if (sequences.size() != offsets.size() && !offsets.isEmpty()) {
-                    checker.report(
-                            Result.failure(
-                                    "different.length.sequences.offsets",
-                                    sequences.size(),
-                                    offsets.size()),
-                            node);
+                    checker.reportError(
+                            node,
+                            "different.length.sequences.offsets",
+                            sequences.size(),
+                            offsets.size());
                     return null;
                 }
             }
-        } else if (AnnotationUtils.areSameByClass(anno, HasSubsequence.class)) {
+        } else if (atypeFactory.areSameByClass(anno, HasSubsequence.class)) {
             // Check that the arguments to a HasSubsequence annotation are valid flow expressions,
             // and issue an error if one of them is not.
 
@@ -123,7 +123,7 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
         try {
             rec = FlowExpressionParseUtil.parse(s, context, getCurrentPath(), false);
         } catch (FlowExpressionParseException e) {
-            checker.report(e.getResult(), error);
+            checker.report(error, e.getDiagMessage());
             return;
         }
         Element element = null;
@@ -135,7 +135,7 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             return;
         }
         if (element == null || !ElementUtils.isEffectivelyFinal(element)) {
-            checker.report(Result.failure(NOT_FINAL, rec), error);
+            checker.reportError(error, NOT_FINAL, rec);
         }
     }
 
@@ -161,33 +161,30 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
         AnnotatedTypeMirror indexType = atypeFactory.getAnnotatedType(indexTree);
         UBQualifier qualifier = UBQualifier.createUBQualifier(indexType, atypeFactory.UNKNOWN);
         ValueAnnotatedTypeFactory valueFactory = atypeFactory.getValueAnnotatedTypeFactory();
-        Long valMax = IndexUtil.getMaxValue(indexTree, valueFactory);
+        Long valMax = ValueCheckerUtils.getMaxValue(indexTree, valueFactory);
 
-        if (IndexUtil.getExactValue(indexTree, valueFactory) != null) {
+        if (ValueCheckerUtils.getExactValue(indexTree, valueFactory) != null) {
             // Note that valMax is equal to the exact value in this case.
-            checker.report(
-                    Result.failure(
-                            UPPER_BOUND_CONST,
-                            valMax,
-                            valueFactory.getAnnotatedType(arrTree).toString(),
-                            valMax + 1,
-                            valMax + 1),
-                    indexTree);
-        } else if (valMax != null && qualifier.isUnknown()) {
+            checker.reportError(
+                    indexTree,
+                    UPPER_BOUND_CONST,
+                    valMax,
+                    valueFactory.getAnnotatedType(arrTree).toString(),
+                    valMax + 1,
+                    valMax + 1);
+        } else if (valMax != null && qualifier.isUnknown() && valMax != Integer.MAX_VALUE) {
 
-            checker.report(
-                    Result.failure(
-                            UPPER_BOUND_RANGE,
-                            valueFactory.getAnnotatedType(indexTree).toString(),
-                            valueFactory.getAnnotatedType(arrTree).toString(),
-                            arrName,
-                            arrName,
-                            valMax + 1),
-                    indexTree);
+            checker.reportError(
+                    indexTree,
+                    UPPER_BOUND_RANGE,
+                    valueFactory.getAnnotatedType(indexTree).toString(),
+                    valueFactory.getAnnotatedType(arrTree).toString(),
+                    arrName,
+                    arrName,
+                    valMax + 1);
         } else {
-            checker.report(
-                    Result.failure(UPPER_BOUND, indexType.toString(), arrName, arrName, arrName),
-                    indexTree);
+            checker.reportError(
+                    indexTree, UPPER_BOUND, indexType.toString(), arrName, arrName, arrName);
         }
     }
 
@@ -217,28 +214,26 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
 
             if (ltelCheckFailed) {
                 // issue an error
-                checker.report(
-                        Result.failure(
-                                TO_NOT_LTEL,
-                                subSeq.to,
-                                subSeq.array,
-                                anm == null ? "@UpperBoundUnknown" : anm,
-                                subSeq.array,
-                                subSeq.array,
-                                subSeq.array),
-                        valueTree);
+                checker.reportError(
+                        valueTree,
+                        TO_NOT_LTEL,
+                        subSeq.to,
+                        subSeq.array,
+                        anm == null ? "@UpperBoundUnknown" : anm,
+                        subSeq.array,
+                        subSeq.array,
+                        subSeq.array);
             } else {
-                checker.report(
-                        Result.warning(
-                                HSS,
-                                subSeq.array,
-                                subSeq.from,
-                                subSeq.from,
-                                subSeq.to,
-                                subSeq.to,
-                                subSeq.array,
-                                subSeq.array),
-                        valueTree);
+                checker.reportWarning(
+                        valueTree,
+                        HSS,
+                        subSeq.array,
+                        subSeq.from,
+                        subSeq.from,
+                        subSeq.to,
+                        subSeq.to,
+                        subSeq.array,
+                        subSeq.array);
             }
         }
 
@@ -250,29 +245,25 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             AnnotatedTypeMirror varType,
             ExpressionTree valueTree,
             @CompilerMessageKey String errorKey) {
+        AnnotatedTypeMirror valueType = atypeFactory.getAnnotatedType(valueTree);
+        commonAssignmentCheckStartDiagnostic(varType, valueType, valueTree);
         if (!relaxedCommonAssignment(varType, valueTree)) {
+            commonAssignmentCheckEndDiagnostic(
+                    "relaxedCommonAssignment did not succeed, now must call super",
+                    varType,
+                    valueType,
+                    valueTree);
             super.commonAssignmentCheck(varType, valueTree, errorKey);
         } else if (checker.hasOption("showchecks")) {
-            // Print the success message because super isn't called.
-            long valuePos = positions.getStartPosition(root, valueTree);
-            AnnotatedTypeMirror valueType = atypeFactory.getAnnotatedType(valueTree);
-            System.out.printf(
-                    " %s (line %3d): %s %s%n     actual: %s %s%n   expected: %s %s%n",
-                    "success: actual is subtype of expected",
-                    (root.getLineMap() != null ? root.getLineMap().getLineNumber(valuePos) : -1),
-                    valueTree.getKind(),
-                    valueTree,
-                    valueType.getKind(),
-                    valueType.toString(),
-                    varType.getKind(),
-                    varType.toString());
+            commonAssignmentCheckEndDiagnostic(
+                    true, "relaxedCommonAssignment", varType, valueType, valueTree);
         }
     }
 
     /**
      * Returns whether the assignment is legal based on the relaxed assignment rules.
      *
-     * <p>The relaxed assignment rules is the following: Assuming the varType (left-hand side) is
+     * <p>The relaxed assignment rules are the following: Assuming the varType (left-hand side) is
      * less than the length of some array given some offset
      *
      * <p>1. If both the offset and the value expression (rhs) are ints known at compile time, and
@@ -286,17 +277,21 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
      * <p>3. Otherwise the assignment is only legal if the usual assignment rules are true, so this
      * method returns false.
      *
-     * <p>If the varType is less than the length of multiple arrays, then the this method only
-     * returns true if the relaxed rules above apply for each array.
+     * <p>If the varType is less than the length of multiple arrays, then this method only returns
+     * true if the relaxed rules above apply for each array.
      *
      * <p>If the varType is an array type and the value expression is an array initializer, then the
      * above rules are applied for expression in the initializer where the varType is the component
      * type of the array.
+     *
+     * @param varType the type of the left-hand side (the variable in the assignment)
+     * @param valueExp the right-hand side (the expression in the assignment)
+     * @return true if the assignment is legal based on special Upper Bound rules
      */
     private boolean relaxedCommonAssignment(AnnotatedTypeMirror varType, ExpressionTree valueExp) {
-        List<? extends ExpressionTree> expressions;
         if (valueExp.getKind() == Kind.NEW_ARRAY && varType.getKind() == TypeKind.ARRAY) {
-            expressions = ((NewArrayTree) valueExp).getInitializers();
+            List<? extends ExpressionTree> expressions =
+                    ((NewArrayTree) valueExp).getInitializers();
             if (expressions == null || expressions.isEmpty()) {
                 return false;
             }
@@ -321,8 +316,32 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
     }
 
     /**
+     * Fetches a receiver and an offset from a String using the passed type factory. Returns null if
+     * there is a parse exception. This wraps
+     * GenericAnnotatedTypeFactory#getReceiverFromJavaExpressionString.
+     *
+     * <p>This is useful for expressions like "n+1", for which {@link
+     * #getReceiverFromJavaExpressionString} returns null because the whole expression is not a
+     * receiver.
+     */
+    static Pair<Receiver, String> getReceiverAndOffsetFromJavaExpressionString(
+            String s, UpperBoundAnnotatedTypeFactory atypeFactory, TreePath currentPath) {
+
+        Pair<String, String> p = AnnotatedTypeFactory.getExpressionAndOffset(s);
+
+        Receiver rec = getReceiverFromJavaExpressionString(p.first, atypeFactory, currentPath);
+        if (rec == null) {
+            return null;
+        }
+        return Pair.of(rec, p.second);
+    }
+
+    /**
      * Fetches a receiver from a String using the passed type factory. Returns null if there is a
-     * parse exception. This wraps GenericAnnotatedTypeFactory#getReceiverFromJavaExpressionString.
+     * parse exception -- that is, if the string does not represent an expression for a Receiver.
+     * For example, the expression "n+1" does not represent a Receiver.
+     *
+     * <p>This wraps GenericAnnotatedTypeFactory#getReceiverFromJavaExpressionString.
      */
     static Receiver getReceiverFromJavaExpressionString(
             String s, UpperBoundAnnotatedTypeFactory atypeFactory, TreePath currentPath) {
@@ -348,14 +367,21 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
      *  is less than the minimum possible length of arrTree, and returns true if so.
      */
     private boolean checkMinLen(ExpressionTree indexTree, ExpressionTree arrTree) {
-        int minLen = IndexUtil.getMinLen(arrTree, atypeFactory.getValueAnnotatedTypeFactory());
-        Long valMax = IndexUtil.getMaxValue(indexTree, atypeFactory.getValueAnnotatedTypeFactory());
+        int minLen =
+                ValueCheckerUtils.getMinLen(arrTree, atypeFactory.getValueAnnotatedTypeFactory());
+        Long valMax =
+                ValueCheckerUtils.getMaxValue(
+                        indexTree, atypeFactory.getValueAnnotatedTypeFactory());
         return valMax != null && valMax < minLen;
     }
 
     /**
      * Implements the actual check for the relaxed common assignment check. For what is permitted,
      * see {@link #relaxedCommonAssignment}.
+     *
+     * @param varLtlQual the variable qualifier (the left-hand side of the assignment)
+     * @param valueExp the expression (the right-hand side of the assignment)
+     * @return true if the assignment is legal: varLtlQual is a supertype of the type of valueExp
      */
     private boolean relaxedCommonAssignmentCheck(
             LessThanLengthOf varLtlQual, ExpressionTree valueExp) {
@@ -390,7 +416,9 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             varLtlQual = (LessThanLengthOf) newLHS;
         }
 
-        Long value = IndexUtil.getMaxValue(valueExp, atypeFactory.getValueAnnotatedTypeFactory());
+        Long value =
+                ValueCheckerUtils.getMaxValue(
+                        valueExp, atypeFactory.getValueAnnotatedTypeFactory());
 
         if (value == null && !expQual.isLessThanLengthQualifier()) {
             return false;

@@ -21,7 +21,7 @@ esac
 
 binaryDir="${mydir}"/../dist
 
-jdkPaths="${mydir}"/../jdk/annotated
+javacJar=${binaryDir}/javac.jar
 
 cfDir="${mydir}"/../..
 annoToolsDir="${cfDir}"/../annotation-tools
@@ -56,8 +56,7 @@ eval "java" \
      "-ea " \
      "-DCheckerDevelMain.cp=${buildDirs} " \
      "-DCheckerDevelMain.pp=${buildDirs} " \
-     "-DCheckerDevelMain.compile.bcp=${jdkPaths} " \
-     "-DCheckerDevelMain.runtime.cp=${JAVA_HOME}/lib/tools.jar " \
+     "-DCheckerDevelMain.runtime.cp=${javacJar} " \
      "-DCheckerDevelMain.binary=${binaryDir} " \
      "-classpath ${buildDirs} " \
      "org.checkerframework.framework.util.CheckerDevelMain" \

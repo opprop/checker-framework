@@ -13,16 +13,16 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiv
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedUnionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
-import org.checkerframework.framework.type.DefaultTypeHierarchy;
 import org.checkerframework.framework.type.visitor.AbstractAtmComboVisitor;
-import org.checkerframework.javacutil.PluginUtil;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.SystemUtil;
 
 /**
  * FIsAReducer takes an FIsA constraint that is not irreducible (@see AFConstraint.isIrreducible)
  * and reduces it by one step. The resulting constraint may still be reducible.
  *
  * <p>Generally reductions should map to corresponding rules in
- * https://docs.oracle.com/javase/specs/jls/se10/html/jls-15.html#jls-15.12.2.7
+ * https://docs.oracle.com/javase/specs/jls/se11/html/jls-15.html#jls-15.12.2.7
  */
 public class FIsAReducer implements AFReducer {
 
@@ -76,16 +76,13 @@ public class FIsAReducer implements AFReducer {
                 AnnotatedTypeMirror argument,
                 AnnotatedTypeMirror parameter,
                 Set<AFConstraint> afConstraints) {
-            return "Unexpected FIsA Combination:\n"
-                    + "argument="
-                    + argument
-                    + "\n"
-                    + "parameter="
-                    + parameter
-                    + "\n"
-                    + "constraints=[\n"
-                    + PluginUtil.join(", ", afConstraints)
-                    + "\n]";
+            return SystemUtil.joinLines(
+                    "Unexpected FIsA Combination:",
+                    "argument=" + argument,
+                    "parameter=" + parameter,
+                    "constraints=[",
+                    SystemUtil.join(", ", afConstraints),
+                    "]");
         }
         // ------------------------------------------------------------------------
         // Arrays as arguments
@@ -145,7 +142,7 @@ public class FIsAReducer implements AFReducer {
             }
 
             AnnotatedDeclaredType argumentAsParam =
-                    DefaultTypeHierarchy.castedAsSuper(argument, parameter);
+                    AnnotatedTypes.castedAsSuper(typeFactory, argument, parameter);
             if (argumentAsParam == null) {
                 return null;
             }

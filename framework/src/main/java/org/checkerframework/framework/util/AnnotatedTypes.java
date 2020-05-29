@@ -15,9 +15,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,6 +52,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TypesUtils;
 
 /**
@@ -110,6 +111,136 @@ public class AnnotatedTypes {
             asSuperVisitor = new AsSuperVisitor(atypeFactory);
         }
         return asSuperVisitor.asSuper(type, superType);
+    }
+
+    /**
+     * Calls asSuper and casts the result to the same type as the input supertype.
+     *
+     * @param subtype subtype to be transformed to supertype
+     * @param supertype supertype that subtype is transformed to
+     * @param <T> the type of supertype and return type
+     * @return subtype as an instance of supertype
+     */
+    public static <T extends AnnotatedTypeMirror> T castedAsSuper(
+            final AnnotatedTypeFactory atypeFactory,
+            final AnnotatedTypeMirror subtype,
+            final T supertype) {
+        final Types types = atypeFactory.getProcessingEnv().getTypeUtils();
+        final Elements elements = atypeFactory.getProcessingEnv().getElementUtils();
+
+        if (subtype.getKind() == TypeKind.NULL) {
+            // Make a copy of the supertype so that if supertype is a composite type, the
+            // returned type will be fully annotated.  (For example, if sub is @C null and super is
+            // @A List<@B String>, then the returned type is @C List<@B String>.)
+            @SuppressWarnings("unchecked")
+            T copy = (T) supertype.deepCopy();
+            copy.replaceAnnotations(subtype.getAnnotations());
+            return copy;
+        }
+
+        final T asSuperType = AnnotatedTypes.asSuper(atypeFactory, subtype, supertype);
+
+        fixUpRawTypes(subtype, asSuperType, supertype, types);
+
+        // if we have a type for enum MyEnum {...}
+        // When the supertype is the declaration of java.lang.Enum<E>, MyEnum values become
+        // Enum<MyEnum>.  Where really, we would like an Enum<E> with the annotations from
+        // Enum<MyEnum> are transferred to Enum<E>.  That is, if we have a type:
+        // @1 Enum<@2 MyEnum>
+        // asSuper should return:
+        // @1 Enum<E extends @2 Enum<E>>
+        if (asSuperType != null
+                && AnnotatedTypes.isEnum(asSuperType)
+                && AnnotatedTypes.isDeclarationOfJavaLangEnum(types, elements, supertype)) {
+            final AnnotatedDeclaredType resultAtd = ((AnnotatedDeclaredType) supertype).deepCopy();
+            resultAtd.clearAnnotations();
+            resultAtd.addAnnotations(asSuperType.getAnnotations());
+
+            final AnnotatedDeclaredType asSuperAdt = (AnnotatedDeclaredType) asSuperType;
+            if (!resultAtd.getTypeArguments().isEmpty()
+                    && !asSuperAdt.getTypeArguments().isEmpty()) {
+                final AnnotatedTypeMirror sourceTypeArg = asSuperAdt.getTypeArguments().get(0);
+                final AnnotatedTypeMirror resultTypeArg = resultAtd.getTypeArguments().get(0);
+                resultTypeArg.clearAnnotations();
+                if (resultTypeArg.getKind() == TypeKind.TYPEVAR) {
+                    // Only change the upper bound of a type variable.
+                    AnnotatedTypeVariable resultTypeArgTV = (AnnotatedTypeVariable) resultTypeArg;
+                    resultTypeArgTV.getUpperBound().addAnnotations(sourceTypeArg.getAnnotations());
+                } else {
+                    resultTypeArg.addAnnotations(sourceTypeArg.getEffectiveAnnotations());
+                }
+                @SuppressWarnings("unchecked")
+                T result = (T) resultAtd;
+                return result;
+            }
+        }
+        return asSuperType;
+    }
+
+    /**
+     * Some times we create type arguments for types that were raw. When we do an asSuper we lose
+     * these arguments. If in the converted type (i.e. the subtype as super) is missing type
+     * arguments AND those type arguments should come from the original subtype's type arguments
+     * then we copy the original type arguments to the converted type. e.g. We have a type W, that
+     * "wasRaw" {@code ArrayList<? extends Object>} When W is converted to type A, List, using
+     * asSuper it no longer has its type argument. But since the type argument to List should be the
+     * same as that to ArrayList we copy over the type argument of W to A. A becomes {@code List<?
+     * extends Object>}
+     *
+     * @param originalSubtype the subtype before being converted by asSuper
+     * @param asSuperType he subtype after being converted by asSuper
+     * @param supertype the supertype for which asSuperType should have the same underlying type
+     * @param types the types utility
+     */
+    private static void fixUpRawTypes(
+            final AnnotatedTypeMirror originalSubtype,
+            final AnnotatedTypeMirror asSuperType,
+            final AnnotatedTypeMirror supertype,
+            final Types types) {
+        if (asSuperType == null
+                || asSuperType.getKind() != TypeKind.DECLARED
+                || originalSubtype.getKind() != TypeKind.DECLARED) {
+            return;
+        }
+
+        final AnnotatedDeclaredType declaredAsSuper = (AnnotatedDeclaredType) asSuperType;
+        final AnnotatedDeclaredType declaredSubtype = (AnnotatedDeclaredType) originalSubtype;
+
+        if (!declaredAsSuper.wasRaw()
+                || !declaredAsSuper.getTypeArguments().isEmpty()
+                || declaredSubtype.getTypeArguments().isEmpty()) {
+            return;
+        }
+
+        Set<Pair<Integer, Integer>> typeArgMap =
+                TypeArgumentMapper.mapTypeArgumentIndices(
+                        (TypeElement) declaredSubtype.getUnderlyingType().asElement(),
+                        (TypeElement) declaredAsSuper.getUnderlyingType().asElement(),
+                        types);
+
+        if (typeArgMap.size() != declaredSubtype.getTypeArguments().size()) {
+            return;
+        }
+
+        List<AnnotatedTypeMirror> newTypeArgs = new ArrayList<>();
+
+        List<Pair<Integer, Integer>> orderedByDestination = new ArrayList<>(typeArgMap);
+        Collections.sort(
+                orderedByDestination,
+                new Comparator<Pair<Integer, Integer>>() {
+                    @Override
+                    public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
+                        return o1.second - o2.second;
+                    }
+                });
+
+        final List<? extends AnnotatedTypeMirror> subTypeArgs = declaredSubtype.getTypeArguments();
+        if (typeArgMap.size() == ((AnnotatedDeclaredType) supertype).getTypeArguments().size()) {
+            for (Pair<Integer, Integer> mapping : orderedByDestination) {
+                newTypeArgs.add(subTypeArgs.get(mapping.first).deepCopy());
+            }
+        }
+        declaredAsSuper.setTypeArguments(newTypeArgs);
     }
 
     /** This method identifies wildcard types that are unbound. */
@@ -177,13 +308,46 @@ public class AnnotatedTypes {
         return asSuper(atypeFactory, type, superType);
     }
 
-    /** @see #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror, Element) */
+    /**
+     * Specialization of {@link #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror,
+     * Element)} with more precise return type.
+     *
+     * @see #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror, Element)
+     * @param types the Types instance to use
+     * @param atypeFactory the type factory to use
+     * @param t the receiver type
+     * @param elem the element that should be viewed as member of t
+     * @return the type of elem as member of t
+     */
     public static AnnotatedExecutableType asMemberOf(
             Types types,
             AnnotatedTypeFactory atypeFactory,
             AnnotatedTypeMirror t,
             ExecutableElement elem) {
         return (AnnotatedExecutableType) asMemberOf(types, atypeFactory, t, (Element) elem);
+    }
+
+    /**
+     * Specialization of {@link #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror,
+     * Element, AnnotatedTypeMirror)} with more precise return type.
+     *
+     * @see #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror, Element,
+     *     AnnotatedTypeMirror)
+     * @param types the Types instance to use
+     * @param atypeFactory the type factory to use
+     * @param t the receiver type
+     * @param elem the element that should be viewed as member of t
+     * @param type unsubstituted type of member
+     * @return the type of member as member of of, with initial type memberType; can be an alias to
+     *     memberType
+     */
+    public static AnnotatedExecutableType asMemberOf(
+            Types types,
+            AnnotatedTypeFactory atypeFactory,
+            AnnotatedTypeMirror t,
+            ExecutableElement elem,
+            AnnotatedExecutableType type) {
+        return (AnnotatedExecutableType) asMemberOf(types, atypeFactory, t, (Element) elem, type);
     }
 
     /**
@@ -195,7 +359,7 @@ public class AnnotatedTypes {
      * {@code @NonNull String}.
      *
      * <p>The result is customized according to the type system semantics, according to {@link
-     * AnnotatedTypeFactory#postAsMemberOf( AnnotatedTypeMirror, AnnotatedTypeMirror, Element)}.
+     * AnnotatedTypeFactory#postAsMemberOf(AnnotatedTypeMirror, AnnotatedTypeMirror, Element)}.
      *
      * <p>Note that this method does not currently return (top level) captured types for type
      * parameters, parameters, and return types. Instead, the original wildcard is returned, or
@@ -206,11 +370,38 @@ public class AnnotatedTypes {
      * where captures should appear (like type arguments). This should just involve the bounds of
      * the wildcard where the bounds of the capture would have been used.
      *
-     * @param t a type
-     * @param elem an element
+     * @param types the Types instance to use
+     * @param atypeFactory the type factory to use
+     * @param t the receiver type
+     * @param elem the element that should be viewed as member of t
+     * @return the type of elem as member of t
      */
     public static AnnotatedTypeMirror asMemberOf(
             Types types, AnnotatedTypeFactory atypeFactory, AnnotatedTypeMirror t, Element elem) {
+        final AnnotatedTypeMirror memberType = atypeFactory.getAnnotatedType(elem);
+        return asMemberOf(types, atypeFactory, t, elem, memberType);
+    }
+
+    /**
+     * Returns the type of an element when that element is viewed as a member of, or otherwise
+     * directly contained by, a given type. An initial type for the member is provided, to allow for
+     * earlier changes to the declared type of elem. For example, polymorphic qualifiers must be
+     * substituted before type variables are substituted.
+     *
+     * @param types the Types instance to use
+     * @param atypeFactory the type factory to use
+     * @param t the receiver type
+     * @param elem the element that should be viewed as member of t
+     * @param elemType unsubstituted type of elem
+     * @return the type of elem as member of t
+     * @see #asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror, Element)
+     */
+    public static AnnotatedTypeMirror asMemberOf(
+            Types types,
+            AnnotatedTypeFactory atypeFactory,
+            AnnotatedTypeMirror t,
+            Element elem,
+            AnnotatedTypeMirror elemType) {
         // asMemberOf is only for fields, variables, and methods!
         // Otherwise, simply use fromElement.
         switch (elem.getKind()) {
@@ -219,23 +410,34 @@ public class AnnotatedTypes {
             case OTHER:
             case STATIC_INIT:
             case TYPE_PARAMETER:
-                return atypeFactory.fromElement(elem);
+                return elemType;
             default:
-                AnnotatedTypeMirror type = asMemberOfImpl(types, atypeFactory, t, elem);
+                AnnotatedTypeMirror res = asMemberOfImpl(types, atypeFactory, t, elem, elemType);
                 if (!ElementUtils.isStatic(elem)) {
-                    atypeFactory.postAsMemberOf(type, t, elem);
+                    atypeFactory.postAsMemberOf(res, t, elem);
                 }
-                return type;
+                return res;
         }
     }
 
+    /**
+     * Helper for {@link AnnotatedTypes#asMemberOf(Types, AnnotatedTypeFactory, AnnotatedTypeMirror,
+     * Element)}.
+     *
+     * @param types the Types instance to use
+     * @param atypeFactory the type factory to use
+     * @param of the receiver type
+     * @param member the element that should be viewed as member of of
+     * @param memberType unsubstituted type of member
+     * @return the type of member as member of of, with initial type memberType; can be an alias to
+     *     memberType
+     */
     private static AnnotatedTypeMirror asMemberOfImpl(
             final Types types,
             final AnnotatedTypeFactory atypeFactory,
             final AnnotatedTypeMirror of,
-            final Element member) {
-        final AnnotatedTypeMirror memberType = atypeFactory.getAnnotatedType(member);
-
+            final Element member,
+            final AnnotatedTypeMirror memberType) {
         if (ElementUtils.isStatic(member)) {
             return memberType;
         }
@@ -250,19 +452,33 @@ public class AnnotatedTypes {
                 return memberType;
             case TYPEVAR:
                 return asMemberOf(
-                        types, atypeFactory, ((AnnotatedTypeVariable) of).getUpperBound(), member);
+                        types,
+                        atypeFactory,
+                        ((AnnotatedTypeVariable) of).getUpperBound(),
+                        member,
+                        memberType);
             case WILDCARD:
+                if (((AnnotatedWildcardType) of).isUninferredTypeArgument()) {
+                    return substituteUninferredTypeArgs(atypeFactory, member, memberType);
+                }
                 return asMemberOf(
                         types,
                         atypeFactory,
                         ((AnnotatedWildcardType) of).getExtendsBound().deepCopy(),
-                        member);
+                        member,
+                        memberType);
             case INTERSECTION:
+                AnnotatedTypeMirror iter = memberType;
+                for (AnnotatedDeclaredType superType :
+                        ((AnnotatedIntersectionType) of).directSuperTypes()) {
+                    iter = substituteTypeVariables(types, atypeFactory, superType, member, iter);
+                }
+                return iter;
             case UNION:
             case DECLARED:
                 return substituteTypeVariables(types, atypeFactory, of, member, memberType);
             default:
-                throw new BugInCF("asMemberOf called on unexpected type.\nt: " + of);
+                throw new BugInCF("asMemberOf called on unexpected type.%nt: %s", of);
         }
     }
 
@@ -314,15 +530,11 @@ public class AnnotatedTypes {
         for (final AnnotatedTypeMirror typeParam : enclosingType.getTypeArguments()) {
             if (typeParam.getKind() != TypeKind.TYPEVAR) {
                 throw new BugInCF(
-                        "Type arguments of a declaration should be type variables\n"
-                                + "enclosingClassOfElem="
-                                + enclosingClassOfElem
-                                + "\n"
-                                + "enclosingType="
-                                + enclosingType
-                                + "\n"
-                                + "typeMirror="
-                                + t);
+                        SystemUtil.joinLines(
+                                "Type arguments of a declaration should be type variables",
+                                "enclosingClassOfElem=" + enclosingClassOfElem,
+                                "enclosingType=" + enclosingType,
+                                "typeMirror=" + t));
             }
             ownerParams.add((AnnotatedTypeVariable) typeParam);
         }
@@ -330,12 +542,10 @@ public class AnnotatedTypes {
         List<AnnotatedTypeMirror> baseParams = base.getTypeArguments();
         if (ownerParams.size() != baseParams.size() && !base.wasRaw()) {
             throw new BugInCF(
-                    "Unexpected number of parameters.\n"
-                            + "enclosingType="
-                            + enclosingType
-                            + "\n"
-                            + "baseType="
-                            + base);
+                    SystemUtil.joinLines(
+                            "Unexpected number of parameters.",
+                            "enclosingType=" + enclosingType,
+                            "baseType=" + base));
         }
         if (!ownerParams.isEmpty() && baseParams.isEmpty() && base.wasRaw()) {
             List<AnnotatedTypeMirror> newBaseParams = new ArrayList<>();
@@ -351,6 +561,34 @@ public class AnnotatedTypes {
         for (int i = 0; i < ownerParams.size(); ++i) {
             mappings.put(ownerParams.get(i).getUnderlyingType(), baseParams.get(i));
         }
+    }
+
+    /** Substitutes uninferred type arguments for type variables in {@code memberType}. */
+    private static AnnotatedTypeMirror substituteUninferredTypeArgs(
+            AnnotatedTypeFactory atypeFactory, Element member, AnnotatedTypeMirror memberType) {
+        TypeElement enclosingClassOfMember = ElementUtils.enclosingClass(member);
+        final Map<TypeVariable, AnnotatedTypeMirror> mappings = new HashMap<>();
+
+        while (enclosingClassOfMember != null) {
+            if (!enclosingClassOfMember.getTypeParameters().isEmpty()) {
+                AnnotatedDeclaredType enclosingType =
+                        atypeFactory.getAnnotatedType(enclosingClassOfMember);
+                for (final AnnotatedTypeMirror type : enclosingType.getTypeArguments()) {
+                    AnnotatedTypeVariable typeParameter = (AnnotatedTypeVariable) type;
+                    mappings.put(
+                            typeParameter.getUnderlyingType(),
+                            atypeFactory.getUninferredWildcardType(typeParameter));
+                }
+            }
+            enclosingClassOfMember =
+                    ElementUtils.enclosingClass(enclosingClassOfMember.getEnclosingElement());
+        }
+
+        if (!mappings.isEmpty()) {
+            return atypeFactory.getTypeVarSubstitutor().substitute(mappings, memberType);
+        }
+
+        return memberType;
     }
 
     /**
@@ -403,7 +641,7 @@ public class AnnotatedTypes {
     }
 
     /**
-     * Returns all the super types of the given declared type.
+     * Returns all the supertypes (direct or indirect) of the given declared type.
      *
      * @param type a declared type
      * @return all the supertypes of the given type
@@ -438,12 +676,10 @@ public class AnnotatedTypes {
     }
 
     /**
-     * A utility method that takes a Method element and returns a set of all elements that this
-     * method overrides (as {@link ExecutableElement}s).
+     * Given a method, return the methods that it overrides.
      *
      * @param method the overriding method
-     * @return an unmodifiable set of {@link ExecutableElement}s representing the elements that
-     *     method overrides
+     * @return a map from types to methods that {@code method} overrides
      */
     public static Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods(
             Elements elements, AnnotatedTypeFactory atypeFactory, ExecutableElement method) {
@@ -454,15 +690,13 @@ public class AnnotatedTypes {
     }
 
     /**
-     * A utility method that takes the element for a method and the set of all supertypes of the
-     * method's containing class and returns the set of all elements that method overrides (as
-     * {@link ExecutableElement}s).
+     * Given a method and all supertypes (recursively) of the method's containing class, returns the
+     * methods that the method overrides.
      *
      * @param method the overriding method
      * @param supertypes the set of supertypes to check for methods that are overridden by {@code
      *     method}
-     * @return an unmodified set of {@link ExecutableElement}s representing the elements that {@code
-     *     method} overrides among {@code supertypes}
+     * @return a map from types to methods that {@code method} overrides
      */
     public static Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods(
             Elements elements,
@@ -811,54 +1045,36 @@ public class AnnotatedTypes {
         return found;
     }
 
-    private static Map<TypeElement, Boolean> isTypeAnnotationCache = new IdentityHashMap<>();
-
+    /**
+     * Returns true if the given annotation mirror targets {@link ElementType#TYPE_USE}, false
+     * otherwise.
+     *
+     * @param anno the {@link AnnotationMirror}
+     * @param cls the annotation class being tested; used for diagnostic messages only
+     * @return true iff the give array contains {@link ElementType#TYPE_USE}
+     * @throws RuntimeException if the anno targets both {@link ElementType#TYPE_USE} and something
+     *     besides {@link ElementType#TYPE_PARAMETER}
+     * @deprecated Use {@link AnnotationUtils#hasTypeQualifierElementTypes(ElementType[], Class)}.
+     */
+    @Deprecated
     public static boolean isTypeAnnotation(AnnotationMirror anno, Class<?> cls) {
         TypeElement elem = (TypeElement) anno.getAnnotationType().asElement();
-        if (isTypeAnnotationCache.containsKey(elem)) {
-            return isTypeAnnotationCache.get(elem);
-        }
-
-        // the annotation is a type annotation if it has the proper ElementTypes in the @Target
-        // meta-annotation
-        boolean result =
-                hasTypeQualifierElementTypes(elem.getAnnotation(Target.class).value(), cls);
-        isTypeAnnotationCache.put(elem, result);
-        return result;
+        return hasTypeQualifierElementTypes(elem.getAnnotation(Target.class).value(), cls);
     }
 
     /**
-     * Sees if the passed in array of {@link ElementType} values have the correct set of values
-     * which defines a type qualifier.
+     * Returns true if the given array contains {@link ElementType#TYPE_USE}, false otherwise.
      *
      * @param elements an array of {@link ElementType} values
      * @param cls the annotation class being tested; used for diagnostic messages only
+     * @return true iff the give array contains {@link ElementType#TYPE_USE}
      * @throws RuntimeException if the array contains both {@link ElementType#TYPE_USE} and
      *     something besides {@link ElementType#TYPE_PARAMETER}
+     * @deprecated use {@link AnnotationUtils#hasTypeQualifierElementTypes(ElementType[], Class)}.
      */
+    @Deprecated
     public static boolean hasTypeQualifierElementTypes(ElementType[] elements, Class<?> cls) {
-        boolean hasTypeUse = false;
-        ElementType otherElementType = null;
-
-        for (ElementType element : elements) {
-            if (element.equals(ElementType.TYPE_USE)) {
-                // valid annotations have to have TYPE_USE
-                hasTypeUse = true;
-            } else if (!element.equals(ElementType.TYPE_PARAMETER)) {
-                // if there's an ElementType with a enumerated value of something other than
-                // TYPE_USE or TYPE_PARAMETER then it isn't a valid annotation
-                otherElementType = element;
-            }
-            if (hasTypeUse && otherElementType != null) {
-                throw new BugInCF(
-                        "@Target meta-annotation should not contain both TYPE_USE and "
-                                + otherElementType
-                                + ", for annotation "
-                                + cls.getName());
-            }
-        }
-
-        return hasTypeUse;
+        return AnnotationUtils.hasTypeQualifierElementTypes(elements, cls);
     }
 
     private static String annotationClassName =
@@ -975,6 +1191,7 @@ public class AnnotatedTypes {
             final AnnotationMirror top) {
         return findEffectiveAnnotationInHierarchy(qualifierHierarchy, toSearch, top, false);
     }
+
     /**
      * When comparing types against the bounds of a type variable, we may encounter other type
      * variables, wildcards, and intersections in those bounds. This method traverses the bounds
@@ -1012,7 +1229,8 @@ public class AnnotatedTypes {
                     if (glb == null) {
                         throw new BugInCF(
                                 "AnnotatedIntersectionType has no annotation in hierarchy "
-                                        + "on any of its supertypes.\n"
+                                        + "on any of its supertypes."
+                                        + System.lineSeparator()
                                         + "intersectionType="
                                         + source);
                     }
@@ -1024,15 +1242,11 @@ public class AnnotatedTypes {
                     }
 
                     throw new BugInCF(
-                            "Unexpected AnnotatedTypeMirror with no primary annotation.\n"
-                                    + "toSearch="
-                                    + toSearch
-                                    + "\n"
-                                    + "top="
-                                    + top
-                                    + "\n"
-                                    + "source="
-                                    + source);
+                            SystemUtil.joinLines(
+                                    "Unexpected AnnotatedTypeMirror with no primary annotation.",
+                                    "toSearch=" + toSearch,
+                                    "top=" + top,
+                                    "source=" + source));
             }
         }
 
@@ -1218,7 +1432,7 @@ public class AnnotatedTypes {
         // Collect all polymorphic qualifiers; we should substitute them.
         Set<AnnotationMirror> polys = AnnotationUtils.createAnnotationSet();
         for (AnnotationMirror anno : returnType.getAnnotations()) {
-            if (QualifierPolymorphism.isPolymorphicQualified(anno)) {
+            if (QualifierPolymorphism.hasPolymorphicQualifier(anno)) {
                 polys.add(anno);
             }
         }

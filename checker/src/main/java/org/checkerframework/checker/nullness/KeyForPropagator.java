@@ -13,7 +13,7 @@ import javax.lang.model.util.Types;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
-import org.checkerframework.framework.type.visitor.AnnotatedTypeMerger;
+import org.checkerframework.framework.type.visitor.AnnotatedTypeReplacer;
 import org.checkerframework.framework.util.TypeArgumentMapper;
 import org.checkerframework.framework.util.typeinference.TypeArgInferenceUtil;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -21,8 +21,9 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
 
 /**
- * KeyForPropagator is used to move nested KeyFor annotations from one side of a pseudo-assignment
- * to the other. The KeyForPropagationTreeAnnotator details the locations in which this occurs.
+ * KeyForPropagator is used to move nested KeyFor annotations in type arguments from one side of a
+ * pseudo-assignment to the other. The KeyForPropagationTreeAnnotator details the locations in which
+ * this occurs.
  *
  * @see org.checkerframework.checker.nullness.KeyForPropagationTreeAnnotator
  */
@@ -105,8 +106,8 @@ public class KeyForPropagator {
         Set<Pair<Integer, Integer>> typeParamMappings =
                 TypeArgumentMapper.mapTypeArgumentIndices(subtypeElement, supertypeElement, types);
 
-        KeyForPropagationMerger merger =
-                new KeyForPropagationMerger(typeFactory.getProcessingEnv());
+        KeyForPropagationReplacer replacer =
+                new KeyForPropagationReplacer(typeFactory.getProcessingEnv());
 
         final List<AnnotatedTypeMirror> subtypeArgs = subtype.getTypeArguments();
         final List<AnnotatedTypeMirror> supertypeArgs = supertype.getTypeArguments();
@@ -122,17 +123,17 @@ public class KeyForPropagator {
 
             switch (direction) {
                 case TO_SUBTYPE:
-                    merger.visit(supertypeArg, subtypeArg);
+                    replacer.visit(supertypeArg, subtypeArg);
                     break;
 
                 case TO_SUPERTYPE:
-                    merger.visit(subtypeArg, supertypeArg);
+                    replacer.visit(subtypeArg, supertypeArg);
                     break;
 
                 case BOTH:
                     // note if they both have an annotation nothing will happen
-                    merger.visit(subtypeArg, supertypeArg);
-                    merger.visit(supertypeArg, subtypeArg);
+                    replacer.visit(subtypeArg, supertypeArg);
+                    replacer.visit(supertypeArg, subtypeArg);
                     break;
             }
         }
@@ -174,13 +175,20 @@ public class KeyForPropagator {
     }
 
     /**
-     * An annotated type merger that merges @KeyFor annotations and only if the type that is
+     * An annotated type replacer that replaces @KeyFor annotations and only if the type that is
      * receiving an annotation has an @UnknownKeyFor annotation or NO key for annotations.
      */
-    private class KeyForPropagationMerger extends AnnotatedTypeMerger {
+    private class KeyForPropagationReplacer extends AnnotatedTypeReplacer {
+
+        /** The processing environment. */
         private final ProcessingEnvironment env;
 
-        private KeyForPropagationMerger(ProcessingEnvironment env) {
+        /**
+         * Create a new replacer.
+         *
+         * @param env the processing environment
+         */
+        private KeyForPropagationReplacer(ProcessingEnvironment env) {
             this.env = env;
         }
 

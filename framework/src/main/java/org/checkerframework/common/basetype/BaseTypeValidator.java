@@ -1,5 +1,7 @@
 package org.checkerframework.common.basetype;
 
+import static javax.tools.Diagnostic.Kind.ERROR;
+
 import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
@@ -7,6 +9,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.lang.model.element.AnnotationMirror;
@@ -14,8 +17,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.framework.qual.PolyAll;
-import org.checkerframework.framework.source.Result;
+import org.checkerframework.framework.source.DiagMessage;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -25,18 +27,28 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVari
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.framework.type.AnnotatedTypeParameterBounds;
 import org.checkerframework.framework.type.QualifierHierarchy;
-import org.checkerframework.framework.type.poly.QualifierPolymorphism;
 import org.checkerframework.framework.type.visitor.AnnotatedTypeScanner;
 import org.checkerframework.framework.type.visitor.SimpleAnnotatedTypeScanner;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.*;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeAnnotationUtils;
 
 /** A visitor to validate the types in a tree. */
 public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implements TypeValidator {
+    /** Is the type valid? */
     protected boolean isValid = true;
 
+    /** Should the primary annotation on the top level type be checked? */
+    protected boolean checkTopLevelDeclaredType = true;
+
+    /** BaseTypeChecker. */
     protected final BaseTypeChecker checker;
+    /** BaseTypeVisitor. */
     protected final BaseTypeVisitor<?> visitor;
+    /** AnnotatedTypeFactory. */
     protected final AnnotatedTypeFactory atypeFactory;
 
     // TODO: clean up coupling between components
@@ -61,19 +73,40 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
      */
     @Override
     public boolean isValid(AnnotatedTypeMirror type, Tree tree) {
-        Result result = isValidType(atypeFactory.getQualifierHierarchy(), type);
-        if (result.isFailure()) {
-            checker.report(result, tree);
+        List<DiagMessage> diagMessages = isValidType(atypeFactory.getQualifierHierarchy(), type);
+        if (!diagMessages.isEmpty()) {
+            for (DiagMessage d : diagMessages) {
+                checker.report(tree, d);
+            }
             return false;
         }
         this.isValid = true;
+        this.checkTopLevelDeclaredType = shouldCheckTopLevelDeclaredType(type, tree);
         visit(type, tree);
         return this.isValid;
     }
 
     /**
-     * Returns true if the given {@link AnnotatedTypeMirror} passed a set of well-formedness checks.
-     * The method will never return false for valid types, but might not catch all invalid types.
+     * Should the top-level declared type be checked?
+     *
+     * <p>Top-level type is not checked if tree is a local variable or an expression tree.
+     *
+     * @param type AnnotatedTypeMirror being validated
+     * @param tree a Tree whose type is {@code type}
+     * @return whether or not the top-level type should be checked
+     */
+    protected boolean shouldCheckTopLevelDeclaredType(AnnotatedTypeMirror type, Tree tree) {
+        if (type.getKind() != TypeKind.DECLARED) {
+            return true;
+        }
+        return !TreeUtils.isLocalVariable(tree)
+                && (!TreeUtils.isExpressionTree(tree) || TreeUtils.isTypeTree(tree));
+    }
+
+    /**
+     * Performs some well-formedness checks on the given {@link AnnotatedTypeMirror}. Returns a list
+     * of failures. If successful, returns an empty list. The method will never return failures for
+     * a valid type, but might not catch all invalid types.
      *
      * <p>Currently, the following is checked:
      *
@@ -85,66 +118,72 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
      *   <li>These properties should also hold recursively for component types of arrays, as wells
      *       as bounds of type variables and wildcards.
      * </ol>
+     *
+     * @param qualifierHierarchy the qualifier hierachy
+     * @param type the type to test
+     * @return list of reasons the type is invalid, or empty list if the type is valid
      */
-    protected Result isValidType(QualifierHierarchy qualifierHierarchy, AnnotatedTypeMirror type) {
-        SimpleAnnotatedTypeScanner<Result, Void> scanner =
-                new SimpleAnnotatedTypeScanner<Result, Void>() {
+    protected List<DiagMessage> isValidType(
+            QualifierHierarchy qualifierHierarchy, AnnotatedTypeMirror type) {
+        SimpleAnnotatedTypeScanner<List<DiagMessage>, Void> scanner =
+                new SimpleAnnotatedTypeScanner<List<DiagMessage>, Void>() {
                     @Override
-                    protected Result defaultAction(AnnotatedTypeMirror type, Void aVoid) {
+                    protected List<DiagMessage> defaultAction(
+                            AnnotatedTypeMirror type, Void aVoid) {
                         return isTopLevelValidType(qualifierHierarchy, type);
                     }
 
                     @Override
-                    protected Result reduce(Result r1, Result r2) {
-                        if (r1 == null) {
-                            if (r2 == null) {
-                                return Result.SUCCESS;
-                            }
-                            return r2;
-                        } else if (r2 == null) {
-                            return r1;
-                        }
-                        return r1.merge(r2);
+                    protected List<DiagMessage> reduce(List<DiagMessage> r1, List<DiagMessage> r2) {
+                        return DiagMessage.mergeLists(r1, r2);
                     }
                 };
         return scanner.visit(type);
     }
 
-    /** Checks every property listed in {@link #isValidType}, but only for the top level type. */
-    protected Result isTopLevelValidType(
+    /**
+     * Checks every property listed in {@link #isValidType}, but only for the top level type. If
+     * successful, returns an empty list. If not successful, returns diagnostics.
+     *
+     * @param qualifierHierarchy the qualifier hierarchy
+     * @param type the type to be checked
+     * @return the diagnostics indicating failure, or an empty list if successful
+     */
+    // This method returns a singleton or empyty list.  Its return type is List rather than
+    // DiagMessage (with null indicting success) because its caller,  isValidType(), expects a
+    // list.
+    protected List<DiagMessage> isTopLevelValidType(
             QualifierHierarchy qualifierHierarchy, AnnotatedTypeMirror type) {
         // multiple annotations from the same hierarchy
         Set<AnnotationMirror> annotations = type.getAnnotations();
         Set<AnnotationMirror> seenTops = AnnotationUtils.createAnnotationSet();
         for (AnnotationMirror anno : annotations) {
-            if (QualifierPolymorphism.isPolyAll(anno)) {
-                // ignore PolyAll when counting annotations
-                continue;
-            }
             AnnotationMirror top = qualifierHierarchy.getTopAnnotation(anno);
             if (AnnotationUtils.containsSame(seenTops, top)) {
-                return Result.failure("type.invalid.conflicting.annos", annotations, type);
+                return Collections.singletonList(
+                        new DiagMessage(
+                                ERROR, "type.invalid.conflicting.annos", annotations, type));
             }
             seenTops.add(top);
         }
 
-        // treat types that have polyall like type variables
-        boolean hasPolyAll = type.hasAnnotation(PolyAll.class);
-        boolean canHaveEmptyAnnotationSet =
-                QualifierHierarchy.canHaveEmptyAnnotationSet(type) || hasPolyAll;
+        boolean canHaveEmptyAnnotationSet = QualifierHierarchy.canHaveEmptyAnnotationSet(type);
 
         // wrong number of annotations
         if (!canHaveEmptyAnnotationSet && seenTops.size() < qualifierHierarchy.getWidth()) {
-            return Result.failure("type.invalid.too.few.annotations", annotations, type);
+            return Collections.singletonList(
+                    new DiagMessage(ERROR, "type.invalid.too.few.annotations", annotations, type));
         }
-        return Result.SUCCESS;
+
+        // success
+        return Collections.emptyList();
     }
 
     protected void reportValidityResult(
             final @CompilerMessageKey String errorType,
             final AnnotatedTypeMirror type,
             final Tree p) {
-        checker.report(Result.failure(errorType, type.getAnnotations(), type.toString()), p);
+        checker.reportError(p, errorType, type.getAnnotations(), type.toString());
         isValid = false;
     }
 
@@ -152,16 +191,17 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
      * Like {@link #reportValidityResult}, but the type is printed in the error message without
      * annotations. This method would print "annotation @NonNull is not permitted on type int",
      * whereas {@link #reportValidityResult} would print "annotation @NonNull is not permitted on
-     * type @NonNull int".
+     * type @NonNull int". In addition, when the underlying type is a compound type such as
+     * {@code @Bad List<String>}, the erased type will be used, i.e., "{@code List}" will print
+     * instead of "{@code @Bad List<String>}".
      */
     protected void reportValidityResultOnUnannotatedType(
             final @CompilerMessageKey String errorType,
             final AnnotatedTypeMirror type,
             final Tree p) {
-        // TODO: if underlying is a compound type such as List<@Palindrome String>, then it would be
-        // nice to print it as "List" instead of as "List<@Palindrome String>".
-        TypeMirror underlying = type.getUnderlyingType();
-        checker.report(Result.failure(errorType, type.getAnnotations(), underlying.toString()), p);
+        TypeMirror underlying =
+                TypeAnnotationUtils.unannotatedType(type.getErased().getUnderlyingType());
+        checker.reportError(p, errorType, type.getAnnotations(), underlying.toString());
         isValid = false;
     }
 
@@ -192,18 +232,16 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
                 break;
 
             default:
-                throw new BugInCF(
-                        "Type is not bounded.\n" + "type=" + type + "\n" + "tree=" + tree);
+                throw new BugInCF("Type is not bounded.%ntype=%s%ntree=%s", type, tree);
         }
 
-        checker.report(
-                Result.failure(
-                        "bound.type.incompatible",
-                        label,
-                        type.toString(),
-                        upperBound.toString(true),
-                        lowerBound.toString(true)),
-                tree);
+        checker.reportError(
+                tree,
+                "bound.type.incompatible",
+                label,
+                type.toString(),
+                upperBound.toString(true),
+                lowerBound.toString(true));
         isValid = false;
     }
 
@@ -223,17 +261,24 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
 
         final boolean skipChecks = checker.shouldSkipUses(type.getUnderlyingType().asElement());
 
-        if (!skipChecks) {
+        if (checkTopLevelDeclaredType && !skipChecks) {
             // Ensure that type use is a subtype of the element type
             // isValidUse determines the erasure of the types.
-            AnnotatedDeclaredType elemType =
-                    (AnnotatedDeclaredType)
-                            atypeFactory.getAnnotatedType(type.getUnderlyingType().asElement());
+
+            Set<AnnotationMirror> bounds =
+                    atypeFactory.getTypeDeclarationBounds(type.getUnderlyingType());
+
+            AnnotatedDeclaredType elemType = type.deepCopy();
+            elemType.clearAnnotations();
+            elemType.addAnnotations(bounds);
 
             if (!visitor.isValidUse(elemType, type, tree)) {
                 reportInvalidAnnotationsOnUse(type, tree);
             }
         }
+        // Set checkTopLevelDeclaredType to true, because the next time visitDeclared is called,
+        // the type isn't the top level, so always do the check.
+        checkTopLevelDeclaredType = true;
 
         /*
          * Try to reconstruct the ParameterizedTypeTree from the given tree.
@@ -357,7 +402,7 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
                 // the parameterized type is the result of some expression tree.
                 // No need to do anything further.
                 break;
-                // System.err.printf("TypeValidator.visitDeclared unhandled tree: %s of kind %s\n",
+                // System.err.printf("TypeValidator.visitDeclared unhandled tree: %s of kind %s%n",
                 //                 tree, tree.getKind());
         }
 
@@ -404,11 +449,11 @@ public class BaseTypeValidator extends AnnotatedTypeScanner<Void, Tree> implemen
      * are within the bounds of the type variables as declared, and issues the
      * "type.argument.type.incompatible" error if they are not.
      *
-     * <p>This method used to be visitParameterizedType, which incorrectly handles the main
-     * annotation on generic types.
+     * @param type the type to check
+     * @param tree the type's tree
      */
     protected Void visitParameterizedType(AnnotatedDeclaredType type, ParameterizedTypeTree tree) {
-        // System.out.printf("TypeValidator.visitParameterizedType: type: %s, tree: %s\n",
+        // System.out.printf("TypeValidator.visitParameterizedType: type: %s, tree: %s%n",
         // type, tree);
 
         if (TreeUtils.isDiamondTree(tree)) {

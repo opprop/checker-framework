@@ -29,7 +29,7 @@ import org.checkerframework.javacutil.Pair;
  * Abstract utility class for performing viewpoint adaptation.
  *
  * <p>This class contains the common logic for extracting and inserting viewpoint adapted
- * annotations into the coresponding types for member/field access, constructor and method
+ * annotations into the corresponding types for member/field access, constructor and method
  * invocations, and type parameter bound instantiations.
  *
  * <p>Subclasses implement the computation of the precise viewpoint adapted type given a receiver
@@ -41,8 +41,10 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
     // of another type variable. We only viewpoint adapt type variable that is not upper-bound.
     private boolean isTypeVarExtends = false;
 
+    /** The annotated type factory. */
     protected final AnnotatedTypeFactory atypeFactory;
 
+    /** The class constructor. */
     public AbstractViewpointAdapter(final AnnotatedTypeFactory atypeFactory) {
         this.atypeFactory = atypeFactory;
     }
@@ -117,7 +119,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
         declConstructorType =
                 (AnnotatedExecutableType)
-                        AnnotatedTypeReplacer.replace(declConstructorType, mappings);
+                        AnnotatedTypeCopierWithReplacement.replace(declConstructorType, mappings);
 
         constructorType.setParameterTypes(declConstructorType.getParameterTypes());
         constructorType.setTypeVariables(declConstructorType.getTypeVariables());
@@ -164,7 +166,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         }
 
         declMethodType =
-                (AnnotatedExecutableType) AnnotatedTypeReplacer.replace(declMethodType, mappings);
+                (AnnotatedExecutableType)
+                        AnnotatedTypeCopierWithReplacement.replace(declMethodType, mappings);
 
         // Because we can't viewpoint adapt asMemberOf result, we adapt the declared method first,
         // and sets the corresponding parts to asMemberOf result
@@ -174,6 +177,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         methodType.setTypeVariables(declMethodType.getTypeVariables());
     }
 
+    /** Check if the method invocation should be adapted. */
     protected boolean shouldAdaptMethod(ExecutableElement element) {
         return !ElementUtils.isStatic(element);
     }
@@ -263,7 +267,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                         combineAnnotationWithType(receiverAnnotation, atv.getLowerBound());
                 mapping.put(atv.getLowerBound(), resLower);
 
-                AnnotatedTypeMirror result = AnnotatedTypeReplacer.replace(atv, mapping);
+                AnnotatedTypeMirror result =
+                        AnnotatedTypeCopierWithReplacement.replace(atv, mapping);
 
                 isTypeVarExtends = false;
                 return result;
@@ -288,7 +293,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             }
 
             // Construct result type
-            AnnotatedTypeMirror result = AnnotatedTypeReplacer.replace(adt, mapping);
+            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(adt, mapping);
             result.replaceAnnotation(resultAnnotation);
 
             return result;
@@ -334,7 +339,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 mapping.put(zuper, combinedZuper);
             }
 
-            AnnotatedTypeMirror result = AnnotatedTypeReplacer.replace(awt, mapping);
+            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(awt, mapping);
 
             return result;
         } else if (declared.getKind() == TypeKind.NULL) {
@@ -394,7 +399,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             }
             // We must use AnnotatedTypeReplacer to replace the formal type parameters with actual
             // type arguments, but not replace with its main qualifier
-            rhs = AnnotatedTypeReplacer.replace(adt, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(adt, mapping);
         } else if (rhs.getKind() == TypeKind.WILDCARD) {
             AnnotatedWildcardType awt = (AnnotatedWildcardType) rhs.shallowCopy();
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
@@ -411,7 +416,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 mapping.put(zuper, substZuper);
             }
 
-            rhs = AnnotatedTypeReplacer.replace(awt, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(awt, mapping);
         } else if (rhs.getKind() == TypeKind.ARRAY) {
             AnnotatedArrayType aat = (AnnotatedArrayType) rhs.shallowCopy();
             Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
@@ -422,7 +427,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             mapping.put(compnentType, substCompnentType);
 
             // Construct result type
-            rhs = AnnotatedTypeReplacer.replace(aat, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(aat, mapping);
         } else if (rhs.getKind().isPrimitive() || rhs.getKind() == TypeKind.NULL) {
             // nothing to do for primitive types and the null type
         } else {

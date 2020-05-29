@@ -59,18 +59,10 @@ public class ExpectedErrors {
         lubPublicField = getSibling1();
     }
 
-    void assignFieldsToSibling2() {
+    static {
         lubPrivateField = getSibling2();
         lubPublicField = getSibling2();
     }
-
-    // TODO: Add support to static blocks. The static block below should replace
-    // the method above. Problem: It returns null when retrieving the class of the
-    // elements in the static block below.
-    //    static {
-    //        lubPrivateField = getSibling2();
-    //        lubPublicField = getSibling2();
-    //    }
 
     void testLUBFields1() {
         // :: error: (argument.type.incompatible)
@@ -152,7 +144,7 @@ public class ExpectedErrors {
         private int i;
         private int i2;
 
-        @SuppressWarnings("")
+        @SuppressWarnings("all")
         public void suppressWarningsTest() {
             i = (@Sibling1 int) 0;
             i2 = getSibling1();
@@ -178,7 +170,7 @@ public class ExpectedErrors {
             suppressWarningsMethodParams(getSibling1());
         }
 
-        @SuppressWarnings("")
+        @SuppressWarnings("all")
         public int suppressWarningsMethodReturn() {
             return getSibling1();
         }
@@ -189,11 +181,11 @@ public class ExpectedErrors {
         // we won't be able to catch any error inside the method body.
         // Verified manually that in the "annotated" folder param's type wasn't
         // updated.
-        @SuppressWarnings("")
+        @SuppressWarnings("all")
         public void suppressWarningsMethodParams(int param) {}
     }
 
-    @SuppressWarnings("")
+    @SuppressWarnings("all")
     static class SuppressWarningsInner {
         public static int i;
         public static int i2;

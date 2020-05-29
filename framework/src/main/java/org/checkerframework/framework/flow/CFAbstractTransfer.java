@@ -59,18 +59,17 @@ import org.checkerframework.dataflow.cfg.node.TernaryExpressionNode;
 import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
 import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
 import org.checkerframework.dataflow.cfg.node.WideningConversionNode;
-import org.checkerframework.framework.source.Result;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.framework.util.Contract;
+import org.checkerframework.framework.util.Contract.ConditionalPostcondition;
+import org.checkerframework.framework.util.Contract.Postcondition;
+import org.checkerframework.framework.util.Contract.Precondition;
 import org.checkerframework.framework.util.ContractsUtils;
-import org.checkerframework.framework.util.ContractsUtils.ConditionalPostcondition;
-import org.checkerframework.framework.util.ContractsUtils.Contract;
-import org.checkerframework.framework.util.ContractsUtils.Postcondition;
-import org.checkerframework.framework.util.ContractsUtils.Precondition;
 import org.checkerframework.framework.util.FlowExpressionParseUtil;
 import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionContext;
 import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionParseException;
@@ -281,14 +280,7 @@ public abstract class CFAbstractTransfer<
                     // on the overridden method.
                     analysis.atypeFactory
                             .getWholeProgramInference()
-                            .updateInferredMethodParameterTypes(
-                                    methodTree,
-                                    methodElem,
-                                    overriddenMethod,
-                                    analysis.getTypeFactory());
-                    analysis.atypeFactory
-                            .getWholeProgramInference()
-                            .updateInferredMethodReceiverType(
+                            .updateFromOverride(
                                     methodTree,
                                     methodElem,
                                     overriddenMethod,
@@ -779,7 +771,7 @@ public abstract class CFAbstractTransfer<
     /**
      * Takes a node, and either returns the node itself again (as a singleton list), or if the node
      * is an assignment node, returns the lhs and rhs (where splitAssignments is applied recursively
-     * to the rhs).
+     * to the rhs -- that is, the rhs may not appear in the result, but rather its lhs and rhs may).
      */
     protected List<Node> splitAssignments(Node node) {
         if (node instanceof AssignmentNode) {
@@ -805,7 +797,7 @@ public abstract class CFAbstractTransfer<
                 // Updates inferred field type
                 analysis.atypeFactory
                         .getWholeProgramInference()
-                        .updateInferredFieldType(
+                        .updateFromFieldAssignment(
                                 (FieldAccessNode) lhs,
                                 rhs,
                                 analysis.getContainingClass(n.getTree()),
@@ -814,7 +806,7 @@ public abstract class CFAbstractTransfer<
                     && ((LocalVariableNode) lhs).getElement().getKind() == ElementKind.PARAMETER) {
                 analysis.atypeFactory
                         .getWholeProgramInference()
-                        .updateInferredParameterType(
+                        .updateFromLocalAssignment(
                                 (LocalVariableNode) lhs,
                                 rhs,
                                 analysis.getContainingClass(n.getTree()),
@@ -834,13 +826,24 @@ public abstract class CFAbstractTransfer<
             // Retrieves class containing the method
             ClassTree classTree = analysis.getContainingClass(n.getTree());
             ClassSymbol classSymbol = (ClassSymbol) TreeUtils.elementFromTree(classTree);
+
+            ExecutableElement methodElem =
+                    TreeUtils.elementFromDeclaration(analysis.getContainingMethod(n.getTree()));
+
+            Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods =
+                    AnnotatedTypes.overriddenMethods(
+                            analysis.atypeFactory.getElementUtils(),
+                            analysis.atypeFactory,
+                            methodElem);
+
             // Updates the inferred return type of the method
             analysis.atypeFactory
                     .getWholeProgramInference()
-                    .updateInferredMethodReturnType(
+                    .updateFromReturn(
                             n,
                             classSymbol,
                             analysis.getContainingMethod(n.getTree()),
+                            overriddenMethods,
                             analysis.getTypeFactory());
         }
         return super.visitReturn(n, p);
@@ -871,7 +874,7 @@ public abstract class CFAbstractTransfer<
             // Updates inferred field type
             analysis.atypeFactory
                     .getWholeProgramInference()
-                    .updateInferredFieldType(
+                    .updateFromFieldAssignment(
                             (FieldAccessNode) lhs,
                             rhs,
                             analysis.getContainingClass(n.getTree()),
@@ -904,8 +907,7 @@ public abstract class CFAbstractTransfer<
                             .getElement();
             analysis.atypeFactory
                     .getWholeProgramInference()
-                    .updateInferredConstructorParameterTypes(
-                            n, constructorElt, analysis.getTypeFactory());
+                    .updateFromObjectCreation(n, constructorElt, analysis.getTypeFactory());
         }
         return super.visitObjectCreation(n, p);
     }
@@ -952,8 +954,7 @@ public abstract class CFAbstractTransfer<
             // Updates the inferred parameter type of the invoked method
             analysis.atypeFactory
                     .getWholeProgramInference()
-                    .updateInferredMethodParameterTypes(
-                            n, receiverTree, method, analysis.getTypeFactory());
+                    .updateFromMethodInvocation(n, receiverTree, method, analysis.getTypeFactory());
         }
 
         return new ConditionalTransferResult<>(
@@ -965,7 +966,7 @@ public abstract class CFAbstractTransfer<
      * a @SuppressWarning, then this method returns false.
      */
     private boolean shouldPerformWholeProgramInference(Tree tree) {
-        return infer && (tree == null || !analysis.checker.shouldSuppressWarnings(tree, null));
+        return infer && (tree == null || !analysis.checker.shouldSuppressWarnings(tree, ""));
     }
 
     /**
@@ -979,7 +980,7 @@ public abstract class CFAbstractTransfer<
             return false;
         }
         Element elt = TreeUtils.elementFromTree(lhsTree);
-        return !analysis.checker.shouldSuppressWarnings(elt, null);
+        return !analysis.checker.shouldSuppressWarnings(elt, "");
     }
 
     /**
@@ -988,7 +989,7 @@ public abstract class CFAbstractTransfer<
      */
     private boolean shouldPerformWholeProgramInference(Tree tree, Element elt) {
         return shouldPerformWholeProgramInference(tree)
-                && !analysis.checker.shouldSuppressWarnings(elt, null);
+                && !analysis.checker.shouldSuppressWarnings(elt, "");
     }
 
     /**
@@ -1045,28 +1046,29 @@ public abstract class CFAbstractTransfer<
                 FlowExpressions.Receiver r =
                         FlowExpressionParseUtil.parse(
                                 expression, flowExprContext, localScope, false);
-                if (p.kind == Contract.Kind.CONDITIONALPOSTCONDTION) {
-                    if (((ConditionalPostcondition) p).annoResult) {
-                        thenStore.insertValue(r, anno);
+                // "insertOrRefine" is called so that the postcondition information is added to any
+                // existing information rather than replacing it.  If the called method is not
+                // side-effect-free, then the values that might have been changed by the method call
+                // are removed from the store before this method is called.
+                if (p.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
+                    if (((ConditionalPostcondition) p).resultValue) {
+                        thenStore.insertOrRefine(r, anno);
                     } else {
-                        elseStore.insertValue(r, anno);
+                        elseStore.insertOrRefine(r, anno);
                     }
                 } else {
-                    thenStore.insertValue(r, anno);
+                    thenStore.insertOrRefine(r, anno);
                 }
             } catch (FlowExpressionParseException e) {
-                Result result;
+                // report errors here
                 if (e.isFlowParseError()) {
                     Object[] args = new Object[e.args.length + 1];
                     args[0] = ElementUtils.getSimpleName(TreeUtils.elementFromUse(n.getTree()));
                     System.arraycopy(e.args, 0, args, 1, e.args.length);
-                    result = Result.failure("flowexpr.parse.error.postcondition", args);
+                    analysis.checker.reportError(tree, "flowexpr.parse.error.postcondition", args);
                 } else {
-                    result = e.getResult();
+                    analysis.checker.report(tree, e.getDiagMessage());
                 }
-
-                // report errors here
-                analysis.checker.report(result, tree);
             }
         }
     }

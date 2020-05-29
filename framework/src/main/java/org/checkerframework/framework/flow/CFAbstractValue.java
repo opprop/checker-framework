@@ -19,7 +19,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.PluginUtil;
+import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TypesUtils;
 
 /**
@@ -69,7 +69,7 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
                 : "Encountered invalid type: "
                         + underlyingType
                         + " annotations: "
-                        + PluginUtil.join(", ", annotations);
+                        + SystemUtil.join(", ", annotations);
     }
 
     public static boolean validateSet(
@@ -137,13 +137,15 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
         if (!(obj instanceof CFAbstractValue)) {
             return false;
         }
 
         CFAbstractValue<?> other = (CFAbstractValue<?>) obj;
-        if (!analysis.getTypes().isSameType(this.getUnderlyingType(), other.getUnderlyingType())) {
+        if (this.getUnderlyingType() != other.getUnderlyingType()
+                && !analysis.getTypes()
+                        .isSameType(this.getUnderlyingType(), other.getUnderlyingType())) {
             return false;
         }
         return AnnotationUtils.areSame(this.getAnnotations(), other.getAnnotations());

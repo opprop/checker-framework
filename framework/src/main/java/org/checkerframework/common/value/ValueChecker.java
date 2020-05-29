@@ -23,7 +23,7 @@ import org.checkerframework.framework.source.SupportedOptions;
     ValueChecker.REPORT_EVAL_WARNS,
     ValueChecker.IGNORE_RANGE_OVERFLOW,
     ValueChecker.NON_NULL_STRINGS_CONCATENATION,
-    ValueChecker.HANDLE_PROPERTY_FILE
+    ValueChecker.HANDLE_PROPERTY_FILES
 })
 public class ValueChecker extends BaseTypeChecker {
     /**
@@ -36,7 +36,7 @@ public class ValueChecker extends BaseTypeChecker {
     /** Command-line option that assumes most expressions in String concatenations can be null. */
     public static final String NON_NULL_STRINGS_CONCATENATION = "nonNullStringsConcatenation";
     /** Command-line option to enable the property file handler. */
-    public static final String HANDLE_PROPERTY_FILE = "handlePropertyFile";
+    public static final String HANDLE_PROPERTY_FILES = "handlePropertyFiles";
 
     @Override
     protected BaseTypeVisitor<?> createSourceVisitor() {

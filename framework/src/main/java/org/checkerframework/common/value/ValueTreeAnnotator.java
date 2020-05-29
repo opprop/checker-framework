@@ -388,7 +388,6 @@ class ValueTreeAnnotator extends TreeAnnotator {
 
     @Override
     public Void visitMethodInvocation(MethodInvocationTree tree, AnnotatedTypeMirror type) {
-
         if (atypeFactory.propertyFileHandler != null) {
             atypeFactory.propertyFileHandler.handle(tree, type);
         }

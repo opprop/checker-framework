@@ -2,7 +2,6 @@ package org.checkerframework.common.value;
 
 import static org.checkerframework.common.value.PropertyFileHandler.inPropertyFileQualifierHierarchy;
 
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -376,14 +375,14 @@ final class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
             if (inPropertyFileQualifierHierarchy(subAnno)
                     && inPropertyFileQualifierHierarchy(superAnno)) {
                 return atypeFactory.propertyFileHandler.isSubtype(subAnno, superAnno);
-            } else if ((inValueQualifierHierarchy(subAnno)
+            } else if ((!inPropertyFileQualifierHierarchy(subAnno)
                             && inPropertyFileQualifierHierarchy(superAnno))
                     || (inPropertyFileQualifierHierarchy(subAnno)
-                            && inValueQualifierHierarchy(superAnno))) {
-                // Fall through when two are in the different type hierarchy.
+                            && !inPropertyFileQualifierHierarchy(superAnno))) {
                 return false;
             }
         }
+        // Fall through when two are in the value hierarchy.
         subAnno = atypeFactory.convertSpecialIntRangeToStandardIntRange(subAnno);
         superAnno = atypeFactory.convertSpecialIntRangeToStandardIntRange(superAnno);
         String subQual = AnnotationUtils.annotationName(subAnno);
@@ -488,21 +487,5 @@ final class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
             default:
                 return false;
         }
-    }
-
-    /**
-     * Return true if the target annotation is in the original value qualifier hierarchy.
-     *
-     * @param anno the annotation to check
-     * @return true if the target annotation is in the original value qualifier hierarchy
-     */
-    private boolean inValueQualifierHierarchy(AnnotationMirror anno) {
-        for (Class<? extends Annotation> each :
-                ValueAnnotatedTypeFactory.supportedValueQualifiers) {
-            if (AnnotationUtils.areSameByClass(anno, each)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

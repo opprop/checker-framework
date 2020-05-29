@@ -18,7 +18,7 @@ public class ValueHandlePropertyFileTest extends FrameworkPerDirectoryTest {
                 "-Anomsgtext",
                 "-Astubs=statically-executable.astub",
                 "-A" + ValueChecker.REPORT_EVAL_WARNS,
-                "-A" + ValueChecker.HANDLE_PROPERTY_FILE);
+                "-A" + ValueChecker.HANDLE_PROPERTY_FILES);
     }
 
     @Parameters

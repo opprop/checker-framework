@@ -20,6 +20,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.value.qual.ArrayLen;
@@ -129,7 +130,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     private final ValueMethodIdentifier methods;
 
     /** The property file handler. */
-    public PropertyFileHandler propertyFileHandler = null;
+    public final @Nullable PropertyFileHandler propertyFileHandler;
 
     /** Set of supported type qualifiers in the original value hierarchy. */
     protected static final LinkedHashSet<Class<? extends Annotation>> supportedValueQualifiers =
@@ -159,9 +160,11 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
         reportEvalWarnings = checker.hasOption(ValueChecker.REPORT_EVAL_WARNS);
         Range.ignoreOverflow = checker.hasOption(ValueChecker.IGNORE_RANGE_OVERFLOW);
-        if (checker.hasOption(ValueChecker.HANDLE_PROPERTY_FILE)) {
+        if (checker.hasOption(ValueChecker.HANDLE_PROPERTY_FILES)) {
             propertyFileHandler =
                     new PropertyFileHandler(getProcessingEnv(), this, (ValueChecker) checker);
+        } else {
+            propertyFileHandler = null;
         }
         evaluator = new ReflectiveEvaluator(checker, this, reportEvalWarnings);
 

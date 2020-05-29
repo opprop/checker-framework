@@ -97,7 +97,23 @@ public class PropertyFileHandler {
     }
 
     /**
-     * Handle the property file. Used in {@link
+     * Handle the property file. Refine the return type of {@link
+     * java.lang.ClassLoader#getResourceAsStream(String)}, {@link
+     * java.util.Properties#getProperty(String)}, and {@link
+     * java.util.Properties#getProperty(String, String)}:
+     *
+     * <ul>
+     *   <li>Refine the return type of {@code getResourceAsStream(propFile)} to
+     *       {@literal @}PropertyFile(propFile),
+     *   <li>refine the return type of {@code property.getProperty("URL")} from
+     *       {@literal @}UnknownVal to {@literal @}StringVal("the value of key 'URL' in the property
+     *       file") if {@code property} has type {@literal @}PropertyFile(), and
+     *   <li>refine the return type of {@code property.getProperty("URL", "default value")} to
+     *       {@literal @}StringVal() if {@code property} has type {@literal @}PropertyFile().
+     *       Default value will be applied when the target key does not exist.
+     * </ul>
+     *
+     * <p>Used in {@link
      * org.checkerframework.common.value.ValueTreeAnnotator#visitMethodInvocation(MethodInvocationTree,
      * AnnotatedTypeMirror)}.
      *
@@ -111,50 +127,60 @@ public class PropertyFileHandler {
                 return;
             }
             String propFile = getValueFromStringVal(stringVal);
-            if (propFile != null) {
-                annotatedTypeMirror.replaceAnnotation(createPropertyFileAnnotation(propFile));
+            if (propFile == null) {
+                return;
             }
+            annotatedTypeMirror.replaceAnnotation(createPropertyFileAnnotation(propFile));
         } else if (TreeUtils.isMethodInvocation(node, getProperty, env)) {
             AnnotationMirror propertyFile =
                     factory.getReceiverType(node).getAnnotation(PropertyFile.class);
             AnnotationMirror stringAnnotation = getStringValFromArgument(node, 0);
-            if (propertyFile != null && stringAnnotation != null) {
-                String propFile = getValueFromPropFileAnnotation(propertyFile);
-                if (propFile != null) {
-                    String propKey = getValueFromStringVal(stringAnnotation);
-                    String propValue = readValueFromPropertyFile(propFile, propKey, null);
-                    if (propValue != null) {
-                        annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
-                    }
-                }
+            if (propertyFile == null || stringAnnotation == null) {
+                return;
             }
+            String propFile = getValueFromPropFileAnnotation(propertyFile);
+            if (propFile == null) {
+                return;
+            }
+            String propKey = getValueFromStringVal(stringAnnotation);
+            String propValue = readValueFromPropertyFile(propFile, propKey, null);
+            if (propValue == null) {
+                return;
+            }
+            annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
         } else if (TreeUtils.isMethodInvocation(node, getPropertyWithDefaultValue, env)) {
             AnnotationMirror propFileAnnotation =
                     factory.getReceiverType(node).getAnnotation(PropertyFile.class);
             AnnotationMirror stringAnnotationArg0 = getStringValFromArgument(node, 0);
             AnnotationMirror stringAnnotationArg1 = getStringValFromArgument(node, 1);
-            if (propFileAnnotation != null && stringAnnotationArg0 != null) {
-                String propFile = getValueFromPropFileAnnotation(propFileAnnotation);
-                if (propFile != null) {
-                    String propKey = getValueFromStringVal(stringAnnotationArg0);
-                    String defaultValue;
-                    if (stringAnnotationArg1 != null) {
-                        defaultValue = getValueFromStringVal(stringAnnotationArg1);
-                    } else {
-                        defaultValue = null;
-                    }
-                    String propValue = readValueFromPropertyFile(propFile, propKey, defaultValue);
-                    if (propValue != null) {
-                        annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
-                    }
-                }
+            if (propFileAnnotation == null || stringAnnotationArg0 == null) {
+                return;
             }
+            String propFile = getValueFromPropFileAnnotation(propFileAnnotation);
+            if (propFile == null) {
+                return;
+            }
+            String propKey = getValueFromStringVal(stringAnnotationArg0);
+            String defaultValue;
+            if (stringAnnotationArg1 != null) {
+                defaultValue = getValueFromStringVal(stringAnnotationArg1);
+            } else {
+                defaultValue = null;
+            }
+            String propValue = readValueFromPropertyFile(propFile, propKey, defaultValue);
+            if (propValue == null) {
+                return;
+            }
+            annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
         }
     }
 
     /**
-     * Handle the property file. Used in {@link
-     * ValueTransfer#visitMethodInvocation(MethodInvocationNode, TransferInput)}.
+     * Handle the property file. Refine the receiver type of {@link
+     * java.util.Properties#load(InputStream)}. Used in {@link
+     * ValueTransfer#visitMethodInvocation(MethodInvocationNode, TransferInput)}. When {@code
+     * property.load(inputStream)} is called, try to propagate {@code inputstream}'s type to {@code
+     * property}.
      *
      * @param node the method invocation tree
      * @param result the transfer result
@@ -165,34 +191,37 @@ public class PropertyFileHandler {
             ExpressionTree arg0 = methodInvocationTree.getArguments().get(0);
             AnnotationMirror propFileAnnotation =
                     factory.getAnnotatedType(arg0).getAnnotation(PropertyFile.class);
-            if (propFileAnnotation != null) {
-                String propFile = getValueFromPropFileAnnotation(propFileAnnotation);
-                if (propFile != null) {
-                    Node receiver = node.getTarget().getReceiver();
-                    Receiver receiverRec = FlowExpressions.internalReprOf(factory, receiver);
-                    propFileAnnotation = createPropertyFileAnnotation(propFile);
-                    if (result.containsTwoStores()) {
-                        CFStore thenStore = result.getThenStore();
-                        CFStore elseStore = result.getElseStore();
-                        thenStore.insertValue(receiverRec, propFileAnnotation);
-                        elseStore.insertValue(receiverRec, propFileAnnotation);
-                    } else {
-                        CFStore regularStore = result.getRegularStore();
-                        regularStore.insertValue(receiverRec, propFileAnnotation);
-                    }
-                }
+            if (propFileAnnotation == null) {
+                return;
+            }
+            String propFile = getValueFromPropFileAnnotation(propFileAnnotation);
+            if (propFile == null) {
+                return;
+            }
+            Node receiver = node.getTarget().getReceiver();
+            Receiver receiverRec = FlowExpressions.internalReprOf(factory, receiver);
+            propFileAnnotation = createPropertyFileAnnotation(propFile);
+            if (result.containsTwoStores()) {
+                CFStore thenStore = result.getThenStore();
+                CFStore elseStore = result.getElseStore();
+                thenStore.insertValue(receiverRec, propFileAnnotation);
+                elseStore.insertValue(receiverRec, propFileAnnotation);
+            } else {
+                CFStore regularStore = result.getRegularStore();
+                regularStore.insertValue(receiverRec, propFileAnnotation);
             }
         }
     }
 
     /**
-     * Compare two {@literal @}PropertyFile annotations.
+     * Return true if two {@literal @}PropertyFile annotations' element values are the same, else
+     * false.
      *
      * @param subAnno the sub annotation
      * @param superAnno the super annotation
      * @return true if the two annotations' values are the same
      */
-    protected boolean comparePropFileElementValue(
+    protected boolean propFileElementValueEquals(
             AnnotationMirror subAnno, AnnotationMirror superAnno) {
         String subAnnoElementValue =
                 AnnotationUtils.getElementValue(subAnno, "value", String.class, false);
@@ -217,7 +246,7 @@ public class PropertyFileHandler {
             return false;
         } else if (AnnotationUtils.areSameByClass(subAnno, PropertyFile.class)
                 && AnnotationUtils.areSameByClass(superAnno, PropertyFile.class)) {
-            return comparePropFileElementValue(subAnno, superAnno);
+            return propFileElementValueEquals(subAnno, superAnno);
         } else {
             throw new BugInCF("We should never reach here.");
         }
@@ -293,14 +322,15 @@ public class PropertyFileHandler {
     }
 
     /**
-     * Get the first value of the {@literal @}StringVal() annotation.
+     * Get the value of the {@literal @}StringVal() annotation. Return null when there are more than
+     * one values (otherwise the PropertyFileHandler may makes the Value Checker unsound).
      *
      * @param stringVal the {@literal @}StringVal() annotation
      * @return the first value of the {@literal @}StringVal() annotation
      */
     protected String getValueFromStringVal(AnnotationMirror stringVal) {
         List<String> values = getStringValues(stringVal);
-        if (!values.isEmpty()) {
+        if (values.size() == 1) {
             return values.get(0);
         } else {
             return null;

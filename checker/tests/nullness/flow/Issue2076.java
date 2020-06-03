@@ -22,8 +22,7 @@ public class Issue2076 {
         int n;
         if (obj == null) {
             buildAndThrow();
-        } else {
-            n = obj.hashCode();
         }
+        n = obj.hashCode();
     }
 }

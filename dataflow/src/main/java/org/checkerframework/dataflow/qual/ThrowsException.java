@@ -28,8 +28,6 @@ import java.lang.annotation.Target;
  *
  * the Nullness Checker can determine that {@code x} is non-null.
  *
- * <p>
- *
  * <p>The annotation's value represents the type of exception that the method throws. By default,
  * the type is {@code Throwable}.
  *

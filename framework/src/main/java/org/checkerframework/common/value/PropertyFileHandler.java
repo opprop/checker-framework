@@ -294,7 +294,6 @@ public class PropertyFileHandler {
         } catch (Exception e) {
             checker.message(
                     Kind.WARNING, "Exception in PropertyFileHandler.readPropertyFromFile: " + e);
-            e.printStackTrace();
         }
         return res;
     }

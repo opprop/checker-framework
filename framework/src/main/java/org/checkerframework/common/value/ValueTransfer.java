@@ -1293,6 +1293,35 @@ public class ValueTransfer extends CFTransfer {
         createAnnotationFromRangeAndAddToStore(elseStore, elseLeftRange, leftNode);
 
         // TODO: Refine the type of the comparison.
+        return visitLessThanBool(leftNode, rightNode, thenStore, elseStore);
+    }
+
+    private List<Boolean> visitLessThanBool(
+            Node leftNode, Node rightNode, CFStore thenStore, CFStore elseStore) {
+        Receiver leftRec = FlowExpressions.internalReprOf(atypefactory, leftNode);
+        Receiver rightRec = FlowExpressions.internalReprOf(atypefactory, rightNode);
+
+        CFStore store = thenStore.leastUpperBound(elseStore);
+        AnnotationMirror leftAm = getValueAnnotation(store.getValue(leftRec));
+        AnnotationMirror rightAm = getValueAnnotation(store.getValue(rightRec));
+        Range leftRange = ValueAnnotatedTypeFactory.getRange(leftAm);
+        Range rightRange = ValueAnnotatedTypeFactory.getRange(rightAm);
+        if (leftRange.to < rightRange.from) {
+            return Arrays.asList(true);
+        } else if (leftRange.from >= rightRange.to) {
+            return Arrays.asList(false);
+        }
+
+        leftAm = getValueAnnotation(elseStore.getValue(leftRec));
+        rightAm = getValueAnnotation(elseStore.getValue(rightRec));
+        leftRange = ValueAnnotatedTypeFactory.getRange(leftAm);
+        rightRange = ValueAnnotatedTypeFactory.getRange(rightAm);
+        if (leftRange.to < rightRange.from) {
+            return Arrays.asList(true);
+        } else if (leftRange.from >= rightRange.to) {
+            return Arrays.asList(false);
+        }
+
         return null;
     }
 

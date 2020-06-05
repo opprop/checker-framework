@@ -12,6 +12,10 @@ import org.checkerframework.dataflow.cfg.CFGVisualizer;
  */
 public interface Store<S extends Store<S>> {
 
+    public boolean isActive();
+
+    public void setActive(boolean flag);
+
     // We maintain a then store and an else store before each basic block.
     // When they are identical (by reference equality), they can be treated
     // as a regular unconditional store.
@@ -31,6 +35,7 @@ public interface Store<S extends Store<S>> {
         ELSE_TO_BOTH, // Else store flows to both then and else of successor.
         THEN_TO_THEN, // Then store flows to the then of successor.  Else store is ignored.
         ELSE_TO_ELSE, // Else store flows to the else of successor.  Then store is ignored.
+        THEN_TO_BACK, // Then store flows to the beginning of the loop.
     }
 
     /** @return an exact copy of this store. */

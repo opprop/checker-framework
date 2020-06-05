@@ -181,7 +181,14 @@ public class ControlFlowGraph {
                 visited.add(cur);
                 Deque<Block> successors = getSuccessors(cur);
                 successors.removeAll(visited);
-                worklist.addAll(successors);
+                if (cur.getType() == BlockType.CONDITIONAL_BLOCK) {
+                    // Ensure then block is processed before else block.
+                    ConditionalBlock cb = (ConditionalBlock) cur;
+                    worklist.add(cb.getElseSuccessor());
+                    worklist.add(cb.getThenSuccessor());
+                } else {
+                    worklist.addAll(successors);
+                }
             }
         }
 

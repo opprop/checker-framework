@@ -28,7 +28,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * store == null &hArr; thenStore != null &amp;&amp; elseStore != null
      * </code></pre>
      */
-    protected final @Nullable S store;
+    protected final @Nullable Set<S> store;
 
     /**
      * The 'then' result store (or {@code null} if none is present). The following invariant is
@@ -38,7 +38,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * store == null &hArr; thenStore != null &amp;&amp; elseStore != null
      * </code></pre>
      */
-    protected final @Nullable S thenStore;
+    protected final @Nullable Set<S> thenStore;
 
     /**
      * The 'else' result store (or {@code null} if none is present). The following invariant is
@@ -48,7 +48,7 @@ public class TransferInput<A extends AbstractValue<A>, S extends Store<S>> {
      * store == null &hArr; thenStore != null &amp;&amp; elseStore != null
      * </code></pre>
      */
-    protected final @Nullable S elseStore;
+    protected final @Nullable Set<S> elseStore;
 
     /** The corresponding analysis class to get intermediate flow results. */
     protected final Analysis<A, S, ?> analysis;

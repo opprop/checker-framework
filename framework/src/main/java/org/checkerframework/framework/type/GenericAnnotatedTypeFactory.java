@@ -38,6 +38,7 @@ import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.analysis.AnalysisResult;
+import org.checkerframework.dataflow.analysis.ConditionEvaluator;
 import org.checkerframework.dataflow.analysis.FlowExpressions;
 import org.checkerframework.dataflow.analysis.FlowExpressions.FieldAccess;
 import org.checkerframework.dataflow.analysis.FlowExpressions.LocalVariable;
@@ -453,6 +454,36 @@ public abstract class GenericAnnotatedTypeFactory<
         TransferFunction ret =
                 (TransferFunction)
                         new CFTransfer((CFAbstractAnalysis<CFValue, CFStore, CFTransfer>) analysis);
+        return ret;
+    }
+
+    public ConditionEvaluator<Value, Store> createFlowConditionalEvaluator(
+            CFAbstractAnalysis<Value, Store, TransferFunction> analysis) {
+
+        // Try to reflectively load the visitor.
+        Class<?> checkerClass = checker.getClass();
+
+        while (checkerClass != BaseTypeChecker.class) {
+            final String classToLoad =
+                    checkerClass
+                            .getName()
+                            .replace("Checker", "ConditionEvaluator")
+                            .replace("Subchecker", "ConditionEvaluator");
+            ConditionEvaluator<Value, Store> result =
+                    BaseTypeChecker.invokeConstructorFor(
+                            classToLoad,
+                            new Class<?>[] {analysis.getClass()},
+                            new Object[] {analysis});
+            if (result != null) {
+                return result;
+            }
+            checkerClass = checkerClass.getSuperclass();
+        }
+
+        // If a conditional evaluator couldn't be loaded reflectively, return the
+        // default.
+        @SuppressWarnings("unchecked")
+        ConditionEvaluator<Value, Store> ret = new ConditionEvaluator<Value, Store>();
         return ret;
     }
 

@@ -1,6 +1,8 @@
 package org.checkerframework.dataflow.analysis;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 import javax.lang.model.type.TypeMirror;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -15,7 +17,7 @@ public class RegularTransferResult<A extends AbstractValue<A>, S extends Store<S
         extends TransferResult<A, S> {
 
     /** The regular result store. */
-    protected final S store;
+    protected final Set<S> store;
 
     /** Whether the store changed. */
     private final boolean storeChanged;
@@ -34,18 +36,18 @@ public class RegularTransferResult<A extends AbstractValue<A>, S extends Store<S
      *
      * @see #RegularTransferResult(AbstractValue, Store, Map, boolean)
      */
-    public RegularTransferResult(@Nullable A value, S resultStore, boolean storeChanged) {
+    public RegularTransferResult(@Nullable A value, Set<S> resultStore, boolean storeChanged) {
         this(value, resultStore, null, storeChanged);
     }
 
     /** @see #RegularTransferResult(AbstractValue, Store, Map, boolean) */
-    public RegularTransferResult(@Nullable A value, S resultStore) {
+    public RegularTransferResult(@Nullable A value, Set<S> resultStore) {
         this(value, resultStore, false);
     }
 
     /** @see #RegularTransferResult(AbstractValue, Store, Map, boolean) */
     public RegularTransferResult(
-            @Nullable A value, S resultStore, Map<TypeMirror, S> exceptionalStores) {
+            @Nullable A value, Set<S> resultStore, Map<TypeMirror, S> exceptionalStores) {
         this(value, resultStore, exceptionalStores, false);
     }
 
@@ -70,7 +72,7 @@ public class RegularTransferResult<A extends AbstractValue<A>, S extends Store<S
      */
     public RegularTransferResult(
             @Nullable A value,
-            S resultStore,
+            Set<S> resultStore,
             @Nullable Map<TypeMirror, S> exceptionalStores,
             boolean storeChanged) {
         super(value, exceptionalStores);
@@ -80,20 +82,20 @@ public class RegularTransferResult<A extends AbstractValue<A>, S extends Store<S
 
     /** The regular result store. */
     @Override
-    public S getRegularStore() {
+    public Set<S> getRegularStores() {
         return store;
     }
 
     @Override
-    public S getThenStore() {
+    public Set<S> getThenStores() {
         return store;
     }
 
     @Override
-    public S getElseStore() {
+    public Set<S> getElseStores() {
         // copy the store such that it is the same as the result of getThenStore
         // (that is, identical according to equals), but two different objects.
-        return store.copy();
+        return new HashSet<S>(store);
     }
 
     @Override

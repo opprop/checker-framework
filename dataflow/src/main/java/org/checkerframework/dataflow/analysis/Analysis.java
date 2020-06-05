@@ -22,13 +22,17 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.checkerframework.dataflow.analysis.ConditionEvaluator.ConditionalFlow;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGLambda;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.Kind;
 import org.checkerframework.dataflow.cfg.block.Block;
+import org.checkerframework.dataflow.cfg.block.Block.BlockType;
+import org.checkerframework.dataflow.cfg.block.BlockImpl;
 import org.checkerframework.dataflow.cfg.block.ConditionalBlock;
+import org.checkerframework.dataflow.cfg.block.ConditionalBlockImpl;
 import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
 import org.checkerframework.dataflow.cfg.block.RegularBlock;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
@@ -57,6 +61,14 @@ public class Analysis<
     // TODO: make final. Currently, the transferFunction has a reference to the analysis, so it
     // can't be created until the Analysis is initialized.
     protected @Nullable T transferFunction;
+
+    protected ConditionEvaluator<A, S> conditionEvaluator;
+
+    /** The current control flow graph to perform the analysis on. */
+    protected ControlFlowGraph cfg;
+
+    /** The associated processing environment. */
+    protected final ProcessingEnvironment env;
 
     /** The current control flow graph to perform the analysis on. */
     protected @MonotonicNonNull ControlFlowGraph cfg;
@@ -174,6 +186,7 @@ public class Analysis<
         this.worklist = new Worklist();
         this.nodeValues = new IdentityHashMap<>();
         this.finalLocalValues = new HashMap<>();
+        this.conditionEvaluator = new ConditionEvaluator<A, S>();
     }
 
     /**
@@ -222,6 +235,7 @@ public class Analysis<
                     TransferResult<A, S> transferResult = null;
                     Node lastNode = null;
                     boolean addToWorklistAgain = false;
+
                     for (Node n : rb.getContents()) {
                         assert currentInput != null : "@AssumeAssertion(nullness): invariant";
                         transferResult = callTransferFunction(n, currentInput);
@@ -235,9 +249,100 @@ public class Analysis<
                     // propagate store to successors
                     Block succ = rb.getSuccessor();
                     assert succ != null
-                            : "@AssumeAssertion(nullness): regular basic block without non-exceptional successor unexpected";
-                    propagateStoresTo(
-                            succ, lastNode, currentInput, rb.getFlowRule(), addToWorklistAgain);
+                            : "regular basic block without non-exceptional successor unexpected";
+                    ConditionalFlow flow = ConditionalFlow.BOTH;
+                    //                    if (succ.getType() == BlockType.CONDITIONAL_BLOCK) {
+                    //                    	flow = conditionEvaluator.visit(lastNode, currentInput);
+                    //                        RegularBlockImpl rbi = (RegularBlockImpl) rb;
+                    //                        S store = null;
+                    //                        for (BlockImpl bl : rbi.getPredecessors()) {
+                    //                        	if (bl.getType() == BlockType.REGULAR_BLOCK) {
+                    //                        		if (((RegularBlockImpl) bl).getFlowRule() ==
+                    // Store.FlowRule.THEN_TO_BACK) {
+                    //                    				TransferInput<A, S> in = getInput(bl);
+                    //                        			if (store == null) {
+                    //                        	     	    store = in.getRegularStore();
+                    //                        			} else {
+                    //                        			    store = mergeStores(rb, store,
+                    // in.getRegularStore());
+                    //                        			}
+                    //                        		}
+                    //                        	}
+                    //                        }
+                    //                    }
+
+                    if (flow == ConditionalFlow.BOTH) {
+                        if (!currentInput.containsTwoStores()) {
+                            //	                    	addConditionStoreBefore(
+                            //	                    			succ,
+                            //	                    			lastNode,
+                            //	                    			currentInput.getRegularStore(),
+                            //	                    			Store.Kind.BOTH,
+                            //	                                ConditionalFlow.THEN, false,
+                            // addToWorklistAgain);
+                            propagateStoresTo(
+                                    succ,
+                                    lastNode,
+                                    currentInput,
+                                    rb.getFlowRule(),
+                                    addToWorklistAgain);
+                        } else {
+                            //                    		addConditionStoreBefore(
+                            //	                    			succ,
+                            //	                    			lastNode,
+                            //	                    			currentInput.getThenStore(),
+                            //	                    			Store.Kind.THEN,
+                            //	                                ConditionalFlow.THEN, false,
+                            // addToWorklistAgain);
+                            //                    		addConditionStoreBefore(
+                            //	                    			succ,
+                            //	                    			lastNode,
+                            //	                    			currentInput.getElseStore(),
+                            //	                    			Store.Kind.ELSE,
+                            //	                                ConditionalFlow.THEN, false,
+                            // addToWorklistAgain);
+                            propagateStoresTo(
+                                    succ,
+                                    lastNode,
+                                    currentInput,
+                                    rb.getFlowRule(),
+                                    addToWorklistAgain);
+                        }
+                    } else if (flow == ConditionalFlow.THEN) {
+                        addConditionStoreBefore(
+                                succ,
+                                lastNode,
+                                currentInput.thenStore,
+                                Store.Kind.THEN,
+                                ConditionalFlow.THEN,
+                                true,
+                                addToWorklistAgain);
+                        addConditionStoreBefore(
+                                succ,
+                                lastNode,
+                                currentInput.elseStore,
+                                Store.Kind.ELSE,
+                                ConditionalFlow.THEN,
+                                false,
+                                addToWorklistAgain);
+                    } else if (flow == ConditionalFlow.ELSE) {
+                        addConditionStoreBefore(
+                                succ,
+                                lastNode,
+                                currentInput.thenStore,
+                                Store.Kind.THEN,
+                                ConditionalFlow.ELSE,
+                                false,
+                                addToWorklistAgain);
+                        addConditionStoreBefore(
+                                succ,
+                                lastNode,
+                                currentInput.elseStore,
+                                Store.Kind.ELSE,
+                                ConditionalFlow.ELSE,
+                                false,
+                                addToWorklistAgain);
+                    }
                     break;
                 }
 
@@ -300,12 +405,72 @@ public class Analysis<
                     assert inputBefore != null : "@AssumeAssertion(nullness): invariant";
                     TransferInput<A, S> input = inputBefore.copy();
 
-                    // propagate store to successor
+                    // evaluate flow
+                    ConditionalBlockImpl cbi = (ConditionalBlockImpl) cb;
+                    assert cbi.getPredecessors().size() == 1;
+                    BlockImpl conditionBlock = cbi.getPredecessors().iterator().next();
+                    ConditionalFlow flow = ConditionalFlow.BOTH;
+                    Node condition_node = null;
+                    if (conditionBlock.getType() == BlockType.REGULAR_BLOCK) {
+                        RegularBlock rb = (RegularBlock) conditionBlock;
+                        condition_node = rb.getContents().get(rb.getContents().size() - 1);
+                        flow = conditionEvaluator.visit(condition_node, input);
+                    } else if (conditionBlock.getType() == BlockType.EXCEPTION_BLOCK) {
+                        ExceptionBlock eb = (ExceptionBlock) conditionBlock;
+                        condition_node = eb.getNode();
+                        flow = conditionEvaluator.visit(condition_node, input);
+                    }
+
                     Block thenSucc = cb.getThenSuccessor();
                     Block elseSucc = cb.getElseSuccessor();
 
-                    propagateStoresTo(thenSucc, null, input, cb.getThenFlowRule(), false);
-                    propagateStoresTo(elseSucc, null, input, cb.getElseFlowRule(), false);
+                    // propagate store to successor
+                    if (flow == ConditionalFlow.THEN) {
+                        addConditionStoreBefore(
+                                thenSucc,
+                                null,
+                                input.getThenStore(),
+                                Store.Kind.BOTH,
+                                ConditionalFlow.THEN,
+                                false,
+                                false);
+                        S thenStore = getStoreBefore(elseSucc, Store.Kind.THEN);
+                        S elseStore = getStoreBefore(elseSucc, Store.Kind.ELSE);
+                        if (thenStore == null || elseStore == null) {
+                            addConditionStoreBefore(
+                                    elseSucc,
+                                    null,
+                                    input.getElseStore(),
+                                    Store.Kind.BOTH,
+                                    ConditionalFlow.THEN,
+                                    false,
+                                    false);
+                        }
+                    } else if (flow == ConditionalFlow.ELSE) {
+                        addConditionStoreBefore(
+                                elseSucc,
+                                null,
+                                input.getElseStore(),
+                                Store.Kind.BOTH,
+                                ConditionalFlow.ELSE,
+                                false,
+                                false);
+                        S thenStore = getStoreBefore(thenSucc, Store.Kind.THEN);
+                        S elseStore = getStoreBefore(thenSucc, Store.Kind.ELSE);
+                        if (thenStore == null || elseStore == null) {
+                            addConditionStoreBefore(
+                                    thenSucc,
+                                    null,
+                                    input.getElseStore(),
+                                    Store.Kind.BOTH,
+                                    ConditionalFlow.ELSE,
+                                    false,
+                                    false);
+                        }
+                    } else {
+                        propagateStoresTo(thenSucc, null, input, cb.getThenFlowRule(), false);
+                        propagateStoresTo(elseSucc, null, input, cb.getElseFlowRule(), false);
+                    }
                     break;
                 }
 
@@ -326,6 +491,130 @@ public class Analysis<
             default:
                 assert false;
                 break;
+        }
+    }
+
+    private S mergeStores(Block b, S s1, S s2) {
+        boolean shouldWiden = false;
+        if (blockCount != null) {
+            Integer count = blockCount.get(b);
+            if (count == null) {
+                count = 0;
+            }
+            shouldWiden = count >= maxCountBeforeWidening;
+            if (shouldWiden) {
+                blockCount.put(b, 0);
+            } else {
+                blockCount.put(b, count + 1);
+            }
+        }
+        return mergeStores(s1, s2, shouldWiden);
+    }
+
+    /**
+     * Add a store before the basic block {@code b} by merging with the existing stores for that
+     * location.
+     */
+    protected void addConditionStoreBefore(
+            Block b,
+            Node node,
+            S s,
+            Store.Kind kind,
+            ConditionalFlow flow,
+            boolean merge,
+            boolean addToWorklistAgain) {
+        boolean addBlockToWorklist = false;
+        S thenStore = getStoreBefore(b, Store.Kind.THEN);
+        S elseStore = getStoreBefore(b, Store.Kind.ELSE);
+        boolean shouldWiden = false;
+        if (blockCount != null) {
+            Integer count = blockCount.get(b);
+            if (count == null) {
+                count = 0;
+            }
+            shouldWiden = count >= maxCountBeforeWidening;
+            if (shouldWiden) {
+                blockCount.put(b, 0);
+            } else {
+                blockCount.put(b, count + 1);
+            }
+        }
+
+        switch (kind) {
+            case THEN:
+                {
+                    // Update the then store
+                    S newThenStore = mergeStores(s, thenStore, shouldWiden);
+                    if (!newThenStore.equals(thenStore) && merge) {
+                        thenStores.put(b, newThenStore);
+                        if (elseStore != null) {
+                            inputs.put(b, new TransferInput<>(node, this, newThenStore, elseStore));
+                            addBlockToWorklist = true;
+                        }
+                    }
+                    if (!s.equals(thenStore) && !merge) {
+                        thenStores.put(b, s);
+                        if (elseStore != null) {
+                            inputs.put(b, new TransferInput<>(node, this, s, elseStore));
+                            addBlockToWorklist = true;
+                        }
+                    }
+                    break;
+                }
+            case ELSE:
+                {
+                    // Update the else store
+                    S newElseStore = mergeStores(s, elseStore, shouldWiden);
+                    if (!newElseStore.equals(elseStore) && merge) {
+                        elseStores.put(b, newElseStore);
+                        if (thenStore != null) {
+                            inputs.put(b, new TransferInput<>(node, this, thenStore, newElseStore));
+                            addBlockToWorklist = true;
+                        }
+                    }
+                    if (!s.equals(elseStore) && !merge) {
+                        elseStores.put(b, s);
+                        if (thenStore != null) {
+                            inputs.put(b, new TransferInput<>(node, this, thenStore, s));
+                            addBlockToWorklist = true;
+                        }
+                    }
+                    break;
+                }
+            case BOTH:
+                if (thenStore == elseStore) {
+                    // Currently there is only one regular store
+                    S newStore = mergeStores(s, thenStore, shouldWiden);
+                    if (!s.equals(thenStore)) {
+                        thenStores.put(b, s);
+                        elseStores.put(b, s);
+                        inputs.put(b, new TransferInput<>(node, this, s));
+                        addBlockToWorklist = true;
+                    }
+                } else {
+                    boolean storeChanged = false;
+
+                    S newThenStore = mergeStores(s, thenStore, shouldWiden);
+                    if (!s.equals(thenStore)) {
+                        thenStores.put(b, s);
+                        storeChanged = true;
+                    }
+
+                    S newElseStore = mergeStores(s, elseStore, shouldWiden);
+                    if (!s.equals(elseStore)) {
+                        elseStores.put(b, s);
+                        storeChanged = true;
+                    }
+
+                    if (storeChanged) {
+                        inputs.put(b, new TransferInput<>(node, this, newThenStore, newElseStore));
+                        addBlockToWorklist = true;
+                    }
+                }
+        }
+
+        if (addBlockToWorklist && (flow != ConditionalFlow.ELSE || shouldWiden)) {
+            addToWorklist(b);
         }
     }
 
@@ -392,6 +681,14 @@ public class Analysis<
                         node,
                         currentInput.getElseStore(),
                         Store.Kind.ELSE,
+                        addToWorklistAgain);
+                break;
+            case THEN_TO_BACK:
+                addStoreBefore(
+                        succ,
+                        node,
+                        currentInput.getRegularStore(),
+                        Store.Kind.BOTH,
                         addToWorklistAgain);
                 break;
         }

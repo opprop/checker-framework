@@ -743,7 +743,7 @@ the Checker Framework anyway.)
 \begin{smaller}
 %END LATEX
 \begin{Verbatim}
-  export JAVA_HOME=${JAVA_HOME:-$(dirname $(dirname $(dirname $(readlink -f $(/usr/bin/which java)))))}
+  export JAVA_HOME=${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(which javac)")")")}
 \end{Verbatim}
 %BEGIN LATEX
 \end{smaller}

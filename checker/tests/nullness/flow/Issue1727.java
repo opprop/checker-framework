@@ -8,6 +8,7 @@ public class Issue1727 {
 
         while (true) {
             B op = getB();
+            // :: warning: (known.nonnull)
             if (op == null) {
                 b = new B();
                 break;

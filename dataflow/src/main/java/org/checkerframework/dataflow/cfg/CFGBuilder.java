@@ -304,6 +304,13 @@ public class CFGBuilder {
         /** Does this node terminate the execution? (e.g., "System.exit()") */
         protected boolean terminatesExecution = false;
 
+        /**
+         * Provided this node terminates the execution, can the execution terminates normally? e.g.,
+         * ("System.exit()" can terminate the execution narmally) v.s. (A throw statement never
+         * terminates normally).
+         */
+        protected boolean canTerminateNormally = false;
+
         public ExtendedNode(ExtendedNodeType type) {
             this.type = type;
         }
@@ -320,12 +327,29 @@ public class CFGBuilder {
             return type;
         }
 
+        /**
+         * @return the flag that indicates whether this node can terminate the execution normally.
+         */
         public boolean getTerminatesExecution() {
             return terminatesExecution;
         }
 
+        /**
+         * Set the flag that indicates whether this node can terminate the execution normally.
+         *
+         * @param canTerminateNormally The flag that indicates whether this node can terminate the
+         *     execution normally.
+         */
         public void setTerminatesExecution(boolean terminatesExecution) {
             this.terminatesExecution = terminatesExecution;
+        }
+
+        public boolean getCanTerminateNormally() {
+            return canTerminateNormally;
+        }
+
+        public void setCanTerminateNormally(boolean canTerminateNormally) {
+            this.canTerminateNormally = canTerminateNormally;
         }
 
         /**
@@ -1337,8 +1361,15 @@ public class CFGBuilder {
                         // ensure linking between e and next block (normal edge)
                         // Note: do not link to the next block for throw statements
                         // (these throw exceptions for sure)
+                        // However, for cases that are possible to terminate execution normally,
+                        // like "System.exit()", still add normal edge to regular-exit block.
                         if (!node.getTerminatesExecution()) {
                             missingEdges.add(new Tuple<>(e, i + 1));
+
+                        } else if (node.getCanTerminateNormally()) {
+                            // target - regular-exit node is the last item of nodeList
+                            Integer target = nodeList.size() - 1;
+                            missingEdges.add(new Tuple<>(e, target));
                         }
 
                         // exceptional edges
@@ -2599,7 +2630,10 @@ public class CFGBuilder {
                     thrown = elements.getTypeElement(cls).asType();
                 }
                 thrownSet.add(thrown);
-                NodeWithExceptionsHolder exNode = extendWithNodeWithException(node, thrown);
+                TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
+                thrownSet.add(throwableElement.asType());
+
+                NodeWithExceptionsHolder exNode = extendWithNodeWithExceptions(node, thrownSet);
                 // in unconditional cases, the exceptional block has exactly one exceptional
                 // successor
                 exNode.setTerminatesExecution(true);
@@ -2610,7 +2644,8 @@ public class CFGBuilder {
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
-            // Add Throwable to account for unchecked exceptions
+            // Add Throwable to account for special cases,
+            // e.g. a method is always possible to throw an OutOfMemoryError
             TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
             thrownSet.add(throwableElement.asType());
 
@@ -2620,8 +2655,13 @@ public class CFGBuilder {
             boolean terminatesExecution =
                     annotationProvider.getDeclAnnotation(methodElement, TerminatesExecution.class)
                             != null;
+            // If the method is annotated with @TerminatesExecution, then set:
+            // (1) the flag that indicates current node terminates the execution
+            // (2) the flag tht indicates current node can terminate normally. (e.g.
+            // "System.exit()")
             if (terminatesExecution) {
                 extendedNode.setTerminatesExecution(true);
+                extendedNode.setCanTerminateNormally(true);
             }
 
             return node;

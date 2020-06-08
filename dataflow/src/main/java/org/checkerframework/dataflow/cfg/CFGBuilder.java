@@ -4899,18 +4899,19 @@ public class CFGBuilder {
             addLabelForNextNode(conditionStart);
 
             // Is condition constant true?
-            boolean isWhileTrue = false;
+            assert tree.getCondition() != null : "while loop condition must not be null";
+            // Check whether the loop condition is constant true, the criteria is consistent with
+            // that in Java compiler flow analysis.
+            Type condType = (Type) TreeUtils.typeOf(tree.getCondition());
+            boolean isWhileTrue = condType.isTrue();
 
-            if (tree.getCondition() != null) {
-                Type condType = (Type) TreeUtils.typeOf(tree.getCondition());
-                isWhileTrue = condType.isTrue();
+            unbox(scan(tree.getCondition(), p));
 
-                unbox(scan(tree.getCondition(), p));
-
-                if (!isWhileTrue) {
-                    ConditionalJump cjump = new ConditionalJump(loopEntry, loopExit);
-                    extendWithExtendedNode(cjump);
-                }
+            // If the loop condition is not constant true, the control flow is split into two
+            // branches.
+            if (!isWhileTrue) {
+                ConditionalJump cjump = new ConditionalJump(loopEntry, loopExit);
+                extendWithExtendedNode(cjump);
             }
 
             // Loop body
@@ -4919,8 +4920,9 @@ public class CFGBuilder {
                 scan(tree.getStatement(), p);
             }
 
-            // If the condition is constant true, the successor of loop end is loop entry, instead
-            // of condition start
+            // If the condition is constant true, for the purpose of improving the dataflow analysis
+            // performance, set the successor of the loop end to be the loop entry, instead of the
+            // condition start.
             if (isWhileTrue) {
                 extendWithExtendedNode(new UnconditionalJump(loopEntry));
             } else {

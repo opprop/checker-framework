@@ -1,3 +1,5 @@
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 class B {}
 
 public class Issue1727 {
@@ -8,7 +10,6 @@ public class Issue1727 {
 
         while (true) {
             B op = getB();
-            // :: warning: (known.nonnull)
             if (op == null) {
                 b = new B();
                 break;
@@ -21,7 +22,7 @@ public class Issue1727 {
         return b;
     }
 
-    private B getB() {
+    private @Nullable B getB() {
         return new B();
     }
 }

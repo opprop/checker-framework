@@ -305,11 +305,11 @@ public class CFGBuilder {
         protected boolean terminatesExecution = false;
 
         /**
-         * Provided this node terminates the execution, can the execution terminates normally? e.g.,
-         * ("System.exit()" can terminate the execution narmally) v.s. (A throw statement never
-         * terminates normally).
+         * Provided this node terminates the execution, does the execution exit immediately? e.g.
+         * ("System.exit()" causes the entire execution to exit immediately) v.s. (A throw or assert
+         * statement does not).
          */
-        protected boolean canTerminateNormally = false;
+        protected boolean exitImmediately = false;
 
         public ExtendedNode(ExtendedNodeType type) {
             this.type = type;
@@ -327,29 +327,30 @@ public class CFGBuilder {
             return type;
         }
 
-        /**
-         * @return the flag that indicates whether this node can terminate the execution normally.
-         */
         public boolean getTerminatesExecution() {
             return terminatesExecution;
         }
 
-        /**
-         * Set the flag that indicates whether this node can terminate the execution normally.
-         *
-         * @param canTerminateNormally The flag that indicates whether this node can terminate the
-         *     execution normally.
-         */
         public void setTerminatesExecution(boolean terminatesExecution) {
             this.terminatesExecution = terminatesExecution;
         }
 
-        public boolean getCanTerminateNormally() {
-            return canTerminateNormally;
+        /**
+         * @return the flag that indicates whether this node causes the execution to exit
+         *     immediately.
+         */
+        public boolean isExitImmediately() {
+            return exitImmediately;
         }
 
-        public void setCanTerminateNormally(boolean canTerminateNormally) {
-            this.canTerminateNormally = canTerminateNormally;
+        /**
+         * Set the flag that indicates whether this node causes the execution to exit immediately.
+         *
+         * @param exitImmediately the flag that indicates whether this node causes the entire
+         *     execution to exit immediately.
+         */
+        public void setExitImmediately(boolean exitImmediately) {
+            this.exitImmediately = exitImmediately;
         }
 
         /**
@@ -1361,15 +1362,14 @@ public class CFGBuilder {
                         // ensure linking between e and next block (normal edge)
                         // Note: do not link to the next block for throw statements
                         // (these throw exceptions for sure)
-                        // However, for cases that are possible to terminate execution normally,
-                        // like "System.exit()", still add normal edge to regular-exit block.
+                        // However, for method invocation that causes the entire execution to exit
+                        // immediately, like "System.exit()", directly link it to the exceptional
+                        // exit block.
                         if (!node.getTerminatesExecution()) {
                             missingEdges.add(new Tuple<>(e, i + 1));
 
-                        } else if (node.getCanTerminateNormally()) {
-                            // target - regular-exit node is the last item of nodeList
-                            Integer target = nodeList.size() - 1;
-                            missingEdges.add(new Tuple<>(e, target));
+                        } else if (node.isExitImmediately()) {
+                            e.setSuccessor(exceptionalExitBlock);
                         }
 
                         // exceptional edges
@@ -2655,13 +2655,14 @@ public class CFGBuilder {
             boolean terminatesExecution =
                     annotationProvider.getDeclAnnotation(methodElement, TerminatesExecution.class)
                             != null;
+
             // If the method is annotated with @TerminatesExecution, then set:
             // (1) the flag that indicates current node terminates the execution
-            // (2) the flag tht indicates current node can terminate normally. (e.g.
-            // "System.exit()")
+            // (2) the flag tht indicates the entire execution exits immediately.
+            // (e.g. "System.exit()")
             if (terminatesExecution) {
                 extendedNode.setTerminatesExecution(true);
-                extendedNode.setCanTerminateNormally(true);
+                extendedNode.setExitImmediately(true);
             }
 
             return node;

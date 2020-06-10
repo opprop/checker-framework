@@ -155,6 +155,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      *
      * @param checker the checker to use
      */
+    @SuppressWarnings("StaticAssignmentInConstructor") // static Range.ignoreOverflow is gross
     public ValueAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
 
@@ -807,7 +808,12 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         }
     }
 
-    /** @param values must be a homogeneous list: every element of it has the same class. */
+    /**
+     * Returns an annotation that represents the given set of values.
+     *
+     * @param values a homogeneous list: every element of it has the same class
+     * @return an annotation that represents the given set of values
+     */
     public AnnotationMirror createNumberAnnotationMirror(List<Number> values) {
         if (values == null) {
             return UNKNOWNVAL;

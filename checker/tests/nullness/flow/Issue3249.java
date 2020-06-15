@@ -1,5 +1,5 @@
-// Test case for Issue 3249
-// // https://github.com/typetools/checker-framework/issues/3249
+// Test case for Issue 3249:
+// https://github.com/typetools/checker-framework/issues/3249
 
 public class Issue3249 {
 
@@ -41,8 +41,8 @@ public class Issue3249 {
         field = local;
     }
 
-    // Case for while conditions that may contain final variables:
-    // final variables are treated as constant.
+    // Case for while conditions that contain final variables,
+    // which are treated as constant.
     Issue3249(String x) {
         double local;
         final int i = 1;

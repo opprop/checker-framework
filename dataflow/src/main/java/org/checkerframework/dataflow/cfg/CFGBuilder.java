@@ -5023,6 +5023,8 @@ public class CFGBuilder {
                         return isCondConstTrue(ltree) && isCondConstTrue(rtree);
                     case OR:
                         return isCondConstTrue(ltree) || isCondConstTrue(rtree);
+                    default:
+                        break;
                 }
             }
         }

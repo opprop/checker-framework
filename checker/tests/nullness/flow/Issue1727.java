@@ -1,5 +1,5 @@
-// Test case for Issue 1727
-// // https://github.com/typetools/checker-framework/issues/1727
+// Test case for Issue 1727:
+// https://github.com/typetools/checker-framework/issues/1727
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 

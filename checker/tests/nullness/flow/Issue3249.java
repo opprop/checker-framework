@@ -1,3 +1,6 @@
+// Test case for Issue 3249
+// // https://github.com/typetools/checker-framework/issues/3249
+
 public class Issue3249 {
 
     private final double field;
@@ -26,13 +29,24 @@ public class Issue3249 {
             local = 1;
             break;
         }
-        // :: error: (assignment.type.incompatible)
         field = local;
     }
 
     Issue3249(double x) {
         double local;
         while (!false && true && !false) {
+            local = 1;
+            break;
+        }
+        field = local;
+    }
+
+    // Case for while conditions that may contain final variables:
+    // final variables are treated as constant.
+    Issue3249(String x) {
+        double local;
+        final int i = 1;
+        while ((i > 0) && !false) {
             local = 1;
             break;
         }

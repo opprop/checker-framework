@@ -174,7 +174,7 @@ public abstract class InitializationAnnotatedTypeFactory<
      * Returns whether or not {@code field} has the invariant annotation.
      *
      * <p>This method is a convenience method for {@link
-     * #hasFieldInvariantAnnotation(AnnotatedTypeMirror)}.
+     * #hasFieldInvariantAnnotation(AnnotatedTypeMirror, VariableElement)}.
      *
      * <p>If the {@code field} is a type variable, this method returns true if any possible
      * instantiation of the type parameter could have the invariant annotation. See {@link
@@ -185,7 +185,8 @@ public abstract class InitializationAnnotatedTypeFactory<
      */
     protected final boolean hasFieldInvariantAnnotation(VariableTree field) {
         AnnotatedTypeMirror type = getAnnotatedType(field);
-        return hasFieldInvariantAnnotation(type);
+        VariableElement fieldElement = TreeUtils.elementFromDeclaration(field);
+        return hasFieldInvariantAnnotation(type, fieldElement);
     }
 
     /**
@@ -196,9 +197,11 @@ public abstract class InitializationAnnotatedTypeFactory<
      * NullnessAnnotatedTypeFactory#hasFieldInvariantAnnotation(VariableTree)} for an example.
      *
      * @param type of field that might have invariant annotation
+     * @param fieldElement the field element
      * @return whether or not the type has the invariant annotation
      */
-    protected abstract boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type);
+    protected abstract boolean hasFieldInvariantAnnotation(
+            AnnotatedTypeMirror type, VariableElement fieldElement);
 
     /**
      * Creates a {@link UnderInitialization} annotation with the given type as its type frame
@@ -394,7 +397,7 @@ public abstract class InitializationAnnotatedTypeFactory<
      * @see #computeFieldAccessType
      * @see #getAnnotatedTypeLhs(Tree)
      */
-    private boolean computingAnnotatedTypeMirrorOfLHS = false;
+    protected boolean computingAnnotatedTypeMirrorOfLHS = false;
 
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {

@@ -796,6 +796,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return null;
     }
 
+    /**
+     * Get {@code viewpointAdapter}.
+     *
+     * @return {@code viewpointAdapter}
+     */
     public ViewpointAdapter getViewpointAdapter() {
         return viewpointAdapter;
     }

@@ -380,7 +380,15 @@ public abstract class CFAbstractTransfer<
         return info;
     }
 
-    private void addFieldValues(
+    /**
+     * Add knowledge about field values to the store {@code info}.
+     *
+     * @param info {@code S}
+     * @param factory the type factory
+     * @param classTree the class tree
+     * @param methodTree the method tree
+     */
+    protected void addFieldValues(
             S info, AnnotatedTypeFactory factory, ClassTree classTree, MethodTree methodTree) {
 
         // Add knowledge about final fields, or values of non-final fields

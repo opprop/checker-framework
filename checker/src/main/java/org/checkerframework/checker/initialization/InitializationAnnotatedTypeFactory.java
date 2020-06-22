@@ -397,7 +397,7 @@ public abstract class InitializationAnnotatedTypeFactory<
      * @see #computeFieldAccessType
      * @see #getAnnotatedTypeLhs(Tree)
      */
-    protected boolean computingAnnotatedTypeMirrorOfLHS = false;
+    private boolean computingAnnotatedTypeMirrorOfLHS = false;
 
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {

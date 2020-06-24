@@ -371,7 +371,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
          * {@code Pair<?,?>} may be equal, but they both should be visited.
          */
         private final Set<AnnotatedTypeMirror> visitedTypes =
-                Collections.newSetFromMap(new IdentityHashMap<>());
+                Collections.newSetFromMap(new IdentityHashMap<AnnotatedTypeMirror, Boolean>());
 
         /**
          * Returns true if the {@link AnnotatedTypeMirror} has been visited. If it has not, then it

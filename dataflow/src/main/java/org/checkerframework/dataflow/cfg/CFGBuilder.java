@@ -401,21 +401,21 @@ public class CFGBuilder {
         protected final Node node;
 
         /**
-         * Map from delcared thrown exception type to all pairs of the actual caught type and the
-         * corresponding target's label that may be reached as a result of that exception.
+         * Set of all possible pairs of the refined exception type {@link TypeMirror} and the
+         * corresponding target's label {@link Label} that may be reached as a result of the current
+         * exception node.
          */
-        protected final Map<TypeMirror, Set<Pair<TypeMirror, Label>>> exceptions;
+        protected final Set<Pair<TypeMirror, Label>> exceptions;
 
         /**
          * Construct a NodeWithExceptionsHolder for the given node and exceptions.
          *
          * @param node the node to hold
-         * @param exceptions map from declared thrown exception to set of all pairs of actual caught
-         *     type and corresponding successor's label for the node, to hold in field {@code
-         *     exceptions}
+         * @param exceptions set of all possible pairs of the refined exception type {@link
+         *     TypeMirror} and the corresponding target's label {@link Label} that may be reached as
+         *     a result of the exception node.
          */
-        public NodeWithExceptionsHolder(
-                Node node, Map<TypeMirror, Set<Pair<TypeMirror, Label>>> exceptions) {
+        public NodeWithExceptionsHolder(Node node, Set<Pair<TypeMirror, Label>> exceptions) {
             super(ExtendedNodeType.EXCEPTION_NODE);
             this.node = node;
             this.exceptions = exceptions;
@@ -424,10 +424,11 @@ public class CFGBuilder {
         /**
          * Get the exceptions for the node.
          *
-         * @return map from declared thrown exception to set of all pairs of actual caught type and
-         *     corresponding successor's label for the node
+         * @return set of all possible pairs of the refined exception type {@link TypeMirror} and
+         *     the corresponding target's label {@link Label} that may be reached as a result of the
+         *     current exception node.
          */
-        public Map<TypeMirror, Set<Pair<TypeMirror, Label>>> getExceptions() {
+        public Set<Pair<TypeMirror, Label>> getExceptions() {
             return exceptions;
         }
 
@@ -585,14 +586,18 @@ public class CFGBuilder {
      */
     protected static interface TryFrame {
         /**
-         * Given a type of thrown exception, add the set of all possible pairs of actual caught type
-         * {@link TypeMirror} and its control flow successor {@link Label} to the argument set.
-         * Return true if the exception is known to be caught by one of those labels and false if it
-         * may propagate still further.
+         * Given a type of thrown exception, add to the argument set all possible pairs of the
+         * refined exception type {@link TypeMirror} and its control flow successor {@link Label} as
+         * a result of an exception thrown from a method invocation.
          *
-         * @param thrown the declared type of thrown exception
-         * @param causeLabelPairs the set of all possible pairs of the actual caught exception type
-         *     and the corresponding target label
+         * <p>Return true if the exception is known to be caught by one of those labels and false if
+         * it may propagate still further.
+         *
+         * @param thrown the type of the exception that is declared to be thrown from a method
+         *     invocation, waiting to be refined.
+         * @param causeLabelPairs the set of all possible pairs of the refined exception type {@link
+         *     TypeMirror} and the corresponding target's label {@link Label} that may be reached as
+         *     a result of {@code thrown}.
          * @return true if {@code thrown} is known to be caught by one of those labels and false if
          *     it may propagate still further
          */
@@ -636,16 +641,17 @@ public class CFGBuilder {
         }
 
         /**
-         * Given a type of thrown exception, add the set of all possible pairs of actual caught type
-         * {@link TypeMirror} and its control flow successor {@link Label} to the argument set.
-         * Return true if the exception is known to be caught by one of those labels and false if it
-         * may propagate still further.
+         * Given a type of thrown exception, add to the argument set all possible pairs of the
+         * refined exception type {@link TypeMirror} and its control flow successor {@link Label} as
+         * a result of that thrown exception. Return true if the exception is known to be caught by
+         * one of those labels and false if it may propagate still further.
          *
          * @param thrown the declared type of thrown exception
-         * @param causeLabelPairs the set of all possible pairs of the actual caught exception type
-         *     and the corresponding target label
+         * @param causeLabelPairs the set of all possible pairs of the refined exception type {@link
+         *     TypeMirror} and its control flow successor {@link Label} as a result of {@code
+         *     thrown}
          * @return true if {@code thrown} is known to be caught by one of those labels and false if
-         *     it may propagate still further
+         *     it may propagate still further.
          */
         @Override
         public boolean possibleLabels(
@@ -737,13 +743,13 @@ public class CFGBuilder {
         }
 
         /**
-         * Given a type of thrown exception that is not caught by a catch block, add the set of all
-         * possible pairs of the exception type {@link TypeMirror} and its target finally block
-         * {@link Label} to the argument set.
+         * Given a type of thrown exception, add to the argument set all possible pairs of the
+         * refined exception type {@link TypeMirror} and its target finally block {@link Label} as a
+         * result of that thrown excpetion.
          *
          * @param thrown the type of the thrown exception
          * @param causeLabelPairs the set of all possible pairs of the exception type that is not
-         *     caught and the target finally label
+         *     caught and the label of targeted finally block.
          * @return true if {@code thrown} is known to be caught by one of those labels and false if
          *     it may propagate still further. In this case, the return value is always true.
          */
@@ -1390,16 +1396,13 @@ public class CFGBuilder {
                         }
 
                         // exceptional edges
-                        for (Map.Entry<TypeMirror, Set<Pair<TypeMirror, Label>>> entry :
-                                en.getExceptions().entrySet()) {
-                            for (Pair<TypeMirror, Label> pair : entry.getValue()) {
-                                TypeMirror cause = pair.first;
-                                Integer target = bindings.get(pair.second);
+                        for (Pair<TypeMirror, Label> pair : en.getExceptions()) {
+                            TypeMirror cause = pair.first;
+                            Integer target = bindings.get(pair.second);
 
-                                // TODO: This is sometimes null; is this a problem?
-                                // assert target != null;
-                                missingExceptionalEdges.add(new Tuple<>(e, target, cause));
-                            }
+                            // TODO: This is sometimes null; is this a problem?
+                            // assert target != null;
+                            missingExceptionalEdges.add(new Tuple<>(e, target, cause));
                         }
                         break;
                 }
@@ -1875,9 +1878,9 @@ public class CFGBuilder {
         protected NodeWithExceptionsHolder extendWithNodeWithExceptions(
                 Node node, Set<TypeMirror> throwns) {
             addToLookupMap(node);
-            Map<TypeMirror, Set<Pair<TypeMirror, Label>>> exceptions = new HashMap<>();
+            Set<Pair<TypeMirror, Label>> exceptions = new HashSet<>();
             for (TypeMirror thrown : throwns) {
-                exceptions.put(thrown, tryStack.possibleLabels(thrown));
+                exceptions.addAll(tryStack.possibleLabels(thrown));
             }
             NodeWithExceptionsHolder exNode = new NodeWithExceptionsHolder(node, exceptions);
             extendWithExtendedNode(exNode);
@@ -1912,9 +1915,9 @@ public class CFGBuilder {
                 Node node, Set<TypeMirror> throwns, Node pred) {
             addToLookupMap(node);
 
-            Map<TypeMirror, Set<Pair<TypeMirror, Label>>> exceptions = new HashMap<>();
+            Set<Pair<TypeMirror, Label>> exceptions = new HashSet<>();
             for (TypeMirror thrown : throwns) {
-                exceptions.put(thrown, tryStack.possibleLabels(thrown));
+                exceptions.addAll(tryStack.possibleLabels(thrown));
             }
             NodeWithExceptionsHolder exNode = new NodeWithExceptionsHolder(node, exceptions);
             insertExtendedNodeAfter(exNode, pred);
@@ -4670,12 +4673,9 @@ public class CFGBuilder {
             for (ExtendedNode node : nodeList) {
                 if (node instanceof NodeWithExceptionsHolder) {
                     NodeWithExceptionsHolder exceptionalNode = (NodeWithExceptionsHolder) node;
-                    for (Set<Pair<TypeMirror, Label>> pairs :
-                            exceptionalNode.getExceptions().values()) {
-                        for (Pair<TypeMirror, Label> pair : pairs) {
-                            if (pair.second == target) {
-                                return true;
-                            }
+                    for (Pair<TypeMirror, Label> pair : exceptionalNode.getExceptions()) {
+                        if (pair.second == target) {
+                            return true;
                         }
                     }
                 }

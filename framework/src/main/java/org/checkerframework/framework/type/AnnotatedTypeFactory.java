@@ -797,15 +797,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Get {@link #viewpointAdapter}.
-     *
-     * @return {@link #viewpointAdapter}
-     */
-    public ViewpointAdapter getViewpointAdapter() {
-        return viewpointAdapter;
-    }
-
-    /**
      * TypeVariableSubstitutor provides a method to replace type parameters with their arguments.
      */
     protected TypeVariableSubstitutor createTypeVariableSubstitutor() {

@@ -121,7 +121,7 @@ public class KeyForAnnotatedTypeFactory
         }
 
         @Override
-        public boolean isSubtype(
+        protected boolean isSubtype(
                 AnnotatedTypeMirror subtype, AnnotatedTypeMirror supertype, AnnotationMirror top) {
             // TODO: THIS IS FROM THE OLD TYPE HIERARCHY.  WE SHOULD FIX DATA-FLOW/PROPAGATION TO DO
             // THE RIGHT THING

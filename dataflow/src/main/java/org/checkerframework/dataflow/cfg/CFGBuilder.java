@@ -2642,9 +2642,14 @@ public class CFGBuilder {
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
-            // Add Throwable to account for unchecked exceptions
-            TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
-            thrownSet.add(throwableElement.asType());
+            //
+            // Add RuntimeException to account for unchecked exceptions
+            TypeElement runtimeExceptionElement =
+                    elements.getTypeElement("java.lang.RuntimeException");
+            thrownSet.add(runtimeExceptionElement.asType());
+            // Add Error to account for runtime errors
+            TypeElement errorElement = elements.getTypeElement("java.lang.Error");
+            thrownSet.add(errorElement.asType());
 
             ExtendedNode extendedNode = extendWithNodeWithExceptions(node, thrownSet);
 

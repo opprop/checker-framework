@@ -471,7 +471,7 @@ public final class TreeUtils {
     }
 
     /**
-     * See {@code getAssignmentContext}. Not using extended result.
+     * See {@code getAssignmentContext}. Not using conservative result.
      *
      * @param treePath the tree path
      * @return the assignment context as described, {@code null} otherwise

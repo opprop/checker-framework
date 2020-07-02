@@ -4040,15 +4040,20 @@ public class CFGBuilder {
             // basic block for the condition
             unbox(scan(tree.getCondition(), p));
 
+            // Determine whether the loop condition has the constant value true or constant value
+            // false, according to the compiler logic.
             boolean isCondConstTrue = TreeUtils.isExprConstTrue(tree.getCondition());
             boolean isCondConstFalse = TreeUtils.isExprConstFalse(tree.getCondition());
             if (!isCondConstTrue && !isCondConstFalse) {
+                // If the loop condition has neither the constant value true nor constant value
+                // false, the control flow is split into two branches.
                 ConditionalJump cjump = new ConditionalJump(thenEntry, elseEntry);
                 extendWithExtendedNode(cjump);
             }
 
             if (!isCondConstFalse) {
-                // then branch
+                // The condition does not have the constant value false, so the then branch is
+                // preserved.
                 addLabelForNextNode(thenEntry);
                 StatementTree thenStatement = tree.getThenStatement();
                 scan(thenStatement, p);
@@ -4056,7 +4061,8 @@ public class CFGBuilder {
             }
 
             if (!isCondConstTrue) {
-                // else branch
+                // The condition does not have the constant value true, so the else branch is
+                // preserved.
                 addLabelForNextNode(elseEntry);
                 StatementTree elseStatement = tree.getElseStatement();
                 if (elseStatement != null) {

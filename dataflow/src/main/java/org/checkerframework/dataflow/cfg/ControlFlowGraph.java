@@ -63,6 +63,9 @@ public class ControlFlowGraph {
      */
     protected final List<ReturnNode> returnNodes;
 
+    /** The top-level nodes of all the expressions statements encountered. */
+    protected final Set<Node> expressionStatementRootNodes;
+
     /**
      * Class declarations that have been encountered when building the control-flow graph for a
      * method.
@@ -84,6 +87,7 @@ public class ControlFlowGraph {
             IdentityHashMap<Tree, Set<Node>> convertedTreeLookup,
             IdentityHashMap<UnaryTree, AssignmentNode> unaryAssignNodeLookup,
             List<ReturnNode> returnNodes,
+            Set<Node> expressionStatementRootNodes,
             List<ClassTree> declaredClasses,
             List<LambdaExpressionTree> declaredLambdas) {
         super();
@@ -95,6 +99,7 @@ public class ControlFlowGraph {
         this.regularExitBlock = regularExitBlock;
         this.exceptionalExitBlock = exceptionalExitBlock;
         this.returnNodes = returnNodes;
+        this.expressionStatementRootNodes = expressionStatementRootNodes;
         this.declaredClasses = declaredClasses;
         this.declaredLambdas = declaredLambdas;
     }
@@ -126,6 +131,15 @@ public class ControlFlowGraph {
 
     public List<ReturnNode> getReturnNodes() {
         return returnNodes;
+    }
+
+    /**
+     * Return the top-level nodes of all the expression statements encountered.
+     *
+     * @return the top-level nodes of all the expression statements encountered.
+     */
+    public Set<Node> getExpressionStatementRootNodes() {
+        return expressionStatementRootNodes;
     }
 
     public SpecialBlock getRegularExitBlock() {

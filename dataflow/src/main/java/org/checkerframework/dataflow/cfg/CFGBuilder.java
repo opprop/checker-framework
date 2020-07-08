@@ -1403,6 +1403,7 @@ public class CFGBuilder {
                     in.convertedTreeLookupMap,
                     in.unaryAssignNodeLookupMap,
                     in.returnNodes,
+                    in.expressionStatementRootNodes,
                     in.declaredClasses,
                     in.declaredLambdas);
         }
@@ -1426,6 +1427,7 @@ public class CFGBuilder {
         private final ArrayList<ExtendedNode> nodeList;
         private final Set<Integer> leaders;
         private final List<ReturnNode> returnNodes;
+        private final Set<Node> expressionStatementRootNodes;
         private final Label regularExitLabel;
         private final Label exceptionalExitLabel;
         private final List<ClassTree> declaredClasses;
@@ -1440,6 +1442,7 @@ public class CFGBuilder {
                 Map<Label, Integer> bindings,
                 Set<Integer> leaders,
                 List<ReturnNode> returnNodes,
+                Set<Node> expressionStatementRootNodes,
                 Label regularExitLabel,
                 Label exceptionalExitLabel,
                 List<ClassTree> declaredClasses,
@@ -1452,6 +1455,7 @@ public class CFGBuilder {
             this.bindings = bindings;
             this.leaders = leaders;
             this.returnNodes = returnNodes;
+            this.expressionStatementRootNodes = expressionStatementRootNodes;
             this.regularExitLabel = regularExitLabel;
             this.exceptionalExitLabel = exceptionalExitLabel;
             this.declaredClasses = declaredClasses;
@@ -1601,6 +1605,9 @@ public class CFGBuilder {
          */
         private final List<ReturnNode> returnNodes;
 
+        /** The top-level nodes of all the expression statements encountered. */
+        private final Set<Node> expressionStatementRootNodes;
+
         /**
          * Class declarations that have been encountered when building the control-flow graph for a
          * method.
@@ -1653,6 +1660,7 @@ public class CFGBuilder {
             breakLabels = new HashMap<>();
             continueLabels = new HashMap<>();
             returnNodes = new ArrayList<>();
+            expressionStatementRootNodes = new HashSet<>();
             declaredClasses = new ArrayList<>();
             declaredLambdas = new ArrayList<>();
         }
@@ -1700,6 +1708,7 @@ public class CFGBuilder {
                     bindings,
                     leaders,
                     returnNodes,
+                    expressionStatementRootNodes,
                     regularExitLabel,
                     exceptionalExitLabel,
                     declaredClasses,
@@ -3616,7 +3625,11 @@ public class CFGBuilder {
 
         @Override
         public Node visitExpressionStatement(ExpressionStatementTree tree, Void p) {
-            return scan(tree.getExpression(), p);
+            Node node = scan(tree.getExpression(), p);
+            if (node != null) {
+                expressionStatementRootNodes.add(node);
+            }
+            return node;
         }
 
         @Override

@@ -377,6 +377,18 @@ public class ForwardAnalysisImpl<
             // statement
             storesAtReturnStatements.put((ReturnNode) node, transferResult);
         }
+
+        // If the current node is a top-level node of an expression statement, and contains two
+        // stores, then merge the stores.
+        if (cfg.getExpressionStatementRootNodes().contains(node)
+                && transferResult.containsTwoStores()) {
+            V resultValue = transferResult.getResultValue();
+            S thenStore = transferResult.getThenStore();
+            S elseStore = transferResult.getElseStore();
+            S merge = mergeStores(thenStore, elseStore, false);
+            return new RegularTransferResult<>(resultValue, merge);
+        }
+
         return transferResult;
     }
 

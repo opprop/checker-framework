@@ -129,6 +129,11 @@ public class ControlFlowGraph {
         return entryBlock;
     }
 
+    /**
+     * Returns all return nodes of the control flow graph.
+     *
+     * @return all return nodes of the control flow graph.
+     */
     public List<ReturnNode> getReturnNodes() {
         return returnNodes;
     }
@@ -142,10 +147,20 @@ public class ControlFlowGraph {
         return expressionStatementRootNodes;
     }
 
+    /**
+     * Returns the regular exit block of the control flow graph.
+     *
+     * @return the regular exit block of the control flow graph
+     */
     public SpecialBlock getRegularExitBlock() {
         return regularExitBlock;
     }
 
+    /**
+     * Returns the exceptional exit block of the control flow graph.
+     *
+     * @return the exceptional exit block of the control flow graph
+     */
     public SpecialBlock getExceptionalExitBlock() {
         return exceptionalExitBlock;
     }

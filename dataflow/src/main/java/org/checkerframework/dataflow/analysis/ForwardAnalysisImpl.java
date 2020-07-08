@@ -369,6 +369,7 @@ public class ForwardAnalysisImpl<
     }
 
     @Override
+    @RequiresNonNull("cfg")
     protected TransferResult<V, S> callTransferFunction(Node node, TransferInput<V, S> input) {
         TransferResult<V, S> transferResult = super.callTransferFunction(node, input);
 

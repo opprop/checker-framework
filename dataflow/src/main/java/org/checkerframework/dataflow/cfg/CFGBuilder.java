@@ -1419,18 +1419,62 @@ public class CFGBuilder {
      */
     protected static class PhaseOneResult {
 
+        /**
+         * Maps from AST {@link Tree}s to sets of {@link Node}s. Every Tree that produces a value
+         * will have at least one corresponding Node. Trees that undergo conversions, such as boxing
+         * or unboxing, can map to two distinct Nodes. The Node for the pre-conversion value is
+         * stored in the treeLookupMap, while the Node for the post-conversion value is stored in
+         * the convertedTreeLookupMap.
+         */
         private final IdentityHashMap<Tree, Set<Node>> treeLookupMap;
+
+        /** Map from AST {@link Tree}s to post-conversion sets of {@link Node}s. */
         private final IdentityHashMap<Tree, Set<Node>> convertedTreeLookupMap;
+
+        /** Map from AST {@link UnaryTree}s to compound {@link AssignmentNode}s. */
         private final IdentityHashMap<UnaryTree, AssignmentNode> unaryAssignNodeLookupMap;
+
+        /** The AST this CFG corresponds to. */
         private final UnderlyingAST underlyingAST;
+
+        /** The bindings of labels to positions (i.e., indices) in the {@code nodeList}. */
         private final Map<Label, Integer> bindings;
+
+        /** The list of extended nodes. */
         private final ArrayList<ExtendedNode> nodeList;
+
+        /** The set of leaders (represented as indices into {@code nodeList}). */
         private final Set<Integer> leaders;
+
+        /**
+         * All return nodes (if any) encountered. Only includes return statements that actually
+         * return something
+         */
         private final List<ReturnNode> returnNodes;
+
+        /** The top-level nodes of all the expression statements encountered. */
         private final Set<Node> expressionStatementRootNodes;
+
+        /* --------------------------------------------------------- */
+        /* Extended Node Types and Labels */
+        /* --------------------------------------------------------- */
+
+        /** Special label to identify the regular exit. */
         private final Label regularExitLabel;
+
+        /** Special label to identify the exceptional exit. */
         private final Label exceptionalExitLabel;
+
+        /**
+         * Class declarations that have been encountered when building the control-flow graph for a
+         * method.
+         */
         private final List<ClassTree> declaredClasses;
+
+        /**
+         * Lambdas encountered when building the control-flow graph for a method, variable
+         * initializer, or initializer.
+         */
         private final List<LambdaExpressionTree> declaredLambdas;
 
         public PhaseOneResult(

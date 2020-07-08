@@ -1397,8 +1397,8 @@ public final class TreeUtils {
      * Determine whether an expression {@link ExpressionTree} has the constant value true, according
      * to the compiler logic.
      *
-     * @param node the expression to be checked.
-     * @return true if {@code node} has the constant value true.
+     * @param node the expression to be checked
+     * @return true if {@code node} has the constant value true
      */
     public static boolean isExprConstTrue(final ExpressionTree node) {
         assert node instanceof JCExpression;
@@ -1415,6 +1415,35 @@ public final class TreeUtils {
                     return isExprConstTrue(ltree) && isExprConstTrue(rtree);
                 case OR:
                     return isExprConstTrue(ltree) || isExprConstTrue(rtree);
+                default:
+                    break;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Determine whether an expression {@link ExpressionTree} has the constant value false,
+     * according to the compiler logic.
+     *
+     * @param node the expression to be checked
+     * @return true if {@code node} has the constant value false
+     */
+    public static boolean isExprConstFalse(final ExpressionTree node) {
+        assert node instanceof JCExpression;
+        if (((JCExpression) node).type.isFalse()) {
+            return true;
+        }
+        ExpressionTree tree = TreeUtils.withoutParens(node);
+        if (tree instanceof JCTree.JCBinary) {
+            JCBinary binTree = (JCBinary) tree;
+            JCExpression ltree = binTree.lhs;
+            JCExpression rtree = binTree.rhs;
+            switch (binTree.getTag()) {
+                case AND:
+                    return isExprConstFalse(ltree) || isExprConstFalse(rtree);
+                case OR:
+                    return isExprConstFalse(ltree) && isExprConstFalse(rtree);
                 default:
                     break;
             }

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
@@ -88,6 +89,10 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
      */
     private final SimpleAnnotatedTypeScanner<Void, Void> completer;
 
+    /** Mapping from poly qualifier to its instantiation for types with a qualifier parameter. */
+    protected final AnnotationMirrorMap<AnnotationMirror> polyInstantiationForQualifierParameter =
+            new AnnotationMirrorMap<>();
+
     /**
      * Creates an {@link AbstractQualifierPolymorphism} instance that uses the given checker for
      * querying type qualifiers and the given factory for getting annotated types. Subclasses need
@@ -140,6 +145,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         collector.reset();
         replacer.reset();
         completer.reset();
+        polyInstantiationForQualifierParameter.clear();
     }
 
     /**
@@ -241,8 +247,36 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         // instantiationMapping = collector.reduce(instantiationMapping,
         //        collector.visit(factory.getReceiverType(tree), type.getReceiverType()));
 
+        AnnotatedTypeMirror newClassType = atypeFactory.fromNewClass(tree);
+        instantiationMapping =
+                collector.reduce(
+                        instantiationMapping,
+                        mapQualifierToPoly(newClassType, type.getReturnType()));
+
         if (instantiationMapping != null && !instantiationMapping.isEmpty()) {
             replacer.visit(type, instantiationMapping);
+        } else {
+            completer.visit(type);
+        }
+        reset();
+    }
+
+    @Override
+    public void resolve(
+            VariableElement field, AnnotatedTypeMirror owner, AnnotatedTypeMirror type) {
+        if (polyQuals.isEmpty()) {
+            return;
+        }
+        AnnotationMirrorMap<AnnotationMirror> matchingMapping = new AnnotationMirrorMap<>();
+        polyQuals.forEach(
+                (polyAnnotation, topAnno) -> {
+                    AnnotationMirror annoOnOwner = owner.getAnnotationInHierarchy(topAnno);
+                    if (annoOnOwner != null) {
+                        matchingMapping.put(polyAnnotation, annoOnOwner);
+                    }
+                });
+        if (!matchingMapping.isEmpty()) {
+            replacer.visit(type, matchingMapping);
         } else {
             completer.visit(type);
         }
@@ -320,6 +354,9 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             if (polyType.hasAnnotation(poly)) {
                 AnnotationMirror typeQual = type.getAnnotationInHierarchy(top);
                 if (typeQual != null) {
+                    if (atypeFactory.hasQualifierParameterInHierarchy(type, top)) {
+                        polyInstantiationForQualifierParameter.put(poly, typeQual);
+                    }
                     result.put(poly, typeQual);
                 }
             }

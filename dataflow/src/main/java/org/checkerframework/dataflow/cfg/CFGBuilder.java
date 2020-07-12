@@ -305,13 +305,6 @@ public class CFGBuilder {
         protected boolean terminatesExecution = false;
 
         /**
-         * Provided this node terminates the execution, does the execution exit immediately? e.g.
-         * ("System.exit()" causes the entire execution to exit immediately) v.s. (A throw or assert
-         * statement does not).
-         */
-        protected boolean exitImmediately = false;
-
-        /**
          * Create a new ExtendedNode.
          *
          * @param type the type of this node
@@ -338,27 +331,6 @@ public class CFGBuilder {
 
         public void setTerminatesExecution(boolean terminatesExecution) {
             this.terminatesExecution = terminatesExecution;
-        }
-
-        /**
-         * Return the flag that indicates whether this node causes the execution to exit
-         * immediately.
-         *
-         * @return the flag that indicates whether this node causes the execution to exit
-         *     immediately.
-         */
-        public boolean isExitImmediately() {
-            return exitImmediately;
-        }
-
-        /**
-         * Set the flag that indicates whether this node causes the execution to exit immediately.
-         *
-         * @param exitImmediately the flag that indicates whether this node causes the entire
-         *     execution to exit immediately.
-         */
-        public void setExitImmediately(boolean exitImmediately) {
-            this.exitImmediately = exitImmediately;
         }
 
         /**
@@ -1379,14 +1351,8 @@ public class CFGBuilder {
                         // ensure linking between e and next block (normal edge)
                         // Note: do not link to the next block for throw statements
                         // (these throw exceptions for sure)
-                        // However, for method invocation that causes the entire execution to exit
-                        // immediately, like "System.exit()", directly link it to the exceptional
-                        // exit block.
                         if (!node.getTerminatesExecution()) {
                             missingEdges.add(new Tuple<>(e, i + 1));
-
-                        } else if (node.isExitImmediately()) {
-                            e.setSuccessor(exceptionalExitBlock);
                         }
 
                         // exceptional edges
@@ -2639,27 +2605,28 @@ public class CFGBuilder {
             Set<TypeMirror> thrownSet = new HashSet<>();
 
             Element methodElement = TreeUtils.elementFromTree(tree);
-            // detect the existence of ThrowsException annotation
+            // Detect the existence of @ThrowsException
             AnnotationMirror throwAnno =
                     annotationProvider.getDeclAnnotation(methodElement, ThrowsException.class);
             if (throwAnno != null) {
+                // If the method is annotated with @ThrowsException, it unconditionally throws the
+                // exception specified by the value of the annotation. Then the excecution
+                // terminates.
                 TypeMirror thrown;
                 // get type of thrown exception
                 String cls =
-                        AnnotationUtils.getElementValueClassName(throwAnno, "value", false)
+                        AnnotationUtils.getElementValueClassName(throwAnno, "value", true)
                                 .toString();
-                if (cls == null) { // thrown type is Throwable by default
-                    thrown = elements.getTypeElement("java.lang.Throwable").asType();
-                } else {
-                    thrown = elements.getTypeElement(cls).asType();
-                }
+                thrown = elements.getTypeElement(cls).asType();
                 thrownSet.add(thrown);
+
+                // Even if the method unconditionally throws another type of exception, add
+                // Throwable to the thrownSet to account for special cases.
+                // e.g. a method is always possible to cause an OutOfMemoryError.
                 TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
                 thrownSet.add(throwableElement.asType());
 
                 NodeWithExceptionsHolder exNode = extendWithNodeWithExceptions(node, thrownSet);
-                // in unconditional cases, the exceptional block has exactly one exceptional
-                // successor
                 exNode.setTerminatesExecution(true);
 
                 return node;
@@ -2668,8 +2635,7 @@ public class CFGBuilder {
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
-            // Add Throwable to account for special cases,
-            // e.g. a method is always possible to throw an OutOfMemoryError
+            // Add Throwable to account for unchecked exceptions
             TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
             thrownSet.add(throwableElement.asType());
 
@@ -2679,14 +2645,8 @@ public class CFGBuilder {
             boolean terminatesExecution =
                     annotationProvider.getDeclAnnotation(methodElement, TerminatesExecution.class)
                             != null;
-
-            // If the method is annotated with @TerminatesExecution, then set:
-            // (1) the flag that indicates current node terminates the execution
-            // (2) the flag tht indicates the entire execution exits immediately.
-            // (e.g. "System.exit()")
             if (terminatesExecution) {
                 extendedNode.setTerminatesExecution(true);
-                extendedNode.setExitImmediately(true);
             }
 
             return node;

@@ -9,11 +9,14 @@ public class Issue2076 {
     private @Nullable Object mObj = null;
 
     @ThrowsException(NullPointerException.class)
+    public void buildAndThrowNPE() {}
+
+    @ThrowsException
     public void buildAndThrow() {}
 
     public @NonNull Object m1() {
         if (mObj == null) {
-            buildAndThrow();
+            buildAndThrowNPE();
         }
         return mObj;
     }

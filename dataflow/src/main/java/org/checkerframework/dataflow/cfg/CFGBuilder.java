@@ -2620,11 +2620,9 @@ public class CFGBuilder {
                 thrown = elements.getTypeElement(cls).asType();
                 thrownSet.add(thrown);
 
-                // Even if the method unconditionally throws another type of exception, add
-                // Throwable to the thrownSet to account for special cases.
-                // e.g. a method is always possible to cause an OutOfMemoryError.
-                TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
-                thrownSet.add(throwableElement.asType());
+                // Since a method invocation is always possible to throw a runtime error, add it to
+                // the thrown set.
+                thrownSet.add(elements.getTypeElement("java.lang.Error").asType());
 
                 NodeWithExceptionsHolder exNode = extendWithNodeWithExceptions(node, thrownSet);
                 exNode.setTerminatesExecution(true);
@@ -2635,9 +2633,21 @@ public class CFGBuilder {
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
-            // Add Throwable to account for unchecked exceptions
-            TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
-            thrownSet.add(throwableElement.asType());
+
+            // Check if the above explicit exceptions contains Throwable. If so, Throwable is
+            // already added to the thrownSet of the exception node, so we do not have to add
+            // RuntimeException or Error anymore; Otherwise, add these two types.
+            boolean throwsThrowable = false;
+            for (TypeMirror t : thrownTypes) {
+                if (TypesUtils.isThrowable(t)) {
+                    throwsThrowable = true;
+                    break;
+                }
+            }
+            if (!throwsThrowable) {
+                thrownSet.add(elements.getTypeElement("java.lang.RuntimeException").asType());
+                thrownSet.add(elements.getTypeElement("java.lang.Error").asType());
+            }
 
             ExtendedNode extendedNode = extendWithNodeWithExceptions(node, thrownSet);
 
@@ -4242,9 +4252,9 @@ public class CFGBuilder {
             // Add exceptions explicitly mentioned in the throws clause.
             List<? extends TypeMirror> thrownTypes = constructor.getThrownTypes();
             thrownSet.addAll(thrownTypes);
-            // Add Throwable to account for unchecked exceptions
-            TypeElement throwableElement = elements.getTypeElement("java.lang.Throwable");
-            thrownSet.add(throwableElement.asType());
+            // Add RuntimeException and Error to account for unchecked exceptions
+            thrownSet.add(elements.getTypeElement("java.lang.RuntimeException").asType());
+            thrownSet.add(elements.getTypeElement("java.lang.Error").asType());
 
             extendWithNodeWithExceptions(node, thrownSet);
 

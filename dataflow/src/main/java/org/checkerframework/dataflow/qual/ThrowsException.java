@@ -28,8 +28,13 @@ import java.lang.annotation.Target;
  *
  * the Nullness Checker can determine that {@code x} is non-null.
  *
- * <p>The annotation's value represents the type of exception that the method throws. By default,
- * the type is {@code Throwable}.
+ * <p>The annotation's value represents the type of exception that the method throws ({@code
+ * RuntimeException} by default). The type of the exception thrown is restricted to be a subtype of
+ * RuntimeException. Otherwise any checked exception should either be declared in the method
+ * signature or handled within the method.
+ *
+ * <p>According to the semantic "unconditionally throws exception", @ThrowsException annotation
+ * overrides the unchecked exception in the method signature.
  *
  * <p>The annotation is a <em>trusted</em> annotation, meaning that it is not checked whether the
  * annotated method really unconditionally throws an exception.
@@ -43,5 +48,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface ThrowsException {
-    Class<? extends Throwable> value() default Throwable.class;
+    Class<? extends RuntimeException> value() default RuntimeException.class;
 }

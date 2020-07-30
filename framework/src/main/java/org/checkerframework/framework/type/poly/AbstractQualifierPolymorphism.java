@@ -392,6 +392,10 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
     protected abstract void replace(
             AnnotatedTypeMirror type, AnnotationMirrorMap<AnnotationMirror> replacements);
 
+    private interface PolyCollectorAnnotationCombiner {
+        AnnotationMirror combine(AnnotationMirror poly, AnnotationMirror a1, AnnotationMirror a2);
+    }
+
     /**
      * A helper class that resolves the polymorphic qualifiers with the most restrictive qualifier.
      * It returns a mapping from the polymorphic qualifier to the substitution for that qualifier.
@@ -424,10 +428,10 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             return new AnnotationMirrorMap<>();
         }
 
-        @Override
-        public AnnotationMirrorMap<AnnotationMirror> reduce(
+        private AnnotationMirrorMap<AnnotationMirror> genericReduce(
                 AnnotationMirrorMap<AnnotationMirror> r1,
-                AnnotationMirrorMap<AnnotationMirror> r2) {
+                AnnotationMirrorMap<AnnotationMirror> r2,
+                PolyCollectorAnnotationCombiner combiner) {
 
             if (r1 == null || r1.isEmpty()) {
                 return r2;
@@ -447,7 +451,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
                 if (a2Annos == null) {
                     res.put(polyQual, a1Annos);
                 } else {
-                    res.put(polyQual, combine(polyQual, a1Annos, a2Annos));
+                    res.put(polyQual, combiner.combine(polyQual, a1Annos, a2Annos));
                 }
                 r2remain.remove(polyQual);
             }
@@ -455,6 +459,13 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
                 res.put(key2, r2.get(key2));
             }
             return res;
+        }
+
+        @Override
+        protected AnnotationMirrorMap<AnnotationMirror> reduce(
+                AnnotationMirrorMap<AnnotationMirror> r1,
+                AnnotationMirrorMap<AnnotationMirror> r2) {
+            return genericReduce(r1, r2, AbstractQualifierPolymorphism.this::combine);
         }
 
         /**
@@ -468,40 +479,23 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
                 AnnotationMirrorMap<AnnotationMirror> r1,
                 AnnotationMirrorMap<AnnotationMirror> r2) {
 
-            if (r1 == null || r1.isEmpty()) {
-                return r2;
-            }
-            if (r2 == null || r2.isEmpty()) {
-                return r1;
-            }
-
-            AnnotationMirrorMap<AnnotationMirror> res = new AnnotationMirrorMap<>();
-            // Ensure that all qualifiers from r1 and r2 are visited.
-            AnnotationMirrorSet r2remain = new AnnotationMirrorSet();
-            r2remain.addAll(r2.keySet());
-            for (Map.Entry<AnnotationMirror, AnnotationMirror> kv1 : r1.entrySet()) {
-                AnnotationMirror key1 = kv1.getKey();
-                AnnotationMirror a1Anno = kv1.getValue();
-                AnnotationMirror a2Anno = r2.get(key1);
-                if (a2Anno != null) {
-                    r2remain.remove(key1);
-                    AnnotationMirror subres = null;
-                    for (AnnotationMirror top : topQuals) {
-                        if (qualHierarchy.isSubtype(a1Anno, top)) {
-                            subres = a1Anno;
-                        } else if (qualHierarchy.isSubtype(a2Anno, top)) {
-                            subres = a2Anno;
+            // Note: a different logic is needed to reduce with assignment context.
+            // For arguments, @Poly is on l-value of pseudo assignment.
+            // But when resolving with assignment, @Poly is on r-value of assignment.
+            return genericReduce(
+                    r1,
+                    r2,
+                    (poly, a1, a2) -> {
+                        AnnotationMirror subres = null;
+                        for (AnnotationMirror top : topQuals) {
+                            if (qualHierarchy.isSubtype(a1, top)) {
+                                subres = a1;
+                            } else if (qualHierarchy.isSubtype(a2, top)) {
+                                subres = a2;
+                            }
                         }
-                    }
-                    res.put(key1, subres);
-                } else {
-                    res.put(key1, a1Anno);
-                }
-            }
-            for (AnnotationMirror key2 : r2remain) {
-                res.put(key2, r2.get(key2));
-            }
-            return res;
+                        return subres;
+                    });
         }
 
         /**

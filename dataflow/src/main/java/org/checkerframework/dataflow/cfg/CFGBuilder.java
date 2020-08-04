@@ -91,6 +91,7 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
+import org.checkerframework.checker.interning.qual.FindDistinct;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.cfg.CFGBuilder.ExtendedNode.ExtendedNodeType;
@@ -209,6 +210,7 @@ import org.checkerframework.javacutil.trees.TreeBuilder;
  *       preserving the control flow structure.
  * </ol>
  */
+@SuppressWarnings("nullness") // TODO
 public class CFGBuilder {
 
     /** This class should never be instantiated. Protected to still allow subclasses. */
@@ -281,13 +283,15 @@ public class CFGBuilder {
      * An extended node can be one of several things (depending on its {@code type}):
      *
      * <ul>
-     *   <li><em>NODE</em>. An extended node of this type is just a wrapper for a {@link Node} (that
-     *       cannot throw exceptions).
-     *   <li><em>EXCEPTION_NODE</em>. A wrapper for a {@link Node} which can throw exceptions. It
-     *       contains a label for every possible exception type the node might throw.
-     *   <li><em>UNCONDITIONAL_JUMP</em>. An unconditional jump to a label.
-     *   <li><em>TWO_TARGET_CONDITIONAL_JUMP</em>. A conditional jump with two targets for both the
-     *       'then' and 'else' branch.
+     *   <li><em>NODE</em>: {@link CFGBuilder.NodeHolder}. An extended node of this type is just a
+     *       wrapper for a {@link Node} (that cannot throw exceptions).
+     *   <li><em>EXCEPTION_NODE</em>: {@link CFGBuilder.NodeWithExceptionsHolder}. A wrapper for a
+     *       {@link Node} which can throw exceptions. It contains a label for every possible
+     *       exception type the node might throw.
+     *   <li><em>UNCONDITIONAL_JUMP</em>: {@link CFGBuilder.UnconditionalJump}. An unconditional
+     *       jump to a label.
+     *   <li><em>TWO_TARGET_CONDITIONAL_JUMP</em>: {@link CFGBuilder.ConditionalJump}. A conditional
+     *       jump with two targets for both the 'then' and 'else' branch.
      * </ul>
      */
     protected abstract static class ExtendedNode {
@@ -916,9 +920,9 @@ public class CFGBuilder {
             // fix predecessor lists by removing any unreachable predecessors
             for (Block c : worklist) {
                 BlockImpl cur = (BlockImpl) c;
-                for (BlockImpl pred : new HashSet<>(cur.getPredecessors())) {
+                for (Block pred : new HashSet<>(cur.getPredecessors())) {
                     if (!worklist.contains(pred)) {
-                        cur.removePredecessor(pred);
+                        cur.removePredecessor((BlockImpl) pred);
                     }
                 }
             }
@@ -1008,6 +1012,7 @@ public class CFGBuilder {
          * @param predecessors an empty set to be filled by this method with all predecessors
          * @return the single successor of the set of the empty basic blocks
          */
+        @SuppressWarnings("interning:not.interned") // AST node comparisons
         protected static BlockImpl computeNeighborhoodOfEmptyBlock(
                 RegularBlockImpl start,
                 Set<RegularBlockImpl> empty,
@@ -1052,7 +1057,8 @@ public class CFGBuilder {
 
             RegularBlockImpl cur = start;
             empty.add(cur);
-            for (final BlockImpl pred : cur.getPredecessors()) {
+            for (final Block p : cur.getPredecessors()) {
+                BlockImpl pred = (BlockImpl) p;
                 switch (pred.getType()) {
                     case SPECIAL_BLOCK:
                         // add pred correctly to predecessor list
@@ -1087,7 +1093,12 @@ public class CFGBuilder {
          * place where previously the edge pointed to {@code cur}. Additionally, the predecessor
          * holder also takes care of unlinking (i.e., removing the {@code pred} from {@code cur's}
          * predecessors).
+         *
+         * @param pred a block whose successor should be set
+         * @param cur the previous successor of {@code pred}
+         * @return a predecessor holder to set the successor of {@code pred}
          */
+        @SuppressWarnings("interning:not.interned") // AST node comparisons
         protected static PredecessorHolder getPredecessorHolder(
                 final BlockImpl pred, final BlockImpl cur) {
             switch (pred.getType()) {
@@ -1224,6 +1235,7 @@ public class CFGBuilder {
          *     empty regular basic blocks or conditional blocks with the same block as 'then' and
          *     'else' successor)
          */
+        @SuppressWarnings("interning:not.interned") // AST node comparisons
         public static ControlFlowGraph process(PhaseOneResult in) {
 
             Map<Label, Integer> bindings = in.bindings;
@@ -1899,7 +1911,7 @@ public class CFGBuilder {
          * @param pred the desired predecessor
          */
         @SuppressWarnings("ModifyCollectionInEnhancedForLoop")
-        protected void insertExtendedNodeAfter(ExtendedNode n, Node pred) {
+        protected void insertExtendedNodeAfter(ExtendedNode n, @FindDistinct Node pred) {
             int index = -1;
             for (int i = 0; i < nodeList.size(); i++) {
                 ExtendedNode inList = nodeList.get(i);
@@ -2747,7 +2759,7 @@ public class CFGBuilder {
             ExpressionTree variable = tree.getVariable();
             TypeMirror varType = TreeUtils.typeOf(variable);
 
-            // case 1: field access
+            // case 1: lhs is field access
             if (TreeUtils.isFieldAccess(variable)) {
                 // visit receiver
                 Node receiver = getReceiver(variable);
@@ -2775,7 +2787,7 @@ public class CFGBuilder {
                 extendWithNode(assignmentNode);
             }
 
-            // case 2: other cases
+            // case 2: lhs is not a field access
             else {
                 Node target = scan(variable, p);
                 target.setLValue();

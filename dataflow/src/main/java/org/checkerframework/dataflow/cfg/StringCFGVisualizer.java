@@ -31,7 +31,7 @@ public class StringCFGVisualizer<
         return res;
     }
 
-    @SuppressWarnings("enhancedfor.type.incompatible")
+    @SuppressWarnings("keyfor:enhancedfor.type.incompatible")
     @Override
     public String visualizeNodes(
             Set<Block> blocks, ControlFlowGraph cfg, @Nullable Analysis<V, S, T> analysis) {
@@ -57,7 +57,7 @@ public class StringCFGVisualizer<
     }
 
     @Override
-    protected String addEdge(long sId, long eId, String flowRule) {
+    protected String addEdge(Object sId, Object eId, String flowRule) {
         if (this.verbose) {
             return sId + " -> " + eId + " " + flowRule + lineSeparator;
         }

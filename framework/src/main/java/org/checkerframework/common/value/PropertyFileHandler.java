@@ -7,9 +7,10 @@ import com.sun.source.tree.MethodInvocationTree;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
@@ -30,6 +31,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 /**
@@ -143,11 +145,12 @@ public class PropertyFileHandler {
                 return;
             }
             String propKey = getValueFromStringVal(stringAnnotation);
-            String propValue = readValueFromPropertyFile(propFile, propKey, null);
-            if (propValue == null) {
+            Pair<String, String> propValues =
+                    readValueFromPropertyFile(propFile, propKey, null, node);
+            if (propValues == null) {
                 return;
             }
-            annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
+            annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValues.first));
         } else if (TreeUtils.isMethodInvocation(node, getPropertyWithDefaultValue, env)) {
             AnnotationMirror propFileAnnotation =
                     factory.getReceiverType(node).getAnnotation(PropertyFile.class);
@@ -167,11 +170,17 @@ public class PropertyFileHandler {
             } else {
                 defaultValue = null;
             }
-            String propValue = readValueFromPropertyFile(propFile, propKey, defaultValue);
-            if (propValue == null) {
+            Pair<String, String> propValues =
+                    readValueFromPropertyFile(propFile, propKey, defaultValue, node);
+            if (propValues == null) {
                 return;
             }
-            annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValue));
+            if (propValues.first.equals(propValues.second)) {
+                annotatedTypeMirror.replaceAnnotation(createStringAnnotation(propValues.first));
+            } else {
+                annotatedTypeMirror.replaceAnnotation(
+                        createStringAnnotation(propValues.first, propValues.second));
+            }
         }
     }
 
@@ -258,9 +267,11 @@ public class PropertyFileHandler {
      * @param propFile the property file to open
      * @param key the key to find in the property file
      * @param defaultValue the default value of that key
+     * @param node the method invocation tree used for reporting warning
      * @return the value of the key in the property file
      */
-    protected String readValueFromPropertyFile(String propFile, String key, String defaultValue) {
+    protected Pair<String, String> readValueFromPropertyFile(
+            String propFile, String key, String defaultValue, MethodInvocationTree node) {
         String res = null;
         try {
             Properties prop = new Properties();
@@ -286,6 +297,13 @@ public class PropertyFileHandler {
                 return null;
             }
             prop.load(in);
+            Set<String> keyNames = prop.stringPropertyNames();
+            if (!keyNames.contains(key)) {
+                checker.reportWarning(node, "key.not.exist.in.properties.file", key, propFile);
+                if (defaultValue == null) {
+                    return null;
+                }
+            }
             if (defaultValue == null) {
                 res = prop.getProperty(key);
             } else {
@@ -295,7 +313,7 @@ public class PropertyFileHandler {
             checker.message(
                     Kind.WARNING, "Exception in PropertyFileHandler.readPropertyFromFile: " + e);
         }
-        return res;
+        return Pair.of(res, defaultValue);
     }
 
     /**
@@ -311,13 +329,13 @@ public class PropertyFileHandler {
     }
 
     /**
-     * Create a {@literal @}StringVal(value) annotation.
+     * Create a {@literal @}StringVal(values) annotation.
      *
-     * @param value the value to set in the created annotation
+     * @param values the values to set in the created annotation
      * @return the created annotation
      */
-    protected AnnotationMirror createStringAnnotation(String value) {
-        return factory.createStringAnnotation(Collections.singletonList(value));
+    protected AnnotationMirror createStringAnnotation(String... values) {
+        return factory.createStringAnnotation(Arrays.asList(values));
     }
 
     /**

@@ -16,7 +16,6 @@ public class ValueHandlePropertyFileTest extends FrameworkPerDirectoryTest {
                 org.checkerframework.common.value.ValueChecker.class,
                 "value",
                 "-Anomsgtext",
-                "-Astubs=statically-executable.astub",
                 "-A" + ValueChecker.REPORT_EVAL_WARNS,
                 "-A" + ValueChecker.HANDLE_PROPERTY_FILES);
     }

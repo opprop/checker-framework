@@ -18,13 +18,14 @@ class PropertyFileRead {
         Properties prop = new Properties();
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFile);
         prop.load(inputStream);
-        @StringVal("localhost") String host = prop.getProperty("HOST", "127.0.0.1");
+        @StringVal({"localhost", "127.0.0.1"}) String host = prop.getProperty("HOST", "127.0.0.1");
     }
 
     void c() throws IOException {
         Properties prop = new Properties();
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFile);
         prop.load(inputStream);
+        // :: warning: (key.not.exist.in.properties.file)
         @StringVal("default value") String host = prop.getProperty("NOSUCHKEY", "default value");
     }
 

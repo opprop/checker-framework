@@ -86,7 +86,7 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk8-plus:latest
+  container: xingweitian/ubuntu-for-cfi-jdk8-plus:latest
   steps:
   - checkout: self
     fetchDepth: 1000
@@ -95,7 +95,7 @@ jobs:
 - job: typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk11-plus:latest
+  container:xingweitian/ubuntu-for-cfi-jdk11-plus:latest
   steps:
   - checkout: self
     fetchDepth: 1000

@@ -3364,16 +3364,6 @@ public class CFGBuilder {
 
         @Override
         public Node visitBlock(BlockTree tree, Void p) {
-            /*
-              List<? extends StatementTree> statements = tree.getStatements();
-              // Collect all expression satatments that are followed by a if statment
-              for (int i = 0; i < statements.size() - 1; i++) {
-                  if (statements.get(i).getKind() == Kind.EXPRESSION_STATEMENT
-                          && statements.get(i + 1).getKind() == Kind.IF) {
-                      statementBeforeIf.add(statements.get(i));
-                  }
-              }
-            */
             for (StatementTree n : tree.getStatements()) {
                 scan(n, null);
             }
@@ -3630,10 +3620,9 @@ public class CFGBuilder {
 
         @Override
         public Node visitExpressionStatement(ExpressionStatementTree tree, Void p) {
-            // if (statementBeforeIf.contains(tree)) {
-            // For an expression statment followed by an if-statment, create a local variable
-            // and assign the expression to that local variable, which would lead merging of the
-            // two store branches during dataflow analysis.
+            // For every expression statement, create a local variable and assign the expression to
+            // that local variable, which would lead to merging of the two stores during dataflow
+            // analysis.
             String name = uniqueName("mergeStoreBeforeIf");
             Element owner = findOwner();
             ExpressionTree initializer = tree.getExpression();
@@ -3641,10 +3630,6 @@ public class CFGBuilder {
                     treeBuilder.buildVariableDecl(
                             TreeUtils.typeOf(initializer), name, owner, initializer);
             return scan(auxillaryVariable, p);
-
-            /* } else {
-            return scan(tree.getExpression(), p);
-            } */
         }
 
         @Override

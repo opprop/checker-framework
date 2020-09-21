@@ -161,4 +161,7 @@ public interface NodeVisitor<R, P> {
 
     // Anonymous/inner/nested class declaration within a method
     R visitClassDeclaration(ClassDeclarationNode classDeclarationNode, P p);
+
+    // Merge store after an expression statement
+    R visitMergeOfStore(MergeOfStoreNode n, P p);
 }

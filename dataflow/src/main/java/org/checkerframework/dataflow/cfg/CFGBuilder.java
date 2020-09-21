@@ -143,6 +143,7 @@ import org.checkerframework.dataflow.cfg.node.LessThanOrEqualNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.LongLiteralNode;
 import org.checkerframework.dataflow.cfg.node.MarkerNode;
+import org.checkerframework.dataflow.cfg.node.MergeOfStoreNode;
 import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.NarrowingConversionNode;
@@ -3616,7 +3617,12 @@ public class CFGBuilder {
 
         @Override
         public Node visitExpressionStatement(ExpressionStatementTree tree, Void p) {
-            return scan(tree.getExpression(), p);
+            ExpressionTree exprTree = tree.getExpression();
+            scan(exprTree, p);
+            if (!(exprTree instanceof AssignmentTree)) {
+                extendWithNode(new MergeOfStoreNode(exprTree));
+            }
+            return null;
         }
 
         @Override

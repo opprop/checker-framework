@@ -46,6 +46,7 @@ import org.checkerframework.dataflow.cfg.node.EqualToNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.LambdaResultExpressionNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
+import org.checkerframework.dataflow.cfg.node.MergeOfStoreNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.NarrowingConversionNode;
 import org.checkerframework.dataflow.cfg.node.Node;
@@ -1207,5 +1208,12 @@ public abstract class CFAbstractTransfer<
         TransferResult<V, S> result = super.visitStringConversion(n, p);
         result.setResultValue(p.getValueOfSubNode(n.getOperand()));
         return result;
+    }
+
+    @Override
+    public TransferResult<V, S> visitMergeOfStore(
+            MergeOfStoreNode n, TransferInput<V, S> vsTransferInput) {
+        S info = vsTransferInput.getRegularStore();
+        return new RegularTransferResult<>(finishValue(null, info), info);
     }
 }

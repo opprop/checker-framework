@@ -380,4 +380,10 @@ public abstract class AbstractNodeVisitor<R, P> implements NodeVisitor<R, P> {
     public R visitMarker(MarkerNode n, P p) {
         return visitNode(n, p);
     }
+
+    // Merge store after an expression statement
+    @Override
+    public R visitMergeOfStore(MergeOfStoreNode n, P p) {
+        return visitNode(n, p);
+    }
 }

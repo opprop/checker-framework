@@ -15,8 +15,10 @@ import org.checkerframework.javacutil.TreeUtils;
  * <p>Note: Does not represent any AST structure.
  */
 public class MergeOfStoreNode extends Node {
+    /** The expression precedes this MergeOfStoreNode. */
     protected final ExpressionTree tree;
 
+    /** @param the expression precedes this MergeOfStoreNode */
     public MergeOfStoreNode(ExpressionTree t) {
         super(TreeUtils.typeOf(t));
         tree = t;

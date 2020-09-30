@@ -45,7 +45,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
   echo "PACKAGE=${PACKAGE}"
   PACKAGEDIR="/tmp/${PACKAGE}"
   rm -rf "${PACKAGEDIR}"
-  if  [["${PACKAGE}" == "options"]] || [["${PACKAGE}" == "plume-util"]]; then
+  if  [[ "${PACKAGE}" == "options" ]] || [[ "${PACKAGE}" == "plume-util" ]]; then
       ORGANIZATION="opprop"
   else
       ORGANIZATION="plume-lib"

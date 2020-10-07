@@ -11,9 +11,6 @@ public class Issue2076 {
     @ThrowsException(NullPointerException.class)
     public void buildAndThrowNPE() {}
 
-    @ThrowsException
-    public void buildAndThrow() {}
-
     public @NonNull Object m1() {
         if (mObj == null) {
             buildAndThrowNPE();
@@ -24,7 +21,7 @@ public class Issue2076 {
     public void m2(@Nullable Object obj) {
         int n;
         if (obj == null) {
-            buildAndThrow();
+            buildAndThrowNPE();
         }
         n = obj.hashCode();
     }

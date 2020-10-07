@@ -2604,33 +2604,60 @@ public class CFGBuilder {
 
             Set<TypeMirror> thrownSet = new HashSet<>();
 
-            Element methodElement = TreeUtils.elementFromTree(tree);
-            // Detect the existence of @ThrowsException
             AnnotationMirror throwAnno =
-                    annotationProvider.getDeclAnnotation(methodElement, ThrowsException.class);
+                    annotationProvider.getDeclAnnotation(element, ThrowsException.class);
             if (throwAnno != null) {
-                // If the method is annotated with @ThrowsException, it unconditionally throws the
-                // exception specified by the value of the annotation. Then the excecution
-                // terminates.
+                // If @ThrowsException exists, validate the thrown type it specifies by comparing it
+                // to the method declaration.
                 TypeMirror thrown;
-                // get type of thrown exception
                 String cls =
-                        AnnotationUtils.getElementValueClassName(throwAnno, "value", true)
+                        AnnotationUtils.getElementValueClassName(throwAnno, "value", false)
                                 .toString();
                 thrown = elements.getTypeElement(cls).asType();
+
+                TypeMirror runtimeExceptionType =
+                        elements.getTypeElement("java.lang.RuntimeException").asType();
+                TypeMirror errorType = elements.getTypeElement("java.lang.Error").asType();
+                if (!types.isSubtype(thrown, runtimeExceptionType)
+                        && !types.isSubtype(thrown, errorType)) {
+                    // If @ThrowsException specifies that the method throws a checked exception,
+                    // check if the thrown exception is a subtype of one of the exceptions in the
+                    // method's throws clause.
+                    boolean isThrownInDecl = false;
+                    List<? extends TypeMirror> declaredThrownTypes = element.getThrownTypes();
+                    for (TypeMirror t : declaredThrownTypes) {
+                        if (types.isSubtype(thrown, t)) {
+                            isThrownInDecl = true;
+                            break;
+                        }
+                    }
+
+                    if (!isThrownInDecl) {
+                        // If the thrown exception specified in @ThrowsException is not a subtype of
+                        // any
+                        // of the exceptions in the method's throws clause, issue an error.
+                        throw new BugInCF(
+                                "The thrown type specified in @ThrowsException is not compatible to method declaration");
+                    }
+                }
+
+                // Only add the type of exception specified in the @ThrowsException to the thrown
+                // set, while ignoring the exceptions in the method signature.
                 thrownSet.add(thrown);
 
                 // Since a method invocation is always possible to throw a runtime error, add it to
                 // the thrown set.
                 thrownSet.add(elements.getTypeElement("java.lang.Error").asType());
-
                 NodeWithExceptionsHolder exNode = extendWithNodeWithExceptions(node, thrownSet);
+
+                // Terminates the normal execution
                 exNode.setTerminatesExecution(true);
 
                 return node;
             }
 
-            // Add exceptions explicitly mentioned in the throws clause.
+            // If the invoked method is not annotated with @ThrowsException, add the explicit
+            // exceptions in the method declaration if any exists.
             List<? extends TypeMirror> thrownTypes = element.getThrownTypes();
             thrownSet.addAll(thrownTypes);
 
@@ -2653,7 +2680,7 @@ public class CFGBuilder {
 
             /* Check for the TerminatesExecution annotation. */
             boolean terminatesExecution =
-                    annotationProvider.getDeclAnnotation(methodElement, TerminatesExecution.class)
+                    annotationProvider.getDeclAnnotation(element, TerminatesExecution.class)
                             != null;
             if (terminatesExecution) {
                 extendedNode.setTerminatesExecution(true);

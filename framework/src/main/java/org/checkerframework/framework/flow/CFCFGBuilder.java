@@ -8,6 +8,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import java.util.Collection;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -113,6 +114,11 @@ public class CFCFGBuilder extends CFGBuilder {
 
         @Override
         public void handleArtificialTree(Tree tree) {
+            handleArtificialTree(tree, getCurrentPath());
+        }
+
+        @Override
+        public void handleArtificialTree(Tree tree, TreePath path) {
             // Record the method or class that encloses the newly created tree.
             MethodTree enclosingMethod = TreeUtils.enclosingMethod(getCurrentPath());
             if (enclosingMethod != null) {
@@ -124,6 +130,12 @@ public class CFCFGBuilder extends CFGBuilder {
                     Element classElement = TreeUtils.elementFromDeclaration(enclosingClass);
                     factory.setEnclosingElementForArtificialTree(tree, classElement);
                 }
+            }
+            if (path == null) {
+                path = getCurrentPath();
+            }
+            if (factory.getEnclosingElementForArtificialTree(tree) != null) {
+                factory.createTreePathForArtificialTree(tree, path);
             }
         }
 

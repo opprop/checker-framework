@@ -78,8 +78,8 @@ task setLocalRepo(type:Exec) {
     commandLine 'git', 'worktree', 'list'
     standardOutput = new ByteArrayOutputStream()
     doLast {
-       String worktreeList = standardOutput.toString()
-       localRepo = worktreeList.substring(0, worktreeList.indexOf(" ")) + "/.git"
+        String worktreeList = standardOutput.toString()
+        localRepo = worktreeList.substring(0, worktreeList.indexOf(" ")) + "/.git"
     }
 }
 
@@ -270,22 +270,22 @@ def createCheckTypeTask(projectName, checker, shortName, args = []) {
                 '-processor', "${checker}",
                 '-proc:only',
                 '-Xlint:-processing',
-                ]
+        ]
         options.compilerArgs += args
 
         if (isJava8) {
             options.compilerArgs += [
-                "-source",
-                "8",
-                "-target",
-                "8"
-                ]
+                    "-source",
+                    "8",
+                    "-target",
+                    "8"
+            ]
         } else {
             options.fork = true
             options.forkOptions.jvmArgs += [
-                "--add-opens", "jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED",
-                ]
-       }
+                    "--add-opens", "jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED",
+            ]
+        }
     }
 }
 
@@ -309,7 +309,7 @@ List<String> getJavaFilesToFormat(projectName) {
             javaFiles.add(details.file)
         }
     }
-     // Collect all java files in jtreg directory
+    // Collect all java files in jtreg directory
     fileTree("${project(projectName).projectDir}/jtreg").visit { details ->
         if (!details.path.contains("nullness-javac-errors") && details.name.endsWith('java')) {
             javaFiles.add(details.file)
@@ -460,7 +460,7 @@ task getCodeFormatScripts() {
         exec {
             workingDir "${formatScriptsHome}/../"
             executable 'git'
-            args = ['clone', '-q', '--depth', '1', 'https://github.com/plume-lib/run-google-java-format.git', '.run-google-java-format']
+            args = ['clone', '-q', 'https://github.com/plume-lib/run-google-java-format.git', '.run-google-java-format']
         }
     }
 }
@@ -471,8 +471,6 @@ task getCodeFormatScriptsInGradle {
     description "Obtain the run-google-java-format scripts"
     doLast {
         if (! new File(formatScriptsHome).exists()) {
-            // There is no support for the --depth argument:
-            // https://github.com/ajoberstar/grgit/issues/155   https://bugs.eclipse.org/bugs/show_bug.cgi?id=475615
             def rgjfGit = Grgit.clone(dir: formatScriptsHome, uri: 'https://github.com/plume-lib/run-google-java-format.git')
         } else {
             def rgjfGit = Grgit.open(dir: formatScriptsHome)
@@ -500,7 +498,7 @@ task getPlumeScripts() {
 }
 
 task pythonIsInstalled(type: Exec) {
-    description "Check that the python3 executable is installed."
+    description "Check that the python executable is installed."
     executable = "python3"
     args "--version"
 }
@@ -671,11 +669,11 @@ subprojects {
                         if (isJava8) {
                             // Use Error Prone javac and source/target 8
                             args += [
-                                "-vmoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
-                                "-javacoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
-                                "-javacoptions:-source 8",
-                                "-javacoptions:-target 8"
-                                ]
+                                    "-vmoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
+                                    "-javacoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
+                                    "-javacoptions:-source 8",
+                                    "-javacoptions:-target 8"
+                            ]
                         } else {
                             args += [
                                     // checker/jtreg/nullness/defaultsPersist/ReferenceInfoUtil.java
@@ -847,10 +845,9 @@ task checkBasicStyle(group: 'Format') {
                                   '.gradle',
                                   '.idea',
                                   '.plume-scripts',
-                                  '.run-google-java-format',
                                   'annotated',
                                   'api',
-                                  'plume-bib',
+                                  'bib',
                                   'bootstrap',
                                   'build',
                                   'jdk',
@@ -880,8 +877,6 @@ task checkBasicStyle(group: 'Format') {
             'manual.html',
             'manual.html-e',
             'junit.*.properties',
-            'checker/dist/META-INF/maven/org.apache.bcel/bcel/pom.xml',
-            'checker/dist/META-INF/maven/org.apache.commons/commons-text/pom.xml',
             'framework/src/main/resources/git.properties']
     doLast {
         FileTree tree = fileTree(dir: projectDir)
@@ -894,18 +889,11 @@ task checkBasicStyle(group: 'Format') {
         boolean failed = false
         tree.visit {
             if (!it.file.isDirectory()) {
-                boolean blankLineAtEnd = false
-                String fileName = it.file.getName()
-                boolean checkTabs = !fileName.equals("Makefile")
+                int isBlankLine
                 it.file.eachLine { line ->
                     if (line.endsWith(' ')) {
                         println("Trailing whitespace: ${it.file.absolutePath}")
                         failed = true
-                    }
-                    if (checkTabs && line.contains('\t')) {
-                        println("Contains tab (use spaces): ${it.file.absolutePath}")
-                        failed = true
-                        checkTabs = false
                     }
                     if (!line.startsWith('\\') &&
                             (line.matches('^.* (else|finally|try)\\{}.*$')
@@ -916,13 +904,13 @@ task checkBasicStyle(group: 'Format') {
                         failed = true
                     }
                     if (line.isEmpty()) {
-                        blankLineAtEnd = true;
+                        isBlankLine++;
                     } else {
-                        blankLineAtEnd = false;
+                        isBlankLine = 0;
                     }
                 }
 
-                if (blankLineAtEnd) {
+                if (isBlankLine > 1) {
                     println("Blank line at end of file: ${it.file.absolutePath}")
                     failed = true
                 }

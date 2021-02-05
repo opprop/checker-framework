@@ -419,7 +419,10 @@ public abstract class AbstractAnalysis<
         }
     }
 
-    public UnaryTree getUnaryTreeForAssign(AssignmentNode node) {
+    public @Nullable UnaryTree getUnaryTreeForAssign(AssignmentNode node) {
+        if (cfg == null) {
+            return null;
+        }
         IdentityHashMap<UnaryTree, AssignmentNode> unaryAssignNodeLookup =
                 cfg.getUnaryAssignNodeLookup();
         for (Map.Entry<UnaryTree, AssignmentNode> entry : unaryAssignNodeLookup.entrySet()) {

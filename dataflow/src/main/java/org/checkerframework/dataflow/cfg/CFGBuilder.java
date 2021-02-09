@@ -1720,13 +1720,12 @@ public class CFGBuilder {
          *
          * @param tree the newly created Tree
          */
-        public final void handleArtificialTree(Tree tree) {
-            handleArtificialTree(tree, getCurrentPath());
-        }
+        public void handleArtificialTree(Tree tree) {}
 
         /**
          * Perform any actions required when CFG translation creates a new Tree that is not part of
-         * the original AST.
+         * the original AST. This method is an supplement to the one-arg version of {@code
+         * handleArtificialTree} above.
          *
          * @param tree the newly created Tree
          * @param path tree path to the newly created Tree

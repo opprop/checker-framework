@@ -3111,25 +3111,15 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Handle an artificial tree by mapping it to the enclosing element.
+     * Handle an artificial tree by mapping it to the enclosing element. Also set the {@link
+     * TreePath} to the artificial tree.
      *
      * <p>See {@code
      * org.checkerframework.framework.flow.CFCFGBuilder.CFCFGTranslationPhaseOne.handleArtificialTree(Tree)}.
      */
-    public final void setEnclosingElementForArtificialTree(Tree node, Element enclosing) {
+    public final void setEnclosingElementForArtificialTree(
+            Tree node, TreePath path, Element enclosing) {
         artificialTreeToEnclosingElementMap.put(node, enclosing);
-    }
-
-    /**
-     * Create an artificial tree path for an artificial tree.
-     *
-     * <p>See {@code
-     * org.checkerframework.framework.flow.CFCFGBuilder.CFCFGTranslationPhaseOne.handleArtificialTree(Tree)}.
-     *
-     * @param node the artificial {@link Tree} to create path for
-     * @param path the {@link TreePath} of the artificial tree
-     */
-    public void createTreePathForArtificialTree(Tree node, TreePath path) {
         treePathCache.addPath(node, path);
     }
 

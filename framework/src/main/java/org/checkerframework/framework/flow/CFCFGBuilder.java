@@ -113,23 +113,26 @@ public class CFCFGBuilder extends CFGBuilder {
             return super.assumeAssertionsEnabledFor(tree);
         }
 
+        /** {@inheritDoc} */
+        @Override
+        public void handleArtificialTree(Tree tree) {
+            handleArtificialTree(tree, getCurrentPath());
+        }
+
+        /** {@inheritDoc} */
         @Override
         public void handleArtificialTree(Tree tree, @NonNull TreePath path) {
             // Record the method or class that encloses the newly created tree.
-            MethodTree enclosingMethod = TreeUtils.enclosingMethod(path);
+            MethodTree enclosingMethod = TreeUtils.enclosingMethod(getCurrentPath());
             if (enclosingMethod != null) {
                 Element methodElement = TreeUtils.elementFromDeclaration(enclosingMethod);
-                factory.setEnclosingElementForArtificialTree(tree, methodElement);
-            } else {
-                ClassTree enclosingClass = TreeUtils.enclosingClass(path);
-                if (enclosingClass != null) {
-                    Element classElement = TreeUtils.elementFromDeclaration(enclosingClass);
-                    factory.setEnclosingElementForArtificialTree(tree, classElement);
-                }
+                factory.setEnclosingElementForArtificialTree(tree, path, methodElement);
+                return;
             }
-
-            if (factory.getEnclosingElementForArtificialTree(tree) != null) {
-                factory.createTreePathForArtificialTree(tree, path);
+            ClassTree enclosingClass = TreeUtils.enclosingClass(getCurrentPath());
+            if (enclosingClass != null) {
+                Element classElement = TreeUtils.elementFromDeclaration(enclosingClass);
+                factory.setEnclosingElementForArtificialTree(tree, path, classElement);
             }
         }
 

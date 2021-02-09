@@ -256,6 +256,10 @@ public abstract class AbstractAnalysis<
         return cfg.getNodesCorrespondingToTree(t);
     }
 
+    /**
+     * Initialize the {@link AssignmentNode}-{@link UnaryTree} lookup map by inverting the {@link
+     * UnaryTree}-{@link AssignmentNode} lookup map from CFG.
+     */
     private void initAssignNodeUnaryLookupMap() {
         if (cfg == null) {
             return;
@@ -274,7 +278,7 @@ public abstract class AbstractAnalysis<
      * @param node an assignment node
      * @return the corresponding unary tree, or null if it {@code node} is not from a unary tree
      */
-    public UnaryTree getUnaryTreeForAssign(AssignmentNode node) {
+    public @Nullable UnaryTree getUnaryTreeForAssign(AssignmentNode node) {
         return assignNodeUnaryLookupMap.get(node);
     }
 

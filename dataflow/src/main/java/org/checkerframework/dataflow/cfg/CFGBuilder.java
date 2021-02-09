@@ -1725,10 +1725,11 @@ public class CFGBuilder {
         /**
          * Perform any actions required when CFG translation creates a new Tree that is not part of
          * the original AST. This method is an supplement to the one-arg version of {@code
-         * handleArtificialTree} above.
+         * handleArtificialTree} above, in order to be able to specify {@link TreePath} for the
+         * given artificial tree instead of using default.
          *
-         * @param tree the newly created Tree
-         * @param path tree path to the newly created Tree
+         * @param tree the newly created artificial tree
+         * @param path the {@link TreePath} attached to the artificial tree
          */
         public void handleArtificialTree(Tree tree, @NonNull TreePath path) {}
 

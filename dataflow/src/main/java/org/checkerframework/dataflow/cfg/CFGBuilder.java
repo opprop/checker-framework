@@ -91,7 +91,6 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.cfg.CFGBuilder.ExtendedNode.ExtendedNodeType;
@@ -1731,7 +1730,7 @@ public class CFGBuilder {
          * @param tree the newly created artificial tree
          * @param path the {@link TreePath} attached to the artificial tree
          */
-        public void handleArtificialTree(Tree tree, @NonNull TreePath path) {}
+        public void handleArtificialTree(Tree tree, TreePath path) {}
 
         /* --------------------------------------------------------- */
         /* Nodes and Labels Management */

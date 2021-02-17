@@ -1721,17 +1721,6 @@ public class CFGBuilder {
          */
         public void handleArtificialTree(Tree tree) {}
 
-        /**
-         * Perform any actions required when CFG translation creates a new Tree that is not part of
-         * the original AST. This method is an supplement to the one-arg version of {@code
-         * handleArtificialTree} above, in order to be able to specify {@link TreePath} for the
-         * given artificial tree instead of using default.
-         *
-         * @param tree the newly created artificial tree
-         * @param path the {@link TreePath} attached to the artificial tree
-         */
-        public void handleArtificialTree(Tree tree, TreePath path) {}
-
         /* --------------------------------------------------------- */
         /* Nodes and Labels Management */
         /* --------------------------------------------------------- */
@@ -4850,7 +4839,7 @@ public class CFGBuilder {
 
             if (target == null) {
                 target = treeBuilder.buildAssignment(exprTree, (ExpressionTree) narrowed.getTree());
-                handleArtificialTree(target, TreePath.getPath(getCurrentPath(), exprTree));
+                handleArtificialTree(target);
             }
 
             AssignmentNode assignNode = new AssignmentNode(target, expr, narrowed);

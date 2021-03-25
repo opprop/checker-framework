@@ -369,7 +369,7 @@ public final class TreeUtils {
     }
 
     /**
-     * Returns the tree with the assignment context for the treePath leaf node. (Does not handle
+     * Returns the tree with the assignment context for the treePath leaf node. (Handles
      * pseudo-assignment of an argument to a parameter or a receiver expression to a receiver.)
      *
      * <p>The assignment context for the {@code treePath} is the leaf of its parent, if the parent
@@ -394,9 +394,13 @@ public final class TreeUtils {
      *
      * <p>Otherwise, null is returned.
      *
+     * @param treePath the tree path
+     * @param conservative if conservative result is needed. Conservative result does not include
+     *     pseudo assignment of method invocation receiver
      * @return the assignment context as described, {@code null} otherwise
      */
-    public static @Nullable Tree getAssignmentContext(final TreePath treePath) {
+    public static @Nullable Tree getAssignmentContext(
+            final TreePath treePath, boolean conservative) {
         TreePath parentPath = treePath.getParentPath();
 
         if (parentPath == null) {
@@ -423,6 +427,41 @@ public final class TreeUtils {
             case RETURN:
             case VARIABLE:
                 return parent;
+            case MEMBER_SELECT:
+                // since :javacutil:checkWorkingNullness seems not support assertion and living
+                // variable inference, assign to a local variable to pass the test
+                Element parentEle = TreeUtils.elementFromTree(parent);
+
+                // Don't process method().field
+                if (parentEle != null && parentEle.getKind().isField()) {
+                    return null;
+                }
+                // Also check case when treepath's leaf tree is used as method
+                // invocation's actual receiver
+                // If so, return that method invocation tree too as the assignment
+                // context tree rather than null as we did before
+                TreePath grandParentPath = parentPath.getParentPath();
+                if (grandParentPath != null
+                        && grandParentPath.getLeaf() instanceof MethodInvocationTree) {
+
+                    // do not use foo().bar() scheme as assignment context when conservative, since
+                    // assignedTo for that is not implemented yet
+                    if (conservative) {
+                        MethodInvocationTree grandTree =
+                                (MethodInvocationTree) grandParentPath.getLeaf();
+
+                        // adapted from TypeArgInferenceUtil#assignedTo to be consistent
+                        if (grandTree.getMethodSelect() instanceof MemberSelectTree
+                                && ((MemberSelectTree) grandTree.getMethodSelect()).getExpression()
+                                        == treePath.getLeaf()) {
+                            return null;
+                        }
+                    }
+                    return grandParentPath.getLeaf();
+                } else {
+                    return null;
+                }
+
             default:
                 // 11 Tree.Kinds are CompoundAssignmentTrees,
                 // so use instanceof rather than listing all 11.
@@ -431,6 +470,16 @@ public final class TreeUtils {
                 }
                 return null;
         }
+    }
+
+    /**
+     * See {@code getAssignmentContext}. Not using conservative result.
+     *
+     * @param treePath the tree path
+     * @return the assignment context as described, {@code null} otherwise
+     */
+    public static @Nullable Tree getAssignmentContext(final TreePath treePath) {
+        return getAssignmentContext(treePath, false);
     }
 
     /**

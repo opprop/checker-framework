@@ -39,23 +39,28 @@ import com.sun.tools.javac.tree.JCTree.JCAnnotatedType;
 import com.sun.tools.javac.tree.JCTree.JCAnnotation;
 import com.sun.tools.javac.tree.JCTree.JCBinary;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCLambda;
 import com.sun.tools.javac.tree.JCTree.JCLambda.ParameterKind;
 import com.sun.tools.javac.tree.JCTree.JCMemberReference;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
 import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.util.Context;
+
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -68,10 +73,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
 
 /** A utility class made for helping to analyze a given {@code Tree}. */
 // TODO: This class needs significant restructuring
@@ -579,28 +580,8 @@ public final class TreeUtils {
         }
 
         JCNewClass newClassTree = (JCNewClass) tree;
-
-        if (tree.getClassBody() != null) {
-            // anonymous constructor bodies should contain exactly one statement
-            // in the form:
-            //    super(arg1, ...)
-            // or
-            //    o.super(arg1, ...)
-            //
-            // which is a method invocation (!) to the actual constructor
-
-            // the method call is guaranteed to return nonnull
-            JCMethodDecl anonConstructor =
-                    (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
-            assert anonConstructor != null;
-            assert anonConstructor.body.stats.size() == 1;
-            JCExpressionStatement stmt = (JCExpressionStatement) anonConstructor.body.stats.head;
-            JCTree.JCMethodInvocation superInvok = (JCMethodInvocation) stmt.expr;
-            return (ExecutableElement) TreeInfo.symbol(superInvok.meth);
-        } else {
-            Element e = newClassTree.constructor;
-            return (ExecutableElement) e;
-        }
+        Element e = newClassTree.constructor;
+        return (ExecutableElement) e;
     }
 
     /**

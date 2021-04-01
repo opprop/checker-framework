@@ -6,20 +6,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.ConditionalTransferResult;
 import org.checkerframework.dataflow.analysis.FlowExpressions;
@@ -36,28 +23,7 @@ import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGLambda;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.Kind;
-import org.checkerframework.dataflow.cfg.node.AbstractNodeVisitor;
-import org.checkerframework.dataflow.cfg.node.ArrayAccessNode;
-import org.checkerframework.dataflow.cfg.node.AssignmentNode;
-import org.checkerframework.dataflow.cfg.node.CaseNode;
-import org.checkerframework.dataflow.cfg.node.ClassNameNode;
-import org.checkerframework.dataflow.cfg.node.ConditionalNotNode;
-import org.checkerframework.dataflow.cfg.node.EqualToNode;
-import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
-import org.checkerframework.dataflow.cfg.node.LambdaResultExpressionNode;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
-import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
-import org.checkerframework.dataflow.cfg.node.NarrowingConversionNode;
-import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.dataflow.cfg.node.NotEqualNode;
-import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
-import org.checkerframework.dataflow.cfg.node.ReturnNode;
-import org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode;
-import org.checkerframework.dataflow.cfg.node.StringConversionNode;
-import org.checkerframework.dataflow.cfg.node.TernaryExpressionNode;
-import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
-import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
-import org.checkerframework.dataflow.cfg.node.WideningConversionNode;
+import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -75,6 +41,22 @@ import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressio
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * The default analysis transfer function for the Checker Framework propagates information through
@@ -675,14 +657,16 @@ public abstract class CFAbstractTransfer<
     public TransferResult<V, S> visitTernaryExpression(
             TernaryExpressionNode n, TransferInput<V, S> p) {
         TransferResult<V, S> result = super.visitTernaryExpression(n, p);
-        S store = result.getRegularStore();
+        S thenStore = result.getThenStore();
+        S elseStore = result.getElseStore();
         V thenValue = p.getValueOfSubNode(n.getThenOperand());
         V elseValue = p.getValueOfSubNode(n.getElseOperand());
         V resultValue = null;
         if (thenValue != null && elseValue != null) {
             resultValue = thenValue.leastUpperBound(elseValue);
         }
-        return new RegularTransferResult<>(finishValue(resultValue, store), store);
+        V finishedValue = finishValue(resultValue, thenStore, elseStore);
+        return new ConditionalTransferResult<>(finishedValue, thenStore, elseStore);
     }
 
     /** Reverse the role of the 'thenStore' and 'elseStore'. */
@@ -1207,5 +1191,23 @@ public abstract class CFAbstractTransfer<
         TransferResult<V, S> result = super.visitStringConversion(n, p);
         result.setResultValue(p.getValueOfSubNode(n.getOperand()));
         return result;
+    }
+
+    @Override
+    public TransferResult<V, S> visitBooleanLiteral(
+            BooleanLiteralNode n, TransferInput<V, S> vsTransferInput) {
+        S thenStore, elseStore;
+
+        TransferResult<V, S> result = super.visitBooleanLiteral(n, vsTransferInput);
+        if (n.getValue()) {
+            thenStore = result.getThenStore();
+            elseStore = analysis.getBottomStore(sequentialSemantics);
+        } else {
+            thenStore = analysis.getBottomStore(sequentialSemantics);
+            elseStore = result.getElseStore();
+        }
+
+        return new ConditionalTransferResult<>(
+                finishValue(result.getResultValue(), thenStore, elseStore), thenStore, elseStore);
     }
 }

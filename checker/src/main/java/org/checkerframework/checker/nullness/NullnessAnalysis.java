@@ -1,14 +1,16 @@
 package org.checkerframework.checker.nullness;
 
-import java.util.List;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.Pair;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * The analysis class for the non-null type system (serves as factory for the transfer function,
@@ -41,5 +43,13 @@ public class NullnessAnalysis
             return null;
         }
         return new NullnessValue(this, annotations, underlyingType);
+    }
+
+    @Override
+    public NullnessStore getBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = new NullnessBottomStore(this, sequentialSemantics);
+        }
+        return bottomStore;
     }
 }

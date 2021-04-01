@@ -92,4 +92,11 @@ public interface Store<S extends Store<S>> {
      * @return the String representation of this store
      */
     String visualize(CFGVisualizer<?, S, ?> viz);
+
+    /**
+     * Is this store a bottom store?
+     *
+     * @return true if this is a bottom store
+     */
+    boolean isBottom();
 }

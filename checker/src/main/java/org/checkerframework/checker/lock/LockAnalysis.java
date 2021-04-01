@@ -1,15 +1,17 @@
 package org.checkerframework.checker.lock;
 
-import java.util.List;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.javacutil.Pair;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * The analysis class for the lock type system.
@@ -45,5 +47,10 @@ public class LockAnalysis extends CFAbstractAnalysis<CFValue, LockStore, LockTra
     public CFValue createAbstractValue(
             Set<AnnotationMirror> annotations, TypeMirror underlyingType) {
         return defaultCreateAbstractValue(this, annotations, underlyingType);
+    }
+
+    @Override
+    public LockStore getBottomStore(boolean sequentialSemantics) {
+        return null;
     }
 }

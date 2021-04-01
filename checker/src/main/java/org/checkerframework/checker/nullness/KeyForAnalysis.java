@@ -1,14 +1,16 @@
 package org.checkerframework.checker.nullness;
 
-import java.util.List;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.Pair;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 /** Boiler plate code to glue together all the parts the KeyFor dataflow classes. */
 public class KeyForAnalysis extends CFAbstractAnalysis<KeyForValue, KeyForStore, KeyForTransfer> {
@@ -46,5 +48,13 @@ public class KeyForAnalysis extends CFAbstractAnalysis<KeyForValue, KeyForStore,
             return null;
         }
         return new KeyForValue(this, annotations, underlyingType);
+    }
+
+    @Override
+    public KeyForStore getBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = new KeyForBottomStore(this, sequentialSemantics);
+        }
+        return bottomStore;
     }
 }

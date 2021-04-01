@@ -1,13 +1,5 @@
 package org.checkerframework.framework.flow;
 
-import java.util.List;
-import java.util.Set;
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.analysis.ForwardAnalysisImpl;
@@ -22,6 +14,16 @@ import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
 
 /**
  * {@link CFAbstractAnalysis} is an extensible org.checkerframework.dataflow analysis for the
@@ -65,6 +67,8 @@ public abstract class CFAbstractAnalysis<
 
     /** Instance of the types utility. */
     protected final Types types;
+
+    protected S bottomStore;
 
     /**
      * Create a CFAbstractAnalysis.
@@ -128,6 +132,13 @@ public abstract class CFAbstractAnalysis<
      * @return an empty store of the appropriate type
      */
     public abstract S createEmptyStore(boolean sequentialSemantics);
+
+    /**
+     * Create the unique shared instance of bottom store for the underlying type system
+     *
+     * @return the bottom store instance of the appropriate type
+     */
+    public abstract S getBottomStore(boolean sequentialSemantics);
 
     /**
      * Returns an identical copy of the store {@code s}.

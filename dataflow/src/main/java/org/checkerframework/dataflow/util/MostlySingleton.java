@@ -1,9 +1,8 @@
 package org.checkerframework.dataflow.util;
 
-import org.checkerframework.javacutil.BugInCF;
-
 import java.util.HashSet;
 import java.util.Objects;
+import org.checkerframework.javacutil.BugInCF;
 
 /**
  * A set that is more efficient than HashSet for 0 and 1 elements. Uses {@code Objects.equals} for

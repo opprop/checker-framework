@@ -1,9 +1,7 @@
-import org.checkerframework.common.returnsreceiver.qual.*;
-
-import testaccumulation.qual.*;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.checkerframework.common.returnsreceiver.qual.*;
+import testaccumulation.qual.*;
 
 class Generics {
 

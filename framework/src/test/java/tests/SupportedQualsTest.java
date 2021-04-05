@@ -1,12 +1,10 @@
 package tests;
 
-import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
-import org.junit.runners.Parameterized.Parameters;
-
-import testlib.supportedquals.SupportedQualsChecker;
-
 import java.io.File;
 import java.util.List;
+import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
+import org.junit.runners.Parameterized.Parameters;
+import testlib.supportedquals.SupportedQualsChecker;
 
 public class SupportedQualsTest extends FrameworkPerDirectoryTest {
 

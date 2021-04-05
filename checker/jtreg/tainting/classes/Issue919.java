@@ -1,7 +1,6 @@
 package classes;
 
 import classes.Issue919B.InnerClass;
-
 import java.util.Set;
 
 public class Issue919 {

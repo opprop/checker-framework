@@ -1,5 +1,6 @@
 package org.checkerframework.dataflow.constantpropagation;
 
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.ConditionalTransferResult;
 import org.checkerframework.dataflow.analysis.ForwardTransferFunction;
@@ -13,8 +14,6 @@ import org.checkerframework.dataflow.cfg.node.EqualToNode;
 import org.checkerframework.dataflow.cfg.node.IntegerLiteralNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.Node;
-
-import java.util.List;
 
 public class ConstantPropagationTransfer
         extends AbstractNodeVisitor<

@@ -1,12 +1,10 @@
 package tests;
 
-import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
-import org.junit.runners.Parameterized.Parameters;
-
-import testaccumulation.TestAccumulationChecker;
-
 import java.io.File;
 import java.util.List;
+import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
+import org.junit.runners.Parameterized.Parameters;
+import testaccumulation.TestAccumulationChecker;
 
 /**
  * A test that the accumulation abstract checker is working correctly, using a simple accumulation

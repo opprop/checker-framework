@@ -1,5 +1,4 @@
 import org.checkerframework.framework.test.*;
-
 import testlib.util.*;
 
 class Equal {

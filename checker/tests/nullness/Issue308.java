@@ -1,6 +1,5 @@
-import org.checkerframework.checker.nullness.qual.*;
-
 import javax.validation.constraints.NotNull;
+import org.checkerframework.checker.nullness.qual.*;
 
 class Issue308 {
     @NonNull Object nonnull = new Object();

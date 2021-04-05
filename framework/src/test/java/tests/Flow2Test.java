@@ -1,12 +1,10 @@
 package tests;
 
-import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
-import org.junit.runners.Parameterized.Parameters;
-
-import testlib.util.FlowTestChecker;
-
 import java.io.File;
 import java.util.List;
+import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
+import org.junit.runners.Parameterized.Parameters;
+import testlib.util.FlowTestChecker;
 
 /**
  * Tests for the flow-sensitive part of the framework. These tests complement the tests of {@link

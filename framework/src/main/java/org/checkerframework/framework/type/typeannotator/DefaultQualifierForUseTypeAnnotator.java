@@ -1,5 +1,12 @@
 package org.checkerframework.framework.type.typeannotator;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.Name;
 import org.checkerframework.framework.qual.DefaultQualifierForUse;
 import org.checkerframework.framework.qual.NoDefaultQualifierForUse;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
@@ -9,15 +16,6 @@ import org.checkerframework.framework.util.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.CollectionUtils;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.Name;
 
 /** Implements support for {@link DefaultQualifierForUse} and {@link NoDefaultQualifierForUse}. */
 public class DefaultQualifierForUseTypeAnnotator extends TypeAnnotator {

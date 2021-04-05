@@ -1,5 +1,6 @@
 package org.checkerframework.dataflow.cfg;
 
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.AbstractValue;
 import org.checkerframework.dataflow.analysis.Analysis;
@@ -10,8 +11,6 @@ import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.block.ConditionalBlock;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.dataflow.cfg.node.Node;
-
-import java.util.Map;
 
 /**
  * Perform some visualization on a control flow graph. The particular operations depend on the

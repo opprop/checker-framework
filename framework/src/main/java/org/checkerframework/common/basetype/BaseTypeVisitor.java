@@ -1672,7 +1672,16 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         List<AnnotatedTypeMirror> params =
                 AnnotatedTypes.expandVarArgs(atypeFactory, constructor, passedArguments);
 
-        checkArguments(params, passedArguments);
+        if (passedArguments.size() + 1 == params.size()) {
+            List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
+            // happens for anonymous constructors of inner classes
+            for (int i = 1; i < params.size(); i++) {
+                actualParams.add(params.get(i));
+            }
+            checkArguments(actualParams, passedArguments);
+        } else {
+            checkArguments(params, passedArguments);
+        }
         checkVarargs(constructor, node);
 
         List<AnnotatedTypeParameterBounds> paramBounds = new ArrayList<>();
@@ -3616,11 +3625,11 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             if (checker.hasOption("showchecks")) {
                 System.out.printf(
                         " %s (line %3d):%n     overrider: %s %s (parameter %d type %s)%n  "
-                            + " overridden: %s %s (parameter %d type %s)%n",
+                                + " overridden: %s %s (parameter %d type %s)%n",
                         (success
                                 ? "success: overridden parameter type is subtype of overriding"
                                 : "FAILURE: overridden parameter type is not subtype of"
-                                      + " overriding"),
+                                        + " overriding"),
                         (root.getLineMap() != null
                                 ? root.getLineMap().getLineNumber(valuePos)
                                 : -1),
@@ -3708,7 +3717,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             if (checker.hasOption("showchecks")) {
                 System.out.printf(
                         " %s (line %3d):%n     overrider: %s %s (return type %s)%n   overridden:"
-                            + " %s %s (return type %s)%n",
+                                + " %s %s (return type %s)%n",
                         (success
                                 ? "success: overriding return type is subtype of overridden"
                                 : "FAILURE: overriding return type is not subtype of overridden"),

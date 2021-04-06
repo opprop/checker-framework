@@ -2,17 +2,7 @@ package org.checkerframework.framework.type.poly;
 
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewClassTree;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
+
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -33,6 +23,19 @@ import org.checkerframework.framework.util.AnnotationMirrorSet;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 
 /**
  * Implements framework support for qualifier polymorphism.
@@ -199,11 +202,25 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         }
         List<AnnotatedTypeMirror> parameters =
                 AnnotatedTypes.expandVarArgs(atypeFactory, type, tree.getArguments());
-        List<AnnotatedTypeMirror> arguments =
-                AnnotatedTypes.getAnnotatedTypes(atypeFactory, parameters, tree.getArguments());
 
-        AnnotationMirrorMap<AnnotationMirror> instantiationMapping =
-                collector.visit(arguments, parameters);
+        List<AnnotatedTypeMirror> arguments;
+        AnnotationMirrorMap<AnnotationMirror> instantiationMapping;
+        if (tree.getArguments().size() + 1 == parameters.size()) {
+            List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
+            // happens for anonymous constructors of inner classes
+            for (int i = 1; i < parameters.size(); i++) {
+                actualParams.add(parameters.get(i));
+            }
+            arguments =
+                    AnnotatedTypes.getAnnotatedTypes(
+                            atypeFactory, actualParams, tree.getArguments());
+            instantiationMapping = collector.visit(arguments, actualParams);
+        } else {
+            arguments =
+                    AnnotatedTypes.getAnnotatedTypes(atypeFactory, parameters, tree.getArguments());
+            instantiationMapping = collector.visit(arguments, parameters);
+        }
+
         // TODO: poly on receiver for constructors?
         // instantiationMapping = collector.reduce(instantiationMapping,
         //        collector.visit(factory.getReceiverType(tree), type.getReceiverType()));
@@ -441,12 +458,14 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             }
             if (itert.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is longer than polyTypes:%n  types = %s%n  polyTypes = %s%n",
+                        "PolyCollector.visit: types is longer than polyTypes:%n  types = %s%n "
+                                + " polyTypes = %s%n",
                         types, polyTypes);
             }
             if (itera.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is shorter than polyTypes:%n  types = %s%n  polyTypes = %s%n",
+                        "PolyCollector.visit: types is shorter than polyTypes:%n  types = %s%n "
+                                + " polyTypes = %s%n",
                         types, polyTypes);
             }
             return result;
@@ -496,7 +515,8 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         protected String defaultErrorMessage(
                 AnnotatedTypeMirror type1, AnnotatedTypeMirror type2, Void aVoid) {
             return String.format(
-                    "AbstractQualifierPolymorphism: Unexpected combination: type1: %s (%s) type2: %s (%s).",
+                    "AbstractQualifierPolymorphism: Unexpected combination: type1: %s (%s) type2:"
+                            + " %s (%s).",
                     type1, type1.getKind(), type2, type2.getKind());
         }
 

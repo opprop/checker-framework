@@ -1,10 +1,11 @@
 package org.checkerframework.framework.util;
 
+import org.checkerframework.javacutil.SystemUtil;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.checkerframework.javacutil.SystemUtil;
 
 /**
  * The main entry point to the Checker Framework, for use by Checker Framework developers.

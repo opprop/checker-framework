@@ -15,26 +15,7 @@ import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import java.lang.annotation.Annotation;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.analysis.AnalysisResult;
@@ -102,6 +83,28 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.UserError;
 import org.plumelib.reflection.Signatures;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * A factory that extends {@link AnnotatedTypeFactory} to optionally use flow-sensitive qualifier
@@ -608,8 +611,8 @@ public abstract class GenericAnnotatedTypeFactory<
         if (!defs.hasDefaultsForCheckedCode()) {
             throw new BugInCF(
                     "GenericAnnotatedTypeFactory.createQualifierDefaults:"
-                            + " @DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE)"
-                            + " not found. Every checker must specify a default qualifier. "
+                        + " @DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE)"
+                        + " not found. Every checker must specify a default qualifier. "
                             + getSortedQualifierNames());
         }
 

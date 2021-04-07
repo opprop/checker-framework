@@ -1,14 +1,7 @@
 package org.checkerframework.dataflow.cfg;
 
 import com.sun.tools.javac.tree.JCTree;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.AbstractValue;
@@ -24,6 +17,15 @@ import org.checkerframework.dataflow.cfg.block.ConditionalBlock;
 import org.checkerframework.dataflow.cfg.block.SpecialBlock;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.UserError;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /** Generate a graph description in the DOT language of a control graph. */
 @SuppressWarnings("initialization.fields.uninitialized") // uses init method

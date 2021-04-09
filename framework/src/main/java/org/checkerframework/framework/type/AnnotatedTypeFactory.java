@@ -24,6 +24,7 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree.JCNewClass;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -2255,18 +2256,25 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedTypeMirror type = fromNewClass(tree);
         addComputedTypeAnnotations(tree, type);
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
-        constructorFromUsePreSubstitution(tree, con);
-
-        con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
 
         if (tree.getArguments().size() == con.getParameterTypes().size() + 1
                 && isSyntheticArgument(tree.getArguments().get(0))) {
-            // happens for anonymous constructors of inner classes
+            // In JDK 8, an anonymous class instantiation with enclosing expression passes
+            // the enclosing expression as the first argument (i.e. synthetic argument)
+            // Therefore, we get the first parameter of the enclosed anonymous constructor,
+            // and manually added it to the parameter list
+            AnnotatedExecutableType anonymousCtorType =
+                    (AnnotatedExecutableType) getAnnotatedType(((JCNewClass) tree).constructor);
             List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
-            actualParams.add(getAnnotatedType(tree.getArguments().get(0)));
+            actualParams.add(anonymousCtorType.getParameterTypes().get(0));
             actualParams.addAll(con.getParameterTypes());
-            con.setParameterTypes(actualParams);
+            anonymousCtorType.setParameterTypes(actualParams);
+            con = anonymousCtorType;
         }
+
+        constructorFromUsePreSubstitution(tree, con);
+
+        con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
 
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>(con.getTypeVariables().size());
         if (viewpointAdapter != null) {

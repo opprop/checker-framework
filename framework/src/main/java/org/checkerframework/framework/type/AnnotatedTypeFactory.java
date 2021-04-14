@@ -3,6 +3,7 @@ package org.checkerframework.framework.type;
 // The imports from com.sun are all @jdk.Exported and therefore somewhat safe to use.
 // Try to avoid using non-@jdk.Exported classes.
 
+import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
@@ -16,6 +17,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
@@ -2381,6 +2383,20 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             // are on not on the identifier newClassTree, but rather on the modifier newClassTree.
             List<? extends AnnotationTree> annos =
                     newClassTree.getClassBody().getModifiers().getAnnotations();
+
+            // This is to handle special cases like `new OuterI.@XXX InnerI(){}`. Due to the
+            // compiler bug,
+            // the explicit annotation on the inner identifier is not annotated to the anonymous
+            // class
+            // by compiler
+            if (annos.isEmpty()
+                    && (newClassTree.getIdentifier() instanceof ParameterizedTypeTree)) {
+                Tree typeTree = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();
+                if (typeTree instanceof AnnotatedTypeTree) {
+                    annos = ((AnnotatedTypeTree) typeTree).getAnnotations();
+                }
+            }
+
             type.addAnnotations(TreeUtils.annotationsFromTypeAnnotationTrees(annos));
             type.setEnclosingType(enclosingType);
             return type;

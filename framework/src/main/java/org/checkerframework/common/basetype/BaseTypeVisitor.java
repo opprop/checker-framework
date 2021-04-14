@@ -9,6 +9,7 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.CompoundAssignmentTree;
 import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.EnhancedForLoopTree;
+import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.InstanceOfTree;
@@ -675,6 +676,14 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
         try {
             if (TreeUtils.isAnonymousConstructor(node)) {
+                // Passing the whole method/constructor validates the return type
+                validateTypeOf(node);
+                // validate super constructor invocation for anonymous constructor
+                ExpressionStatementTree statementTree =
+                        (ExpressionStatementTree) node.getBody().getStatements().get(0);
+                MethodInvocationTree superInvoke =
+                        (MethodInvocationTree) statementTree.getExpression();
+                checkSuperConstructorCall(superInvoke);
                 // We shouldn't dig deeper
                 return null;
             }

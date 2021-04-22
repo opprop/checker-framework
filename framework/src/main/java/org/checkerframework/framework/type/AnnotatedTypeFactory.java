@@ -2388,11 +2388,14 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             // compiler's flaw, the explicit annotation on the inner identifier is not copied to the
             // anonymous class as expected. Instead it appears on the `extends/implements` clause.
             // Therefore we manually copy it to annotate the anonymous class.
-            if (annos.isEmpty()
-                    && (newClassTree.getIdentifier() instanceof ParameterizedTypeTree)) {
-                Tree typeTree = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();
-                if (typeTree instanceof AnnotatedTypeTree) {
-                    annos = ((AnnotatedTypeTree) typeTree).getAnnotations();
+            if (annos.isEmpty()) {
+                Tree node = newClassTree.getIdentifier();
+                if (node instanceof ParameterizedTypeTree) {
+                    node = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();
+                }
+
+                if (node instanceof AnnotatedTypeTree) {
+                    annos = ((AnnotatedTypeTree) node).getAnnotations();
                 }
             }
 

@@ -2384,11 +2384,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             List<? extends AnnotationTree> annos =
                     newClassTree.getClassBody().getModifiers().getAnnotations();
 
-            // This is to handle special cases like `new OuterI.@XXX InnerI(){}`. Due to the
-            // compiler bug,
-            // the explicit annotation on the inner identifier is not annotated to the anonymous
-            // class
-            // by compiler
+            // This is to handle special cases of form `new OuterI.@XXX InnerI(){}`. Due to the
+            // compiler's flaw, the explicit annotation on the inner identifier is not copied to the
+            // anonymous class as expected. Instead it appears on the `extends/implements` clause.
+            // Therefore we manually copy it to annotate the anonymous class.
             if (annos.isEmpty()
                     && (newClassTree.getIdentifier() instanceof ParameterizedTypeTree)) {
                 Tree typeTree = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();

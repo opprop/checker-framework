@@ -3951,7 +3951,9 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         Set<? extends AnnotationMirror> tops =
                 atypeFactory.getQualifierHierarchy().getTopAnnotations();
         Set<AnnotationMirror> upperBounds =
-                atypeFactory.getTypeDeclarationBounds(declarationType.getUnderlyingType());
+                atypeFactory
+                        .getQualifierUpperBounds()
+                        .getBoundQualifiers(declarationType.getUnderlyingType());
         for (AnnotationMirror top : tops) {
             AnnotationMirror upperBound =
                     atypeFactory

@@ -2387,7 +2387,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             if (annos.isEmpty()) {
                 Tree node = newClassTree.getIdentifier();
                 if (node instanceof ParameterizedTypeTree) {
-                    node = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();
+                    node = ((ParameterizedTypeTree) node).getType();
                 }
 
                 if (node instanceof AnnotatedTypeTree) {

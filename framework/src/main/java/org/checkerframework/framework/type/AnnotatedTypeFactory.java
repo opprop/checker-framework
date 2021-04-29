@@ -2375,15 +2375,15 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                     (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
             // If newClassTree creates an anonymous class, then annotations in this location:
             //   new @HERE Class() {}
-            // are on not on the identifier newClassTree, but rather on the modifier newClassTree.
+            // are not on the identifier newClassTree, but rather on the modifier newClassTree.
             List<? extends AnnotationTree> annos =
                     newClassTree.getClassBody().getModifiers().getAnnotations();
 
             // If newClassTree creates an anonymous class from an inner class or inner interface,
             // then annotations in this location:
             //   new OuterI.@HERE InnerI(){}
-            // are on not on the anonymous class modifier, but rather on the type identifier as well
-            // as the anonymous class extends/implements clause.
+            // are not on the anonymous class modifier, but rather on the type identifier of the
+            // newClassTree.
             if (annos.isEmpty()) {
                 Tree node = newClassTree.getIdentifier();
                 if (node instanceof ParameterizedTypeTree) {

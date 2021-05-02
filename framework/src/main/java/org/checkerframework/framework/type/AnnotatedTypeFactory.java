@@ -2259,23 +2259,24 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
 
         if (tree.getClassBody() != null) {
-            // If this is an anonymous class, replace the parameter types with that of the super
-            // constructor
+            // If this is an anonymous class, replace the parameter types and return type with those
+            // of the super constructor
             ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
             AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
-            List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
-            actualParams.addAll(superCtorType.getParameterTypes());
 
             if (tree.getArguments().size() == superCtorType.getParameterTypes().size() + 1) {
                 // In JDK 8, an anonymous class instantiation with enclosing expression passes
                 // the enclosing expression as the first argument (i.e. synthetic argument),
                 // while the super constructor parameters does not have the counterpart.
                 // Therefore, we get the first parameter of the anonymous constructor and manually
-                // add it to the parameter list
-                actualParams.add(0, con.getParameterTypes().get(0));
+                // add it to the parameter list at index 0.
+                List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
+                actualParams.add(con.getParameterTypes().get(0));
+                actualParams.addAll(superCtorType.getParameterTypes());
+                superCtorType.setParameterTypes(actualParams);
             }
 
-            con.setParameterTypes(actualParams);
+            con = superCtorType;
         }
 
         constructorFromUsePreSubstitution(tree, con);

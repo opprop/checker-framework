@@ -24,7 +24,6 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -2257,19 +2256,24 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         addComputedTypeAnnotations(tree, type);
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
 
-        if (tree.getArguments().size() == con.getParameterTypes().size() + 1
-                && isSyntheticArgument(tree.getArguments().get(0))) {
-            // In JDK 8, an anonymous class instantiation with enclosing expression passes
-            // the enclosing expression as the first argument (i.e. synthetic argument)
-            // Therefore, we get the first parameter of the enclosed anonymous constructor,
-            // and manually added it to the parameter list
-            AnnotatedExecutableType anonymousCtorType =
-                    (AnnotatedExecutableType) getAnnotatedType(((JCNewClass) tree).constructor);
+        if (tree.getClassBody() != null) {
+            // If this is an anonymous class, replace the parameter types with that of the super
+            // constructor
+            ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
+            AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
             List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
-            actualParams.add(anonymousCtorType.getParameterTypes().get(0));
-            actualParams.addAll(con.getParameterTypes());
-            anonymousCtorType.setParameterTypes(actualParams);
-            con = anonymousCtorType;
+            actualParams.addAll(superCtorType.getParameterTypes());
+
+            if (tree.getArguments().size() == superCtorType.getParameterTypes().size() + 1) {
+                // In JDK 8, an anonymous class instantiation with enclosing expression passes
+                // the enclosing expression as the first argument (i.e. synthetic argument),
+                // while the super constructor parameters does not have the counterpart.
+                // Therefore, we get the first parameter of the anonymous constructor and manually
+                // add it to the parameter list
+                actualParams.add(0, con.getParameterTypes().get(0));
+            }
+
+            con.setParameterTypes(actualParams);
         }
 
         constructorFromUsePreSubstitution(tree, con);

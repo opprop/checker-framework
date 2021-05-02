@@ -582,28 +582,35 @@ public final class TreeUtils {
         }
 
         JCNewClass newClassTree = (JCNewClass) tree;
+        Element e = newClassTree.constructor;
+        return (ExecutableElement) e;
+    }
 
-        if (tree.getClassBody() != null) {
-            // anonymous constructor bodies should contain exactly one statement
-            // in the form:
-            //    super(arg1, ...)
-            // or
-            //    o.super(arg1, ...)
-            //
-            // which is a method invocation (!) to the actual constructor
+    public static ExecutableElement anonymousSuperConstructor(NewClassTree tree) {
+        assert tree.getClassBody() != null;
 
-            // the method call is guaranteed to return nonnull
-            JCMethodDecl anonConstructor =
-                    (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
-            assert anonConstructor != null;
-            assert anonConstructor.body.stats.size() == 1;
-            JCExpressionStatement stmt = (JCExpressionStatement) anonConstructor.body.stats.head;
-            JCTree.JCMethodInvocation superInvok = (JCMethodInvocation) stmt.expr;
-            return (ExecutableElement) TreeInfo.symbol(superInvok.meth);
-        } else {
-            Element e = newClassTree.constructor;
-            return (ExecutableElement) e;
+        if (!(tree instanceof JCTree.JCNewClass)) {
+            throw new BugInCF("InternalUtils.constructor: not a javac internal tree");
         }
+
+        JCNewClass newClassTree = (JCNewClass) tree;
+
+        // anonymous constructor bodies should contain exactly one statement
+        // in the form:
+        //    super(arg1, ...)
+        // or
+        //    o.super(arg1, ...)
+        //
+        // which is a method invocation (!) to the actual constructor
+
+        // the method call is guaranteed to return nonnull
+        JCMethodDecl anonConstructor =
+                (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
+        assert anonConstructor != null;
+        assert anonConstructor.body.stats.size() == 1;
+        JCExpressionStatement stmt = (JCExpressionStatement) anonConstructor.body.stats.head;
+        JCTree.JCMethodInvocation superInvok = (JCMethodInvocation) stmt.expr;
+        return (ExecutableElement) TreeInfo.symbol(superInvok.meth);
     }
 
     /**

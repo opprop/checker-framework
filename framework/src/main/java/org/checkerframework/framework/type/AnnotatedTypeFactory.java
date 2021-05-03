@@ -2330,10 +2330,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return ret;
     }
 
-    private boolean isSyntheticArgument(Tree tree) {
-        return tree.toString().contains("<*nullchk*>");
-    }
-
     /**
      * Creates an AnnotatedDeclaredType for a NewClassTree. Only adds explicit annotations, unless
      * newClassTree has a diamond operator. In that case, the annotations on the type arguments are

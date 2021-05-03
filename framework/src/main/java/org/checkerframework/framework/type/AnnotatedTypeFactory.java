@@ -2275,8 +2275,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 actualParams.addAll(superCtorType.getParameterTypes());
                 superCtorType.setParameterTypes(actualParams);
             }
-
             con = superCtorType;
+            ctor = superCtor;
         }
 
         constructorFromUsePreSubstitution(tree, con);

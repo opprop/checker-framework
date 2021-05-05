@@ -1168,8 +1168,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * Returns the set of qualifiers that are the upper bounds for a use of the type.
      *
      * <p>For a specific type system, the type declaration bound is retrieved in the following
-     * precedence: (1) the annotation on the type declaration bound (2) if an annotation
-     * with @UpperBoundFor mentions the type or the type kind, use that annotation (3) the top
+     * precedence: (1) the annotation on the type declaration bound (2) if an annotation with
+     * {@code @UpperBoundFor} mentions the type or the type kind, use that annotation (3) the top
      * annotation
      *
      * @param type a type whose upper bounds to obtain
@@ -2380,19 +2380,23 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                     (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
             // If newClassTree creates an anonymous class, then annotations in this location:
             //   new @HERE Class() {}
-            // are on not on the identifier newClassTree, but rather on the modifier newClassTree.
+            // are not on the identifier newClassTree, but rather on the modifier newClassTree.
             List<? extends AnnotationTree> annos =
                     newClassTree.getClassBody().getModifiers().getAnnotations();
 
-            // This is to handle special cases of form `new OuterI.@XXX InnerI(){}`. Due to the
-            // compiler's flaw, the explicit annotation on the inner identifier is not copied to the
-            // anonymous class as expected. Instead it appears on the `extends/implements` clause.
-            // Therefore we manually copy it to annotate the anonymous class.
-            if (annos.isEmpty()
-                    && (newClassTree.getIdentifier() instanceof ParameterizedTypeTree)) {
-                Tree typeTree = ((ParameterizedTypeTree) newClassTree.getIdentifier()).getType();
-                if (typeTree instanceof AnnotatedTypeTree) {
-                    annos = ((AnnotatedTypeTree) typeTree).getAnnotations();
+            // If newClassTree creates an anonymous class from an inner class or inner interface,
+            // then annotations in this location:
+            //   new OuterI.@HERE InnerI(){}
+            // are not on the anonymous class modifier, but rather on the type identifier of the
+            // newClassTree.
+            if (annos.isEmpty()) {
+                Tree node = newClassTree.getIdentifier();
+                if (node instanceof ParameterizedTypeTree) {
+                    node = ((ParameterizedTypeTree) node).getType();
+                }
+
+                if (node instanceof AnnotatedTypeTree) {
+                    annos = ((AnnotatedTypeTree) node).getAnnotations();
                 }
             }
 

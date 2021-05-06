@@ -2259,8 +2259,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
 
         if (tree.getClassBody() != null) {
-            // If this is an anonymous class, replace the parameter types and return type with those
-            // of the super constructor
+            // Since anonymous constructor bodies only consist of the super constructor invocation,
+            // and for the convenience of not having to copy annotations from the super constructor,
+            // we simply use the super constructor for the anonymous class.
             ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
             AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
 

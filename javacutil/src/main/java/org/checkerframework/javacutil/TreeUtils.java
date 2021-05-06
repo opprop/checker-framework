@@ -567,6 +567,7 @@ public final class TreeUtils {
     /**
      * Determines the symbol for a constructor given an invocation via {@code new}.
      *
+     * @see #anonymousSuperConstructor(NewClassTree)
      * @see #elementFromUse(NewClassTree)
      * @param tree the constructor invocation
      * @return the {@link ExecutableElement} corresponding to the constructor call in {@code tree}

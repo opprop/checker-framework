@@ -584,7 +584,7 @@ public final class TreeUtils {
     }
 
     /**
-     * Given an anonymous class instantiation via {@code new}, returns symbol for the super
+     * Given an anonymous class instantiation via {@code new}, returns the symbol for the super
      * constructor, i.e. the one that gets invoked in the anonymous constructor (JLS 15.9.5.1)
      *
      * @param tree the anonymous constructor invocation
@@ -593,10 +593,6 @@ public final class TreeUtils {
      */
     public static ExecutableElement anonymousSuperConstructor(NewClassTree tree) {
         assert tree.getClassBody() != null;
-
-        if (!(tree instanceof JCTree.JCNewClass)) {
-            throw new BugInCF("InternalUtils.constructor: not a javac internal tree");
-        }
 
         JCNewClass newClassTree = (JCNewClass) tree;
 

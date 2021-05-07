@@ -2259,9 +2259,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
 
         if (tree.getClassBody() != null) {
-            // Since anonymous constructor bodies only consist of the super constructor invocation,
-            // and for the convenience of not having to copy annotations from the super constructor,
-            // we simply use the super constructor for the anonymous class.
+            // The artificial constructor for an anonymous class only contains an invocation of the
+            // corresponding super class constructor. The artificial constructor does not have all
+            // the type annotations the super class constructor has, but conceptually it should have
+            // the same type annotations. Instead of copying all the annotations over, we simply use
+            // the super constructor element for the anonymous class constructor.
             ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
             AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
 
@@ -2271,7 +2273,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 // while the super constructor parameters does not have the counterpart.
                 // Therefore, we get the first parameter of the anonymous constructor and manually
                 // add it to the parameter list at index 0.
-                List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
+                List<AnnotatedTypeMirror> actualParams =
+                        new ArrayList<>(superCtorType.getParameterTypes().size() + 1);
                 actualParams.add(con.getParameterTypes().get(0));
                 actualParams.addAll(superCtorType.getParameterTypes());
                 superCtorType.setParameterTypes(actualParams);
@@ -2324,7 +2327,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return ret;
     }
 
-    /** Returns the return type of the method {@code m} at the return statement {@code r}. */
+    /**
+     * Returns the return type of the method {@code m} at the return statement {@code r}.
+     *
+     * @param m the tree of the method
+     * @param r the {@code ReturnTree} where to get the method return type
+     * @return the return type of the method {@code m} at the return statement {@code r}
+     */
     public AnnotatedTypeMirror getMethodReturnType(MethodTree m, ReturnTree r) {
         AnnotatedExecutableType methodType = getAnnotatedType(m);
         AnnotatedTypeMirror ret = methodType.getReturnType();

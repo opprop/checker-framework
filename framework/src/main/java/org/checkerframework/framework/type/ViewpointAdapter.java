@@ -49,7 +49,7 @@ public interface ViewpointAdapter {
 
     /**
      * Viewpoint adapts a method invocation. Takes an unsubstituted method invocation type and
-     * perform the viewpoint adaption on spot.
+     * performs the viewpoint adaption in place, modifying the parameter.
      *
      * @param receiverType receiver type through which a method is invoked.
      * @param methodElt element of the invoked method. Only used to determine whether this type

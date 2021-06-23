@@ -2292,7 +2292,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             ctor = superCtor;
         }
 
-        // see methodFromUse for the reason of ordering
         constructorFromUsePreSubstitution(tree, con);
         if (viewpointAdapter != null) {
             viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);

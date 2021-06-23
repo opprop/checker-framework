@@ -55,7 +55,7 @@ public interface ViewpointAdapter {
      * @param methodElt element of the invoked method. Only used to determine whether this type
      *     should be viewpoint adapted
      * @param methodType invoked type of the method with type variables not substituted. After the
-     *     method returns, it will be mutated to the viewpoint adapted method signature.
+     *     method returns, it will be mutated to the viewpoint adapted method type.
      */
     void viewpointAdaptMethod(
             AnnotatedTypeMirror receiverType,

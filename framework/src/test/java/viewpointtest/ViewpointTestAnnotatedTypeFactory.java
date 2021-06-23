@@ -8,7 +8,7 @@ import viewpointtest.quals.A;
 import viewpointtest.quals.B;
 import viewpointtest.quals.Bottom;
 import viewpointtest.quals.PolyVP;
-import viewpointtest.quals.ReceiverDependantQual;
+import viewpointtest.quals.ReceiverDependentQual;
 import viewpointtest.quals.Top;
 
 import java.lang.annotation.Annotation;
@@ -28,7 +28,7 @@ public class ViewpointTestAnnotatedTypeFactory extends BaseAnnotatedTypeFactory 
                 B.class,
                 Bottom.class,
                 PolyVP.class,
-                ReceiverDependantQual.class,
+                ReceiverDependentQual.class,
                 Top.class);
     }
 

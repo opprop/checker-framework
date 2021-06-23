@@ -12,4 +12,4 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf({Top.class})
-public @interface ReceiverDependantQual {}
+public @interface ReceiverDependentQual {}

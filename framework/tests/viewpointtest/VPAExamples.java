@@ -3,14 +3,14 @@ import viewpointtest.quals.*;
 public class VPAExamples {
 
     static class RDContainer {
-        @ReceiverDependantQual
+        @ReceiverDependentQual
         Object get() {
             return null;
         }
 
-        void set(@ReceiverDependantQual Object o) {}
+        void set(@ReceiverDependentQual Object o) {}
 
-        @ReceiverDependantQual Object field;
+        @ReceiverDependentQual Object field;
     }
 
     void tests(@A RDContainer a, @B RDContainer b, @Top RDContainer top) {

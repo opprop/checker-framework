@@ -6,14 +6,14 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 
-import viewpointtest.quals.ReceiverDependantQual;
+import viewpointtest.quals.ReceiverDependentQual;
 import viewpointtest.quals.Top;
 
 import javax.lang.model.element.AnnotationMirror;
 
 public class ViewpointTestViewpointAdapter extends AbstractViewpointAdapter {
 
-    private final AnnotationMirror TOP, RECEIVERDEPENDANTQUAL;
+    private final AnnotationMirror TOP, RECEIVERDEPENDENTQUAL;
 
     /**
      * The class constructor.
@@ -23,9 +23,9 @@ public class ViewpointTestViewpointAdapter extends AbstractViewpointAdapter {
     public ViewpointTestViewpointAdapter(AnnotatedTypeFactory atypeFactory) {
         super(atypeFactory);
         TOP = AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), Top.class);
-        RECEIVERDEPENDANTQUAL =
+        RECEIVERDEPENDENTQUAL =
                 AnnotationBuilder.fromClass(
-                        atypeFactory.getElementUtils(), ReceiverDependantQual.class);
+                        atypeFactory.getElementUtils(), ReceiverDependentQual.class);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class ViewpointTestViewpointAdapter extends AbstractViewpointAdapter {
     protected AnnotationMirror combineAnnotationWithAnnotation(
             AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation) {
 
-        if (AnnotationUtils.areSame(declaredAnnotation, RECEIVERDEPENDANTQUAL)) {
+        if (AnnotationUtils.areSame(declaredAnnotation, RECEIVERDEPENDENTQUAL)) {
             return receiverAnnotation;
         }
         return declaredAnnotation;

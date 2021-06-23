@@ -3,6 +3,7 @@ package org.checkerframework.framework.type;
 // The imports from com.sun are all @jdk.Exported and therefore somewhat safe to use.
 // Try to avoid using non-@jdk.Exported classes.
 
+import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.ClassTree;
@@ -16,6 +17,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
@@ -1165,6 +1167,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     /**
      * Returns the set of qualifiers that are the upper bounds for a use of the type.
      *
+     * <p>For a specific type system, the type declaration bound is retrieved in the following
+     * precedence: (1) the annotation on the type declaration bound (2) if an annotation with
+     * {@code @UpperBoundFor} mentions the type or the type kind, use that annotation (3) the top
+     * annotation
+     *
      * @param type a type whose upper bounds to obtain
      */
     public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
@@ -2255,18 +2262,35 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedTypeMirror type = fromNewClass(tree);
         addComputedTypeAnnotations(tree, type);
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
+
+        if (tree.getClassBody() != null) {
+            // The artificial constructor for an anonymous class only contains an invocation of the
+            // corresponding super class constructor. The artificial constructor does not have all
+            // the type annotations the super class constructor has, but conceptually it should have
+            // the same type annotations. Instead of copying all the annotations over, we simply use
+            // the super constructor element for the anonymous class constructor.
+            ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
+            AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
+
+            if (tree.getArguments().size() == superCtorType.getParameterTypes().size() + 1) {
+                // In JDK 8, an anonymous class instantiation with enclosing expression passes
+                // the enclosing expression as the first argument (i.e. synthetic argument),
+                // while the super constructor parameters does not have the counterpart.
+                // Therefore, we get the first parameter of the anonymous constructor and manually
+                // add it to the parameter list at index 0.
+                List<AnnotatedTypeMirror> actualParams =
+                        new ArrayList<>(superCtorType.getParameterTypes().size() + 1);
+                actualParams.add(con.getParameterTypes().get(0));
+                actualParams.addAll(superCtorType.getParameterTypes());
+                superCtorType.setParameterTypes(actualParams);
+            }
+            con = superCtorType;
+            ctor = superCtor;
+        }
+
         constructorFromUsePreSubstitution(tree, con);
 
         con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
-
-        if (tree.getArguments().size() == con.getParameterTypes().size() + 1
-                && isSyntheticArgument(tree.getArguments().get(0))) {
-            // happens for anonymous constructors of inner classes
-            List<AnnotatedTypeMirror> actualParams = new ArrayList<>();
-            actualParams.add(getAnnotatedType(tree.getArguments().get(0)));
-            actualParams.addAll(con.getParameterTypes());
-            con.setParameterTypes(actualParams);
-        }
 
         List<AnnotatedTypeMirror> typeargs = new ArrayList<>(con.getTypeVariables().size());
         if (viewpointAdapter != null) {
@@ -2308,15 +2332,17 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         return ret;
     }
 
-    /** Returns the return type of the method {@code m} at the return statement {@code r}. */
+    /**
+     * Returns the return type of the method {@code m} at the return statement {@code r}.
+     *
+     * @param m the tree of the method
+     * @param r the {@code ReturnTree} where to get the method return type
+     * @return the return type of the method {@code m} at the return statement {@code r}
+     */
     public AnnotatedTypeMirror getMethodReturnType(MethodTree m, ReturnTree r) {
         AnnotatedExecutableType methodType = getAnnotatedType(m);
         AnnotatedTypeMirror ret = methodType.getReturnType();
         return ret;
-    }
-
-    private boolean isSyntheticArgument(Tree tree) {
-        return tree.toString().contains("<*nullchk*>");
     }
 
     /**
@@ -2373,9 +2399,26 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                     (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
             // If newClassTree creates an anonymous class, then annotations in this location:
             //   new @HERE Class() {}
-            // are on not on the identifier newClassTree, but rather on the modifier newClassTree.
+            // are not on the identifier newClassTree, but rather on the modifier newClassTree.
             List<? extends AnnotationTree> annos =
                     newClassTree.getClassBody().getModifiers().getAnnotations();
+
+            // If newClassTree creates an anonymous class from an inner class or inner interface,
+            // then annotations in this location:
+            //   new OuterI.@HERE InnerI(){}
+            // are not on the anonymous class modifier, but rather on the type identifier of the
+            // newClassTree.
+            if (annos.isEmpty()) {
+                Tree node = newClassTree.getIdentifier();
+                if (node instanceof ParameterizedTypeTree) {
+                    node = ((ParameterizedTypeTree) node).getType();
+                }
+
+                if (node instanceof AnnotatedTypeTree) {
+                    annos = ((AnnotatedTypeTree) node).getAnnotations();
+                }
+            }
+
             type.addAnnotations(TreeUtils.annotationsFromTypeAnnotationTrees(annos));
             type.setEnclosingType(enclosingType);
             return type;

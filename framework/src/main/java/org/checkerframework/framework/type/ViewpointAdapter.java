@@ -48,7 +48,7 @@ public interface ViewpointAdapter {
             AnnotatedExecutableType constructorType);
 
     /**
-     * Viewpoint adapts a method invocation. Takes a unsubstituted method invocation type and
+     * Viewpoint adapts a method invocation. Takes an unsubstituted method invocation type and
      * perform the viewpoint adaption on spot.
      *
      * @param receiverType receiver type through which a method is invoked.

@@ -2121,8 +2121,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
 
         AnnotatedExecutableType memberType = getAnnotatedType(methodElt); // get unsubstituted type
-        // since viewpoint adaption may introduce new poly annotation which should not be resolved,
-        // firstly do poly resolution
+        // Perform viewpoint adaption before type argument substitution.
 
         methodFromUsePreSubstitution(tree, memberType);
         if (viewpointAdapter != null) {

@@ -40,7 +40,7 @@ public interface ViewpointAdapter {
      * @param constructorElt element of the invoked constructor.
      * @param constructorType invoked type of the constructor with type variables not substituted.
      *     After the method returns, it will be mutated to the viewpoint adapted constructor
-     *     signature.
+     *     type.
      */
     void viewpointAdaptConstructor(
             AnnotatedTypeMirror receiverType,

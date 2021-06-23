@@ -33,7 +33,7 @@ public interface ViewpointAdapter {
             AnnotatedTypeMirror memberType);
 
     /**
-     * Viewpoint adapts a constructor invocation. Takes a unsubstituted method invocation type and
+     * Viewpoint adapts a constructor invocation. Takes an unsubstituted method invocation type and
      * performs the viewpoint adaption in place, modifying the parameter.
      *
      * @param receiverType receiver type through which a constructor is invoked.

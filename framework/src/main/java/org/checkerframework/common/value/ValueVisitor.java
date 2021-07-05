@@ -1,6 +1,7 @@
 package org.checkerframework.common.value;
 
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
@@ -13,6 +14,7 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.value.qual.IntRangeFromGTENegativeOne;
 import org.checkerframework.common.value.qual.IntRangeFromNonNegative;
 import org.checkerframework.common.value.qual.IntRangeFromPositive;
+import org.checkerframework.common.value.qual.IntVal;
 import org.checkerframework.common.value.util.NumberUtils;
 import org.checkerframework.common.value.util.Range;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -32,8 +34,17 @@ import javax.lang.model.type.TypeMirror;
 /** Visitor for the Constant Value type system. */
 public class ValueVisitor extends BaseTypeVisitor<ValueAnnotatedTypeFactory> {
 
+    /** Should we check for possible divide by zero error, or ignore it? */
+    private final boolean divideByZeroCheck;
+
+    /**
+     * Create a value visitor and sets the flag for divide by zero check.
+     *
+     * @param checker the type-checker associated with this visitor
+     */
     public ValueVisitor(BaseTypeChecker checker) {
         super(checker);
+        divideByZeroCheck = checker.hasOption(ValueChecker.DIVIDE_BY_ZERO_CHECK);
     }
 
     /**
@@ -339,5 +350,27 @@ public class ValueVisitor extends BaseTypeVisitor<ValueAnnotatedTypeFactory> {
         }
 
         return true;
+    }
+
+    @Override
+    public Void visitBinary(BinaryTree node, Void p) {
+        if (divideByZeroCheck) {
+            if (node.getKind() == Kind.DIVIDE || node.getKind() == Kind.DIVIDE_ASSIGNMENT) {
+                ExpressionTree right = node.getRightOperand();
+                AnnotatedTypeMirror rightType = atypeFactory.getAnnotatedType(right);
+                AnnotationMirror rightAnno =
+                        rightType.getAnnotationInHierarchy(atypeFactory.UNKNOWNVAL);
+
+                if (rightAnno != null
+                        && (atypeFactory.isIntRange(rightAnno)
+                                || AnnotationUtils.areSameByClass(rightAnno, IntVal.class))) {
+                    Range range = ValueAnnotatedTypeFactory.getRange(rightAnno);
+                    if (range.contains(0)) {
+                        checker.reportWarning(node, "divide.by.zero", rightAnno);
+                    }
+                }
+            }
+        }
+        return super.visitBinary(node, p);
     }
 }

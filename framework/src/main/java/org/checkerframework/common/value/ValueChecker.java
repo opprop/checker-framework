@@ -21,7 +21,8 @@ import java.util.LinkedHashSet;
 @SupportedOptions({
     ValueChecker.REPORT_EVAL_WARNS,
     ValueChecker.IGNORE_RANGE_OVERFLOW,
-    ValueChecker.NON_NULL_STRINGS_CONCATENATION
+    ValueChecker.NON_NULL_STRINGS_CONCATENATION,
+    ValueChecker.DIVIDE_BY_ZERO_CHECK
 })
 public class ValueChecker extends BaseTypeChecker {
     /**
@@ -33,6 +34,8 @@ public class ValueChecker extends BaseTypeChecker {
     public static final String IGNORE_RANGE_OVERFLOW = "ignoreRangeOverflow";
     /** Command-line option that assumes most expressions in String concatenations can be null. */
     public static final String NON_NULL_STRINGS_CONCATENATION = "nonNullStringsConcatenation";
+    /** Command-line option to add a divide by zero check. */
+    public static final String DIVIDE_BY_ZERO_CHECK = "divideByZero";
 
     @Override
     protected BaseTypeVisitor<?> createSourceVisitor() {

@@ -25,7 +25,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 /** The TreeAnnotator for this AnnotatedTypeFactory. It adds/replaces annotations. */
-class ValueTreeAnnotator extends TreeAnnotator {
+public class ValueTreeAnnotator extends TreeAnnotator {
 
     /** The type factory to use. Shadows the field from the superclass with a more specific type. */
     @SuppressWarnings("HidingField")

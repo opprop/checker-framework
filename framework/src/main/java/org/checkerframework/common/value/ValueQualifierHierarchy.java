@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import javax.lang.model.element.AnnotationMirror;
 
 /** The qualifier hierarchy for the Value type system. */
-final class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
+public class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
 
     /** The type factory to use. */
     final ValueAnnotatedTypeFactory atypeFactory;

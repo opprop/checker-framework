@@ -89,6 +89,9 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      */
     protected Map<FlowExpressions.ClassName, V> classValues;
 
+    /** Indicate whether this store is in a dead branch or not. */
+    private boolean deadBranch = false;
+
     /**
      * Should the analysis use sequential Java semantics (i.e., assume that only one thread is
      * running at all times)?
@@ -843,6 +846,16 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         return thisValue;
     }
 
+    @Override
+    public void setDeadBranch() {
+        deadBranch = true;
+    }
+
+    @Override
+    public boolean isDeadBranch() {
+        return deadBranch;
+    }
+
     /* --------------------------------------------------------- */
     /* Helper and miscellaneous methods */
     /* --------------------------------------------------------- */
@@ -850,11 +863,22 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
     @SuppressWarnings("unchecked")
     @Override
     public S copy() {
-        return analysis.createCopiedStore((S) this);
+        S store = analysis.createCopiedStore((S) this);
+        if (this.isDeadBranch()) {
+            store.setDeadBranch();
+        }
+        return store;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public S leastUpperBound(S other) {
+        if (this.isDeadBranch()) {
+            return other;
+        }
+        if (other.isDeadBranch()) {
+            return (S) this;
+        }
         return upperBound(other, false);
     }
 

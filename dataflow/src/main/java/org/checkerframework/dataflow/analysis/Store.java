@@ -34,6 +34,17 @@ public interface Store<S extends Store<S>> {
     }
 
     /**
+     * Check whether the store belongs to a node in a dead branch. If the branch is dead, then this
+     * store should not be merged.
+     *
+     * @return true if the store is in a dead branch
+     */
+    public boolean isDeadBranch();
+
+    /** This store belongs to a node in a dead branch. Make this store dead. */
+    public void setDeadBranch();
+
+    /**
      * Returns an exact copy of this store.
      *
      * @return an exact copy of this store

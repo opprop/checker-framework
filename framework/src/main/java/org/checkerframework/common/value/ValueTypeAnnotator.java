@@ -17,7 +17,7 @@ import javax.lang.model.type.TypeMirror;
  * Performs pre-processing on annotations written by users, replacing illegal annotations by legal
  * ones.
  */
-class ValueTypeAnnotator extends TypeAnnotator {
+public class ValueTypeAnnotator extends TypeAnnotator {
 
     /** The type factory to use. Shadows the field from the superclass with a more specific type. */
     @SuppressWarnings("HidingField")

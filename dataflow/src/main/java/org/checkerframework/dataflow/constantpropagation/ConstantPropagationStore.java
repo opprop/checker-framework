@@ -16,6 +16,10 @@ public class ConstantPropagationStore implements Store<ConstantPropagationStore>
     /** Information about variables gathered so far. */
     Map<Node, Constant> contents;
 
+    /** Indicate whether this store is in a dead branch or not. */
+    private boolean deadBranch = false;
+
+    /** Create a new Constant Propagation Store. */
     public ConstantPropagationStore() {
         contents = new HashMap<>();
     }
@@ -50,12 +54,30 @@ public class ConstantPropagationStore implements Store<ConstantPropagationStore>
     }
 
     @Override
+    public void setDeadBranch() {
+        deadBranch = true;
+    }
+
+    @Override
+    public boolean isDeadBranch() {
+        return deadBranch;
+    }
+
+    @Override
     public ConstantPropagationStore copy() {
         return new ConstantPropagationStore(new HashMap<>(contents));
     }
 
     @Override
     public ConstantPropagationStore leastUpperBound(ConstantPropagationStore other) {
+        if (this.isDeadBranch()) {
+            return other;
+        }
+
+        if (other.isDeadBranch()) {
+            return this;
+        }
+
         Map<Node, Constant> newContents = new HashMap<>();
 
         // go through all of the information of the other class

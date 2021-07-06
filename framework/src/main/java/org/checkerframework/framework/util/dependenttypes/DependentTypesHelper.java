@@ -38,6 +38,7 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.trees.DetachedVarSymbol;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -364,6 +365,12 @@ public class DependentTypesHelper {
         if (path == null) {
             return;
         }
+
+        if (ele instanceof DetachedVarSymbol) {
+            // Don't handle artificial tree
+            return;
+        }
+
         switch (ele.getKind()) {
             case PARAMETER:
                 Tree enclTree =

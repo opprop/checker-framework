@@ -3180,6 +3180,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     public final void setEnclosingElementForArtificialTree(
             Tree node, TreePath path, Element enclosing) {
         artificialTreeToEnclosingElementMap.put(node, enclosing);
+        // Create path for the artificial tree to be the child of the current tree
         TreePath artificialPath = new TreePath(path, node);
         treePathCache.addPath(node, artificialPath);
     }

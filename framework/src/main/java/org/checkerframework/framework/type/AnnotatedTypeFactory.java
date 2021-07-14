@@ -383,9 +383,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     /** Mapping from a Tree to its TreePath. Shared between all instances. */
     private final TreePathCacher treePathCache;
 
-    /** Mapping from CFG generated trees to their enclosing elements. */
-    private final Map<Tree, Element> artificialTreeToEnclosingElementMap;
-
     /**
      * Whether to ignore uninferred type arguments. This is a temporary flag to work around Issue
      * 979.
@@ -430,7 +427,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         this.cacheDeclAnnos = new HashMap<>();
 
-        this.artificialTreeToEnclosingElementMap = new HashMap<>();
         // get the shared instance from the checker
         this.treePathCache = checker.getTreePathCacher();
 
@@ -644,7 +640,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         this.root = root;
         // Do not clear here. Only the primary checker should clear this cache.
         // treePathCache.clear();
-        artificialTreeToEnclosingElementMap.clear();
 
         if (shouldCache) {
             // Clear the caches with trees because once the compilation unit changes,
@@ -3153,36 +3148,16 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Gets the {@link Element} representing the declaration of the method enclosing a tree node.
-     * This feature is used to record the enclosing methods of {@link Tree}s that are created
-     * internally by the checker.
-     *
-     * <p>TODO: Find a better way to store information about enclosing Trees.
-     *
-     * @param node the {@link Tree} to get the enclosing method for
-     * @return the method {@link Element} enclosing the argument, or null if none has been recorded
-     */
-    public final Element getEnclosingElementForArtificialTree(Tree node) {
-        return artificialTreeToEnclosingElementMap.get(node);
-    }
-
-    /**
-     * Handle an artificial tree by mapping it to the enclosing element. Also construct an
-     * artificial {@link TreePath} associated to the artificial tree.
+     * Set tree path for the given artificial tree.
      *
      * <p>See {@code
      * org.checkerframework.framework.flow.CFCFGBuilder.CFCFGTranslationPhaseOne.handleArtificialTree(Tree)}.
      *
-     * @param node the artificial {@link Tree} to set the enclosing element to
-     * @param path the parent {@link TreePath} for the artificial tree
-     * @param enclosing the enclosing {@link Element} for {@code node}
+     * @param node the artificial {@link Tree} to set the path to
+     * @param path the {@link TreePath} for the artificial tree
      */
-    public final void setEnclosingElementForArtificialTree(
-            Tree node, TreePath path, Element enclosing) {
-        artificialTreeToEnclosingElementMap.put(node, enclosing);
-        // Create path for the artificial tree to be the child of the current tree
-        TreePath artificialPath = new TreePath(path, node);
-        treePathCache.addPath(node, artificialPath);
+    public final void setPathForArtificialTree(Tree node, TreePath path) {
+        treePathCache.addPath(node, path);
     }
 
     /**

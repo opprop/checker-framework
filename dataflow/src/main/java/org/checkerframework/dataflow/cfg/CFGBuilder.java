@@ -2436,8 +2436,7 @@ public class CFGBuilder {
                     }
 
                     NewArrayTree wrappedVarargs = treeBuilder.buildNewArray(elemType, inits);
-                    TreePath artificialPath = new TreePath(getCurrentPath(), wrappedVarargs);
-                    handleArtificialTree(wrappedVarargs, artificialPath);
+                    handleArtificialTree(wrappedVarargs);
 
                     Node lastArgument =
                             new ArrayCreationNode(

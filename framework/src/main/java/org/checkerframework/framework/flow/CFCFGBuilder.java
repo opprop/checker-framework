@@ -130,8 +130,9 @@ public class CFCFGBuilder extends CFGBuilder {
         /**
          * {@inheritDoc}
          *
-         * @see #handleArtificialTree(Tree, TreePath) If not specified with a certain path, the
-         *     artificial tree will be assigned with the child of the current path.
+         * @see #handleArtificialTree(Tree, TreePath)
+         *     <p>If not specified with a certain path, the artificial tree will be assigned with
+         *     the child of the current path.
          * @param tree the newly created Tree
          */
         @Override

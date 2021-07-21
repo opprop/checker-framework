@@ -367,7 +367,23 @@ public class DependentTypesHelper {
         }
 
         if (ele instanceof DetachedVarSymbol) {
-            // Don't handle artificial tree
+            // Skip standardizing artificial variable trees, because it is the standardized
+            // variable name that is used to construct and initialize an artificial variable.
+            // For example,
+            //
+            //    static HashMap<Integer, Date> call_hashmap = new HashMap<>();
+            //
+            //    public foo() {
+            //        for (Integer i : call_hashmap.keySet()) {
+            //            @NonNull Date d = call_hashmap.get(i);
+            //        }
+            //    }
+            //
+            // The CFGBuilder creates the initialized artificial iterator as follows:
+            //      iter#num0 = NonNullMapValue.call_hashmap.keySet().iterator()
+            // Therefore for the map-key type system, the type of the variable "i" is
+            // @KeyFor({"NonNullMapValue.call_hashmap"}), the string in which is already
+            // standardized.
             return;
         }
 

@@ -3035,8 +3035,7 @@ public class CFGBuilder {
                         extendWithNode(operNode);
 
                         TypeCastTree castTree = treeBuilder.buildTypeCast(leftType, operTree);
-                        TreePath artificialPath = new TreePath(getCurrentPath(), castTree);
-                        handleArtificialTree(castTree, artificialPath);
+                        handleArtificialTree(castTree);
                         TypeCastNode castNode =
                                 new TypeCastNode(castTree, operNode, leftType, types);
                         castNode.setInSource(false);

@@ -381,7 +381,7 @@ public class DependentTypesHelper {
             //
             // The CFGBuilder creates the initialized artificial iterator as follows:
             //      iter#num0 = NonNullMapValue.call_hashmap.keySet().iterator()
-            // Therefore for the map-key type system, the type of the variable "i" is
+            // Therefore, for the Map Key Checker, the type of the variable "i" is
             // @KeyFor({"NonNullMapValue.call_hashmap"}), the string in which is already
             // standardized.
             return;

@@ -3148,7 +3148,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Set tree path for the given artificial tree.
+     * Set the tree path for the given artificial tree.
      *
      * <p>See {@code
      * org.checkerframework.framework.flow.CFCFGBuilder.CFCFGTranslationPhaseOne.handleArtificialTree(Tree)}.

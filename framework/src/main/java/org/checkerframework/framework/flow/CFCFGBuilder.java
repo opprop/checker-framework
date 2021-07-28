@@ -115,31 +115,18 @@ public class CFCFGBuilder extends CFGBuilder {
         /**
          * {@inheritDoc}
          *
-         * <p>Set path for the given artificial tree. In inference, the path is used to create
-         * implied variable slots and constraints associated with artificial trees during dataflow
-         * analysis.
+         * <p>Assign path to artificial trees
          *
-         * @param tree the newly created Tree
-         * @param path the path for the newly created tree
-         */
-        @Override
-        public void handleArtificialTree(Tree tree, TreePath path) {
-            factory.setPathForArtificialTree(tree, path);
-        }
-
-        /**
-         * {@inheritDoc}
-         *
-         * @see #handleArtificialTree(Tree, TreePath)
-         *     <p>If not specified with a certain path, the artificial tree will be assigned with
-         *     the child of the current path.
          * @param tree the newly created Tree
          */
         @Override
         public void handleArtificialTree(Tree tree) {
-            // Create a new child of the current path and assign to the artificial tree
+            // Create a new child of the current path and assign to the artificial tree.
+            // Although intuitively, using the sibling of the current path as the artificial tree
+            // path makes more sense, it has the risk of improperly changing the defaulting scope
+            // of the artificial tree.
             TreePath artificialPath = new TreePath(getCurrentPath(), tree);
-            handleArtificialTree(tree, artificialPath);
+            factory.setPathForArtificialTree(tree, artificialPath);
         }
 
         @Override

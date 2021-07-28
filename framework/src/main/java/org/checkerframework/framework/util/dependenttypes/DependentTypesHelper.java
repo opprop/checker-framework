@@ -367,10 +367,13 @@ public class DependentTypesHelper {
         }
 
         if (ele instanceof DetachedVarSymbol) {
-            // Skip standardizing artificial variable trees, because it is the standardized
-            // variable name that is used to construct and initialize an artificial variable.
-            // For example,
+            // Skip standardizing the Java expression in annotations of artificial variables,
+            // because artificial variables are created and initialized with standardized Java
+            // expressions.
+            // For example, for the following code fragment from
+            //   Nullness test case checker/tests/nullness-asserts/NonNullMapValue.java
             //
+            //    ...
             //    static HashMap<Integer, Date> call_hashmap = new HashMap<>();
             //
             //    public foo() {
@@ -378,8 +381,10 @@ public class DependentTypesHelper {
             //            @NonNull Date d = call_hashmap.get(i);
             //        }
             //    }
+            //    ...
             //
-            // The CFGBuilder creates the initialized artificial iterator as follows:
+            //
+            // the CFGBuilder creates the initialized artificial iterator as follows:
             //      iter#num0 = NonNullMapValue.call_hashmap.keySet().iterator()
             // Therefore, for the Map Key Checker, the type of the variable "i" is
             // @KeyFor({"NonNullMapValue.call_hashmap"}), the string in which is already

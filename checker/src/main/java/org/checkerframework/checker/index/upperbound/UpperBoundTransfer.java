@@ -2,7 +2,10 @@ package org.checkerframework.checker.index.upperbound;
 
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.checker.index.IndexAbstractTransfer;
 import org.checkerframework.checker.index.IndexRefinementInfo;
 import org.checkerframework.checker.index.Subsequence;
@@ -40,12 +43,6 @@ import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionContext;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
 
 /**
  * Contains the transfer functions for the upper bound type system, a part of the Index Checker.

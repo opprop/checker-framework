@@ -1,7 +1,6 @@
-import testlib.util.*;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
+import testlib.util.*;
 
 class Arrays {
     Object[] @Odd [] objB1 = new Object[] @Odd [] {};

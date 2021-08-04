@@ -1,7 +1,6 @@
-import testlib.util.*;
-
 import java.util.Date;
 import java.util.List;
+import testlib.util.*;
 
 public class Wildcards {
     void process(List<? extends Date> arg) {}

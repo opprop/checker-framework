@@ -1,5 +1,12 @@
 package testlib.wholeprograminference;
 
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.reflection.qual.UnknownClass;
@@ -13,7 +20,6 @@ import org.checkerframework.framework.util.MultiGraphQualifierHierarchy;
 import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
-
 import testlib.wholeprograminference.qual.DefaultType;
 import testlib.wholeprograminference.qual.ImplicitAnno;
 import testlib.wholeprograminference.qual.Parent;
@@ -22,15 +28,6 @@ import testlib.wholeprograminference.qual.Sibling2;
 import testlib.wholeprograminference.qual.SiblingWithFields;
 import testlib.wholeprograminference.qual.Top;
 import testlib.wholeprograminference.qual.WholeProgramInferenceBottom;
-
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
 
 /**
  * AnnotatedTypeFactory to test whole-program inference using .jaif files.

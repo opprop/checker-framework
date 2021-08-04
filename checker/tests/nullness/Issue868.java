@@ -2,9 +2,8 @@
 // https://github.com/typetools/checker-framework/issues/868
 // @skip-test
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class Issue868 {
     <E extends @Nullable Object & @Nullable List> void test2(E e) {

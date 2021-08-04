@@ -4,7 +4,23 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
-
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.value.qual.ArrayLen;
@@ -20,6 +36,9 @@ import org.checkerframework.common.value.qual.IntVal;
 import org.checkerframework.common.value.qual.MinLen;
 import org.checkerframework.common.value.qual.MinLenFieldInvariant;
 import org.checkerframework.common.value.qual.PolyValue;
+import org.checkerframework.common.value.qual.PropertyFile;
+import org.checkerframework.common.value.qual.PropertyFileBottom;
+import org.checkerframework.common.value.qual.PropertyFileUnknown;
 import org.checkerframework.common.value.qual.StringVal;
 import org.checkerframework.common.value.qual.UnknownVal;
 import org.checkerframework.common.value.util.NumberUtils;
@@ -49,24 +68,6 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
-
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
 
 /** AnnotatedTypeFactory for the Value type system. */
 public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
@@ -128,12 +129,44 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** Helper class that holds references to special methods. */
     private final ValueMethodIdentifier methods;
 
+    /** The property file handler. */
+    public final @Nullable PropertyFileHandler propertyFileHandler;
+
+    /** Set of supported type qualifiers in the original value hierarchy. */
+    protected static final LinkedHashSet<Class<? extends Annotation>> supportedValueQualifiers =
+            new LinkedHashSet<>(
+                    Arrays.asList(
+                            ArrayLen.class,
+                            ArrayLenRange.class,
+                            IntVal.class,
+                            IntRange.class,
+                            BoolVal.class,
+                            StringVal.class,
+                            DoubleVal.class,
+                            BottomVal.class,
+                            UnknownVal.class,
+                            IntRangeFromPositive.class,
+                            IntRangeFromNonNegative.class,
+                            IntRangeFromGTENegativeOne.class,
+                            PolyValue.class));
+
+    /**
+     * Create a new ValueAnnotatedTypeFactory.
+     *
+     * @param checker the checker to use
+     */
     @SuppressWarnings("StaticAssignmentInConstructor") // static Range.ignoreOverflow is gross
     public ValueAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
 
         reportEvalWarnings = checker.hasOption(ValueChecker.REPORT_EVAL_WARNS);
         Range.ignoreOverflow = checker.hasOption(ValueChecker.IGNORE_RANGE_OVERFLOW);
+        if (checker.hasOption(ValueChecker.HANDLE_PROPERTY_FILES)) {
+            propertyFileHandler =
+                    new PropertyFileHandler(getProcessingEnv(), this, (ValueChecker) checker);
+        } else {
+            propertyFileHandler = null;
+        }
         evaluator = new ReflectiveEvaluator(checker, this, reportEvalWarnings);
 
         addAliasedAnnotation("android.support.annotation.IntRange", IntRange.class, true);
@@ -202,21 +235,16 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     protected Set<Class<? extends Annotation>> createSupportedTypeQualifiers() {
         // Because the Value Checker includes its own alias annotations,
         // the qualifiers have to be explicitly defined.
-        return new LinkedHashSet<>(
-                Arrays.asList(
-                        ArrayLen.class,
-                        ArrayLenRange.class,
-                        IntVal.class,
-                        IntRange.class,
-                        BoolVal.class,
-                        StringVal.class,
-                        DoubleVal.class,
-                        BottomVal.class,
-                        UnknownVal.class,
-                        IntRangeFromPositive.class,
-                        IntRangeFromNonNegative.class,
-                        IntRangeFromGTENegativeOne.class,
-                        PolyValue.class));
+        LinkedHashSet<Class<? extends Annotation>> supportedTypeQualifiers =
+                new LinkedHashSet<>(supportedValueQualifiers);
+        if (propertyFileHandler != null) {
+            Collections.addAll(
+                    supportedTypeQualifiers,
+                    PropertyFile.class,
+                    PropertyFileUnknown.class,
+                    PropertyFileBottom.class);
+        }
+        return supportedTypeQualifiers;
     }
 
     @Override

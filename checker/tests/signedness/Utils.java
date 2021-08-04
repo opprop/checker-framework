@@ -1,7 +1,6 @@
+import java.nio.ByteBuffer;
 import org.checkerframework.checker.signedness.SignednessUtil;
 import org.checkerframework.checker.signedness.qual.*;
-
-import java.nio.ByteBuffer;
 
 public class Utils {
 

@@ -1,14 +1,12 @@
 package testlib.aggregate;
 
-import org.checkerframework.common.value.ValueChecker;
-import org.checkerframework.framework.source.AggregateChecker;
-import org.checkerframework.framework.source.SourceChecker;
-
-import testlib.compound.CompoundChecker;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.checkerframework.common.value.ValueChecker;
+import org.checkerframework.framework.source.AggregateChecker;
+import org.checkerframework.framework.source.SourceChecker;
+import testlib.compound.CompoundChecker;
 
 /** An aggregate checker where one of the checkers is a compound checker. */
 public class AggregateOfCompoundChecker extends AggregateChecker {

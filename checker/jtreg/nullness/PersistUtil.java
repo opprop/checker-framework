@@ -7,7 +7,6 @@
  * defaultPersists/Driver and inheritDeclAnnoPersist/Driver.
  */
 import com.sun.tools.classfile.ClassFile;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;

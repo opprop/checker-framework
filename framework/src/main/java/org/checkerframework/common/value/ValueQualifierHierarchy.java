@@ -1,15 +1,15 @@
 package org.checkerframework.common.value;
 
-import org.checkerframework.common.value.util.Range;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.AnnotationUtils;
+import static org.checkerframework.common.value.PropertyFileHandler.inPropertyFileQualifierHierarchy;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
-
 import javax.lang.model.element.AnnotationMirror;
+import org.checkerframework.common.value.util.Range;
+import org.checkerframework.framework.util.MultiGraphQualifierHierarchy;
+import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 /** The qualifier hierarchy for the Value type system. */
 final class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
@@ -371,6 +371,18 @@ final class ValueQualifierHierarchy extends MultiGraphQualifierHierarchy {
      */
     @Override
     public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
+        if (atypeFactory.propertyFileHandler != null) {
+            if (inPropertyFileQualifierHierarchy(subAnno)
+                    && inPropertyFileQualifierHierarchy(superAnno)) {
+                return atypeFactory.propertyFileHandler.isSubtype(subAnno, superAnno);
+            } else if ((!inPropertyFileQualifierHierarchy(subAnno)
+                            && inPropertyFileQualifierHierarchy(superAnno))
+                    || (inPropertyFileQualifierHierarchy(subAnno)
+                            && !inPropertyFileQualifierHierarchy(superAnno))) {
+                return false;
+            }
+        }
+        // Fall through when two are in the value hierarchy.
         subAnno = atypeFactory.convertSpecialIntRangeToStandardIntRange(subAnno);
         superAnno = atypeFactory.convertSpecialIntRangeToStandardIntRange(superAnno);
         String subQual = AnnotationUtils.annotationName(subAnno);

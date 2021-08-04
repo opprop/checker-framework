@@ -1,12 +1,10 @@
 package tests;
 
-import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
-import org.junit.runners.Parameterized.Parameters;
-
-import testlib.defaulting.DefaultingLowerBoundChecker;
-
 import java.io.File;
 import java.util.List;
+import org.checkerframework.framework.test.FrameworkPerDirectoryTest;
+import org.junit.runners.Parameterized.Parameters;
+import testlib.defaulting.DefaultingLowerBoundChecker;
 
 /** Created by jburke on 9/29/14. */
 public class DefaultingLowerBoundTest extends FrameworkPerDirectoryTest {

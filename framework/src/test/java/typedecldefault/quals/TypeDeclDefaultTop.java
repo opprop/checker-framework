@@ -1,12 +1,11 @@
 package typedecldefault.quals;
 
-import org.checkerframework.framework.qual.DefaultFor;
-import org.checkerframework.framework.qual.SubtypeOf;
-import org.checkerframework.framework.qual.TypeUseLocation;
-
 import java.lang.annotation.*;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
+import org.checkerframework.framework.qual.DefaultFor;
+import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.TypeUseLocation;
 
 /** This is the top qualifier of the TypeDeclDefault type system. */
 @Documented

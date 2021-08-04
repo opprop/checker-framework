@@ -1,12 +1,11 @@
 package chapter;
 
+import java.util.concurrent.locks.ReentrantLock;
 import org.checkerframework.checker.lock.qual.GuardedBy;
 import org.checkerframework.checker.lock.qual.GuardedByUnknown;
 import org.checkerframework.checker.lock.qual.MayReleaseLocks;
 import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
-
-import java.util.concurrent.locks.ReentrantLock;
 
 public class LockExpressionIsFinal {
 
@@ -284,8 +283,7 @@ public class LockExpressionIsFinal {
         return t;
     }
 
-    class MyParameterizedClass1<T extends @GuardedByUnknown Object> {}
-    ;
+    class MyParameterizedClass1<T extends @GuardedByUnknown Object> {};
 
     MyParameterizedClass1<? super @GuardedBy("finalField") Object> m1;
     // :: error: (lock.expression.not.final)

@@ -1,9 +1,8 @@
 // Test case for issue #2186
 // https://github.com/typetools/checker-framework/issues/2186
 
-import org.checkerframework.checker.i18n.qual.*;
-
 import java.util.ArrayList;
+import org.checkerframework.checker.i18n.qual.*;
 
 @LocalizableKey class Issue2186 {
     // :: error: (super.invocation.invalid) :: warning: (inconsistent.constructor.type)

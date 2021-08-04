@@ -1,5 +1,7 @@
 package org.checkerframework.checker.index;
 
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.dataflow.analysis.ConditionalTransferResult;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.BinaryOperationNode;
@@ -9,10 +11,6 @@ import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.BugInCF;
-
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
 
 /**
  * This struct contains all of the information that the refinement functions need. It's called by

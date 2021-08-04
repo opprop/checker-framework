@@ -1,11 +1,10 @@
 package org.checkerframework.common.value;
 
+import java.util.LinkedHashSet;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.value.util.Range;
 import org.checkerframework.framework.source.SupportedOptions;
-
-import java.util.LinkedHashSet;
 
 /**
  * The Constant Value Checker is a constant propagation analysis: for each variable, it determines
@@ -21,7 +20,8 @@ import java.util.LinkedHashSet;
 @SupportedOptions({
     ValueChecker.REPORT_EVAL_WARNS,
     ValueChecker.IGNORE_RANGE_OVERFLOW,
-    ValueChecker.NON_NULL_STRINGS_CONCATENATION
+    ValueChecker.NON_NULL_STRINGS_CONCATENATION,
+    ValueChecker.HANDLE_PROPERTY_FILES
 })
 public class ValueChecker extends BaseTypeChecker {
     /**
@@ -33,6 +33,8 @@ public class ValueChecker extends BaseTypeChecker {
     public static final String IGNORE_RANGE_OVERFLOW = "ignoreRangeOverflow";
     /** Command-line option that assumes most expressions in String concatenations can be null. */
     public static final String NON_NULL_STRINGS_CONCATENATION = "nonNullStringsConcatenation";
+    /** Command-line option to enable the property file handler. */
+    public static final String HANDLE_PROPERTY_FILES = "handlePropertyFiles";
 
     @Override
     protected BaseTypeVisitor<?> createSourceVisitor() {

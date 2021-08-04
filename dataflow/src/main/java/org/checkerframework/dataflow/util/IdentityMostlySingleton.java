@@ -1,8 +1,7 @@
 package org.checkerframework.dataflow.util;
 
-import org.checkerframework.javacutil.BugInCF;
-
 import java.util.ArrayList;
+import org.checkerframework.javacutil.BugInCF;
 
 /**
  * A set that is more efficient than HashSet for 0 and 1 elements. Uses objects identity for object

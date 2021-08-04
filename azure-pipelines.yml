@@ -33,7 +33,7 @@ jobs:
 - job: junit_tests_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: xingweitian/ubuntu-for-cfi-jdk11:latest
+  container: mdernst/cf-ubuntu-jdk11:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -150,7 +150,7 @@ jobs:
 - job: misc_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: xingweitian/ubuntu-for-cfi-jdk11-plus:latest
+  container: mdernst/cf-ubuntu-jdk11-plus:latest
   steps:
   - checkout: self
     fetchDepth: 1000
@@ -309,7 +309,7 @@ jobs:
 - job: plume_lib_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: xingweitian/ubuntu-for-cfi-jdk11:latest
+  container: mdernst/cf-ubuntu-jdk11:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -330,6 +330,48 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-plume-lib.sh
     displayName: test-plume-lib.sh
+
+- job: cfinference_jdk8
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+   - cfinference_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: xingweitian/ubuntu-for-cfi-jdk8:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cf-inference.sh
+    displayName: test-cf-inference.sh
+- job: cfinference_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: xingweitian/ubuntu-for-cfi-jdk11:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cf-inference.sh
+    displayName: test-cf-inference.sh
+# TODO: need Docker image for JDK 16
+# - job: downstream_jdk16
+#   dependsOn:
+#    - junit_tests_jdk11
+#    - nonjunit_tests_jdk11
+# #   - misc_jdk11
+#    - typecheck_jdk11
+#    - downstream_jdk11
+#   pool:
+#     vmImage: 'ubuntu-latest'
+#   container: mdernst/cf-ubuntu-jdk16:latest
+#   steps:
+#   - checkout: self
+#     fetchDepth: 25
+#   - bash: ./checker/bin-devel/test-downstream.sh
+#     displayName: test-downstream.sh
+
 ## The downstream jobs are not currently needed because test-downstream.sh is empty.
 # - job: downstream_jdk8
 #   dependsOn:

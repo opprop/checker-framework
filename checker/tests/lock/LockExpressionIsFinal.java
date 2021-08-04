@@ -204,7 +204,8 @@ public class LockExpressionIsFinal {
         @GuardedBy("c1.getFieldPure(b ? c1 : o1, c1)") Object guarded5;
 
         @GuardedBy(
-                "c1.field.field.field.getFieldPure(c1.field, c1.getFieldDeterministic().getFieldPure(c1, c1.field)).field")
+                "c1.field.field.field.getFieldPure(c1.field,"
+                        + " c1.getFieldDeterministic().getFieldPure(c1, c1.field)).field")
         Object guarded6;
 
         @GuardedBy("c1.field.field.field.getFieldPure2().getFieldDeterministic().field") Object guarded7;

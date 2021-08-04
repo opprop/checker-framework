@@ -644,14 +644,16 @@ public class CheckerMain {
             throw new IllegalStateException(
                     "This class has been loaded remotely via the "
                             + protocol
-                            + " protocol. Only loading from a jar on the local file system is supported.");
+                            + " protocol. Only loading from a jar on the local file system is"
+                            + " supported.");
         }
 
         int idx = uri.indexOf('!');
         // Sanity check
         if (idx == -1) {
             throw new IllegalStateException(
-                    "You appear to have loaded this class from a local jar file, but I can't make sense of the URL!");
+                    "You appear to have loaded this class from a local jar file, but I can't make"
+                            + " sense of the URL!");
         }
 
         try {

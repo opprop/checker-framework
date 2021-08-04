@@ -155,7 +155,8 @@ public abstract class AbstractAnalysis<
     public AnalysisResult<V, S> getResult() {
         if (isRunning) {
             throw new BugInCF(
-                    "AbstractAnalysis::getResult() shouldn't be called when the analysis is running.");
+                    "AbstractAnalysis::getResult() shouldn't be called when the analysis is"
+                            + " running.");
         }
         return new AnalysisResult<>(
                 nodeValues,

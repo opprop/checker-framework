@@ -217,7 +217,8 @@ public abstract class QualifierHierarchy {
         assertSameSize(annos1, annos2);
         if (annos1.isEmpty()) {
             throw new BugInCF(
-                    "QualifierHierarchy.greatestLowerBounds: tried to determine GLB with empty sets");
+                    "QualifierHierarchy.greatestLowerBounds: tried to determine GLB with empty"
+                            + " sets");
         }
 
         Set<AnnotationMirror> result = AnnotationUtils.createAnnotationSet();

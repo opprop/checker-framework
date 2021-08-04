@@ -202,7 +202,8 @@ public class CFGVisualizeLauncher {
 
         if (res == null) {
             printError(
-                    "internal error in type processor! method typeProcessOver() doesn't get called.");
+                    "internal error in type processor! method typeProcessOver() doesn't get"
+                            + " called.");
             System.exit(1);
         }
 
@@ -272,7 +273,8 @@ public class CFGVisualizeLauncher {
         System.out.println(
                 "Generate the control flow graph of a Java method, represented as a DOT graph.");
         System.out.println(
-                "Parameters: <inputfile> <outputdir> [-method <name>] [-class <name>] [-pdf] [-verbose]");
+                "Parameters: <inputfile> <outputdir> [-method <name>] [-class <name>] [-pdf]"
+                        + " [-verbose]");
         System.out.println("    -pdf:     Also generate the PDF by invoking 'dot'.");
         System.out.println(
                 "    -method:  The method to generate the CFG for (defaults to 'test').");

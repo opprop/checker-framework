@@ -492,7 +492,8 @@ public class StubParser {
         if (allStubAnnotations.isEmpty()) {
             stubWarnNotFound(
                     String.format(
-                            "No supported annotations found! This likely means stub file %s doesn't import them correctly.",
+                            "No supported annotations found! This likely means stub file %s"
+                                    + " doesn't import them correctly.",
                             filename));
         }
         allStubAnnotations.putAll(annosInPackage(findPackage("java.lang")));
@@ -648,7 +649,9 @@ public class StubParser {
             if (numParams != numArgs) {
                 stubDebug(
                         String.format(
-                                "parseType:  mismatched sizes for typeParameters=%s (size %d) and typeArguments=%s (size %d); decl=%s; elt=%s (%s); type=%s (%s); parseState=%s",
+                                "parseType:  mismatched sizes for typeParameters=%s (size %d) and"
+                                        + " typeArguments=%s (size %d); decl=%s; elt=%s (%s); type=%s"
+                                        + " (%s); parseState=%s",
                                 typeParameters,
                                 numParams,
                                 typeArguments,
@@ -787,7 +790,8 @@ public class StubParser {
             if (methodType.getReceiverType() == null) {
                 if (decl.isConstructorDeclaration()) {
                     stubWarn(
-                            "parseParameter: constructor %s of a top-level class cannot have receiver annotations %s",
+                            "parseParameter: constructor %s of a top-level class cannot have"
+                                    + " receiver annotations %s",
                             methodType, decl.getReceiverParameter().get().getAnnotations());
                 } else {
                     stubWarn(
@@ -995,7 +999,8 @@ public class StubParser {
                             != adeclType.getTypeArguments().size()) {
                         stubWarn(
                                 String.format(
-                                        "Mismatch in type argument size between %s (%d) and %s (%d)",
+                                        "Mismatch in type argument size between %s (%d) and %s"
+                                                + " (%d)",
                                         declType,
                                         declType.getTypeArguments().get().size(),
                                         adeclType,
@@ -1224,7 +1229,8 @@ public class StubParser {
         if (typeParameters.size() != typeArguments.size()) {
             String msg =
                     String.format(
-                            "annotateTypeParameters: mismatched sizes:  typeParameters (size %d)=%s;  typeArguments (size %d)=%s;  decl=%s;  elt=%s (%s).",
+                            "annotateTypeParameters: mismatched sizes:  typeParameters (size"
+                                    + " %d)=%s;  typeArguments (size %d)=%s;  decl=%s;  elt=%s (%s).",
                             typeParameters.size(),
                             typeParameters,
                             typeArguments.size(),
@@ -1615,7 +1621,8 @@ public class StubParser {
                     boolean success = builderAddElement(builder, member, exp);
                     if (!success) {
                         stubWarn(
-                                "Annotation expression, %s, could not be processed for annotation: %s.",
+                                "Annotation expression, %s, could not be processed for annotation:"
+                                        + " %s.",
                                 exp, annotation);
                         return null;
                     }

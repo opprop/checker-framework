@@ -498,17 +498,20 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         int jreVersion = SystemUtil.getJreVersion();
         if (jreVersion < 8) {
             throw new UserError(
-                    "The Checker Framework must be run under at least JDK 8.  You are using version %d.  Please use JDK 8 or JDK 11.",
+                    "The Checker Framework must be run under at least JDK 8.  You are using"
+                            + " version %d.  Please use JDK 8 or JDK 11.",
                     jreVersion);
         } else if (jreVersion > 12) {
             throw new UserError(
                     String.format(
-                            "The Checker Framework cannot be run with JDK 13+.  You are using version %d. Please use JDK 8 or JDK 11.",
+                            "The Checker Framework cannot be run with JDK 13+.  You are using"
+                                    + " version %d. Please use JDK 8 or JDK 11.",
                             jreVersion));
         } else if (jreVersion != 8 && jreVersion != 11) {
             message(
                     Kind.WARNING,
-                    "The Checker Framework is only tested with JDK 8 and JDK 11. You are using version %d. Please use JDK 8 or JDK 11.",
+                    "The Checker Framework is only tested with JDK 8 and JDK 11. You are using"
+                            + " version %d. Please use JDK 8 or JDK 11.",
                     jreVersion);
         }
 
@@ -1880,7 +1883,9 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         if (prefixes.isEmpty()
                 || (prefixes.contains(SUPPRESS_ALL_PREFIX) && prefixes.size() == 1)) {
             throw new BugInCF(
-                    "Checker must provide a SuppressWarnings prefix. SourceChecker#getSuppressWarningsPrefixes was not overridden correctly.");
+                    "Checker must provide a SuppressWarnings prefix."
+                            + " SourceChecker#getSuppressWarningsPrefixes was not overridden"
+                            + " correctly.");
         }
 
         // trees.getPath might be slow, but this is only used in error reporting
@@ -2340,7 +2345,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         msg.add("; The Checker Framework crashed.  Please report the crash.");
         if (noPrintErrorStack) {
             msg.add(
-                    " To see the full stack trace, don't invoke the compiler with -AnoPrintErrorStack");
+                    " To see the full stack trace, don't invoke the compiler with"
+                            + " -AnoPrintErrorStack");
         } else {
             if (this.currentRoot != null && this.currentRoot.getSourceFile() != null) {
                 msg.add("Compilation unit: " + this.currentRoot.getSourceFile().getName());

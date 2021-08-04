@@ -344,7 +344,8 @@ public class Resolver {
                 Error err =
                         new AssertionError(
                                 String.format(
-                                        "Unexpected Reflection error in findMethod(%s, %s, ..., %s)",
+                                        "Unexpected Reflection error in findMethod(%s, %s, ...,"
+                                                + " %s)",
                                         methodName,
                                         receiverType,
                                         // path

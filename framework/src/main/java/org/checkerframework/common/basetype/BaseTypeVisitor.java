@@ -3617,10 +3617,12 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
             if (checker.hasOption("showchecks")) {
                 System.out.printf(
-                        " %s (line %3d):%n     overrider: %s %s (parameter %d type %s)%n   overridden: %s %s (parameter %d type %s)%n",
+                        " %s (line %3d):%n     overrider: %s %s (parameter %d type %s)%n  "
+                                + " overridden: %s %s (parameter %d type %s)%n",
                         (success
                                 ? "success: overridden parameter type is subtype of overriding"
-                                : "FAILURE: overridden parameter type is not subtype of overriding"),
+                                : "FAILURE: overridden parameter type is not subtype of"
+                                        + " overriding"),
                         (root.getLineMap() != null
                                 ? root.getLineMap().getLineNumber(valuePos)
                                 : -1),
@@ -3707,7 +3709,8 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
             if (checker.hasOption("showchecks")) {
                 System.out.printf(
-                        " %s (line %3d):%n     overrider: %s %s (return type %s)%n   overridden: %s %s (return type %s)%n",
+                        " %s (line %3d):%n     overrider: %s %s (return type %s)%n   overridden:"
+                                + " %s %s (return type %s)%n",
                         (success
                                 ? "success: overriding return type is subtype of overridden"
                                 : "FAILURE: overriding return type is not subtype of overridden"),
@@ -3945,9 +3948,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
         Set<? extends AnnotationMirror> tops =
                 atypeFactory.getQualifierHierarchy().getTopAnnotations();
         Set<AnnotationMirror> upperBounds =
-                atypeFactory
-                        .getQualifierUpperBounds()
-                        .getBoundQualifiers(declarationType.getUnderlyingType());
+                atypeFactory.getTypeDeclarationBounds(declarationType.getUnderlyingType());
         for (AnnotationMirror top : tops) {
             AnnotationMirror upperBound =
                     atypeFactory

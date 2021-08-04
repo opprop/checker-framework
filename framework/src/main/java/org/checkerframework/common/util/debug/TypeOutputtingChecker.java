@@ -271,7 +271,8 @@ public class TypeOutputtingChecker extends BaseTypeChecker {
             public AnnotationMirror leastUpperBoundTypeVariable(
                     AnnotationMirror a1, AnnotationMirror a2) {
                 throw new BugInCF(
-                        "GeneralQualifierHierarchy.leastUpperBoundTypeVariable() shouldn't be called.");
+                        "GeneralQualifierHierarchy.leastUpperBoundTypeVariable() shouldn't be"
+                                + " called.");
             }
 
             // Not needed - raises error.
@@ -286,13 +287,15 @@ public class TypeOutputtingChecker extends BaseTypeChecker {
             public AnnotationMirror greatestLowerBoundTypeVariable(
                     AnnotationMirror a1, AnnotationMirror a2) {
                 throw new BugInCF(
-                        "GeneralQualifierHierarchy.greatestLowerBoundTypeVariable() shouldn't be called.");
+                        "GeneralQualifierHierarchy.greatestLowerBoundTypeVariable() shouldn't be"
+                                + " called.");
             }
 
             @Override
             public AnnotationMirror getPolymorphicAnnotation(AnnotationMirror start) {
                 throw new BugInCF(
-                        "GeneralQualifierHierarchy.getPolymorphicAnnotation() shouldn't be called.");
+                        "GeneralQualifierHierarchy.getPolymorphicAnnotation() shouldn't be"
+                                + " called.");
             }
         }
     }

@@ -94,7 +94,8 @@ public class ForwardAnalysisImpl<
     public void performAnalysis(ControlFlowGraph cfg) {
         if (isRunning) {
             throw new BugInCF(
-                    "ForwardAnalysisImpl::performAnalysis() shouldn't be called when the analysis is running.");
+                    "ForwardAnalysisImpl::performAnalysis() shouldn't be called when the analysis"
+                            + " is running.");
         }
         isRunning = true;
 
@@ -135,7 +136,8 @@ public class ForwardAnalysisImpl<
                     // Propagate store to successors
                     Block succ = rb.getSuccessor();
                     assert succ != null
-                            : "@AssumeAssertion(nullness): regular basic block without non-exceptional successor unexpected";
+                            : "@AssumeAssertion(nullness): regular basic block without"
+                                    + " non-exceptional successor unexpected";
                     propagateStoresTo(
                             succ, lastNode, currentInput, rb.getFlowRule(), addToWorklistAgain);
                     break;

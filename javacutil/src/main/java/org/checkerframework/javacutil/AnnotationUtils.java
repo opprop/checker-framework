@@ -656,7 +656,8 @@ public class AnnotationUtils {
         }
         throw new NoSuchElementException(
                 String.format(
-                        "No element with name \'%s\' in annotation %s; useDefaults=%s, valmap.keySet()=%s",
+                        "No element with name \'%s\' in annotation %s; useDefaults=%s,"
+                                + " valmap.keySet()=%s",
                         elementName, anno, useDefaults, valmap.keySet()));
     }
 
@@ -750,11 +751,13 @@ public class AnnotationUtils {
             } catch (Throwable t) {
                 String err1 =
                         String.format(
-                                "getElementValueArray(%n  anno=%s,%n  elementName=%s,%n  expectedType=%s,%n  useDefaults=%s)%n",
+                                "getElementValueArray(%n  anno=%s,%n  elementName=%s,%n "
+                                        + " expectedType=%s,%n  useDefaults=%s)%n",
                                 anno, elementName, expectedType, useDefaults);
                 String err2 =
                         String.format(
-                                "Error in cast:%n  expectedType=%s%n  a=%s [%s]%n  a.getValue()=%s [%s]",
+                                "Error in cast:%n  expectedType=%s%n  a=%s [%s]%n  a.getValue()=%s"
+                                        + " [%s]",
                                 expectedType,
                                 a,
                                 a.getClass(),

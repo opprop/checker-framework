@@ -325,7 +325,8 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                         AnnotationUtils.getElementValueClassName(ama, "value", true).toString();
                 if (!Signatures.isClassGetName(theclassname)) {
                     throw new UserError(
-                            "Malformed class name \"%s\" should be in ClassGetName format in annotation %s",
+                            "Malformed class name \"%s\" should be in ClassGetName format in"
+                                    + " annotation %s",
                             theclassname, ama);
                 }
                 Class<?> valueElement;

@@ -50,7 +50,8 @@ public class DOTCFGVisualizer<
         this.outDir = (String) args.get("outdir");
         if (this.outDir == null) {
             throw new BugInCF(
-                    "outDir should never be null, provide it in args when calling DOTCFGVisualizer.init(args).");
+                    "outDir should never be null, provide it in args when calling"
+                            + " DOTCFGVisualizer.init(args).");
         }
         this.checkerName = (String) args.get("checkerName");
         this.generated = new HashMap<>();

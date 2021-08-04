@@ -76,7 +76,8 @@ public abstract class AnnotatedTypeMirror {
                 break;
             case ERROR:
                 throw new BugInCF(
-                        "AnnotatedTypeMirror.createType: input should type-check already. Found error type: "
+                        "AnnotatedTypeMirror.createType: input should type-check already. Found"
+                                + " error type: "
                                 + type);
 
             case EXECUTABLE:
@@ -1395,7 +1396,8 @@ public abstract class AnnotatedTypeMirror {
             String boundDescription, AnnotatedTypeMirror boundType, AnnotatedTypeMirror thisType) {
         if (boundType == null || boundType.isDeclaration()) {
             throw new BugInCF(
-                    "%s bounds should never be null or a declaration.%s  new bound = %s%s  type = %s",
+                    "%s bounds should never be null or a declaration.%s  new bound = %s%s  type ="
+                            + " %s",
                     boundDescription, boundType, thisType);
         }
     }

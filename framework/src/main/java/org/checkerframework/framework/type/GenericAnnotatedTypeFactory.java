@@ -607,9 +607,9 @@ public abstract class GenericAnnotatedTypeFactory<
     protected void checkForDefaultQualifierInHierarchy(QualifierDefaults defs) {
         if (!defs.hasDefaultsForCheckedCode()) {
             throw new BugInCF(
-                    "GenericAnnotatedTypeFactory.createQualifierDefaults: "
-                            + "@DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE) not found. "
-                            + "Every checker must specify a default qualifier. "
+                    "GenericAnnotatedTypeFactory.createQualifierDefaults:"
+                            + " @DefaultQualifierInHierarchy or @DefaultFor(TypeUseLocation.OTHERWISE)"
+                            + " not found. Every checker must specify a default qualifier. "
                             + getSortedQualifierNames());
         }
 
@@ -1395,8 +1395,8 @@ public abstract class GenericAnnotatedTypeFactory<
                     res = getAnnotatedType(lhsTree);
                 } else {
                     throw new BugInCF(
-                            "GenericAnnotatedTypeFactory: Unexpected tree passed to getAnnotatedTypeLhs. "
-                                    + "lhsTree: "
+                            "GenericAnnotatedTypeFactory: Unexpected tree passed to"
+                                    + " getAnnotatedTypeLhs. lhsTree: "
                                     + lhsTree
                                     + " Tree.Kind: "
                                     + lhsTree.getKind());
@@ -1755,7 +1755,8 @@ public abstract class GenericAnnotatedTypeFactory<
             String cfgviz = checker.getOption("cfgviz");
             if (cfgviz == null) {
                 throw new UserError(
-                        "-Acfgviz specified without arguments, should be -Acfgviz=VizClassName[,opts,...]");
+                        "-Acfgviz specified without arguments, should be"
+                                + " -Acfgviz=VizClassName[,opts,...]");
             }
             String[] opts = cfgviz.split(",");
             String vizClassName = opts[0];

@@ -441,12 +441,14 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             }
             if (itert.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is longer than polyTypes:%n  types = %s%n  polyTypes = %s%n",
+                        "PolyCollector.visit: types is longer than polyTypes:%n  types = %s%n "
+                                + " polyTypes = %s%n",
                         types, polyTypes);
             }
             if (itera.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is shorter than polyTypes:%n  types = %s%n  polyTypes = %s%n",
+                        "PolyCollector.visit: types is shorter than polyTypes:%n  types = %s%n "
+                                + " polyTypes = %s%n",
                         types, polyTypes);
             }
             return result;
@@ -496,7 +498,8 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         protected String defaultErrorMessage(
                 AnnotatedTypeMirror type1, AnnotatedTypeMirror type2, Void aVoid) {
             return String.format(
-                    "AbstractQualifierPolymorphism: Unexpected combination: type1: %s (%s) type2: %s (%s).",
+                    "AbstractQualifierPolymorphism: Unexpected combination: type1: %s (%s) type2:"
+                            + " %s (%s).",
                     type1, type1.getKind(), type2, type2.getKind());
         }
 

@@ -481,16 +481,17 @@ public class MultiGraphQualifierHierarchy extends QualifierHierarchy {
 
         if (a == null) {
             throw new BugInCF(
-                    "MultiGraphQualifierHierarchy found an unqualified type.  Please ensure that "
-                            + "your defaulting rules cover all cases and/or "
-                            + "use a @DefaultQualifierInHierarchy annotation.  "
-                            + "Also ensure that overrides of addComputedTypeAnnotations call super.");
+                    "MultiGraphQualifierHierarchy found an unqualified type.  Please ensure that"
+                            + " your defaulting rules cover all cases and/or use a"
+                            + " @DefaultQualifierInHierarchy annotation.  Also ensure that overrides of"
+                            + " addComputedTypeAnnotations call super.");
         } else {
             // System.out.println("MultiGraphQH: " + this);
             throw new BugInCF(
                     "MultiGraphQualifierHierarchy found the unrecognized qualifier: "
                             + a
-                            + ". Please ensure that the qualifier is correctly included in the subtype hierarchy.");
+                            + ". Please ensure that the qualifier is correctly included in the"
+                            + " subtype hierarchy.");
         }
     }
 
@@ -578,8 +579,8 @@ public class MultiGraphQualifierHierarchy extends QualifierHierarchy {
                     }
                 } else {
                     throw new BugInCF(
-                            "MultiGraphQualifierHierarchy.addPolyRelations: "
-                                    + "incorrect or missing top qualifier given in polymorphic qualifier "
+                            "MultiGraphQualifierHierarchy.addPolyRelations: incorrect or missing"
+                                    + " top qualifier given in polymorphic qualifier "
                                     + polyQualifier
                                     + "; declTop = "
                                     + declTop
@@ -708,7 +709,8 @@ public class MultiGraphQualifierHierarchy extends QualifierHierarchy {
                                 + a1
                                 + " and "
                                 + a2
-                                + ". Please ensure that the checker knows about all type qualifiers.");
+                                + ". Please ensure that the checker knows about all type"
+                                + " qualifiers.");
             }
         }
         return requireSingleton(outset, a1, a2, /*lub=*/ true);

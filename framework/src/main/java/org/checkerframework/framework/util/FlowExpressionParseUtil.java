@@ -145,7 +145,8 @@ public class FlowExpressionParseUtil {
             throw constructParserException(
                     expression,
                     String.format(
-                            "a class name cannot terminate a flow expression string, where result=%s [%s]",
+                            "a class name cannot terminate a flow expression string, where"
+                                    + " result=%s [%s]",
                             result, result.getClass()));
         }
         return result;
@@ -348,7 +349,8 @@ public class FlowExpressionParseUtil {
                     throw new ParseRuntimeException(
                             constructParserException(
                                     s,
-                                    "a non-static field can't be referenced from a static inner class or enum"));
+                                    "a non-static field can't be referenced from a static inner"
+                                            + " class or enum"));
                 }
                 return fieldAccess;
             }
@@ -486,7 +488,8 @@ public class FlowExpressionParseUtil {
                     throw new ParseRuntimeException(
                             constructParserException(
                                     s,
-                                    "a non-static method call cannot have a class name as a receiver"));
+                                    "a non-static method call cannot have a class name as a"
+                                            + " receiver"));
                 }
                 TypeMirror methodType =
                         TypesUtils.substituteMethodReturnType(
@@ -672,7 +675,8 @@ public class FlowExpressionParseUtil {
                 throw new ParseRuntimeException(
                         constructParserException(
                                 s,
-                                "one should use \"this\" for the receiver or \"#1\" for the first formal parameter"));
+                                "one should use \"this\" for the receiver or \"#1\" for the first"
+                                        + " formal parameter"));
             }
             if (idx > context.arguments.size()) {
                 throw new ParseRuntimeException(

@@ -63,7 +63,8 @@ public class CheckerDevelMain extends CheckerMain {
 
         assert (runtimeCp != null)
                 : RUNTIME_CP_PROP
-                        + " must specify a path entry to prepend to the Java classpath when running javac"; // TODO: Fix the assert messages
+                        + " must specify a path entry to prepend to the Java classpath when"
+                        + " running javac"; // TODO: Fix the assert messages
 
         // The location that checker.jar would be in if we have built it
         final File checkersLoc = new File(binDir, "checker.jar");

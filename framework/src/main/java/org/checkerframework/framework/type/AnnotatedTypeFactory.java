@@ -1747,6 +1747,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             addAnnotationFromFieldInvariant(type, owner, (VariableElement) element);
         }
         addComputedTypeAnnotations(element, type);
+
         if (viewpointAdapter != null && type.getKind() != TypeKind.EXECUTABLE) {
             viewpointAdapter.viewpointAdaptMember(owner, element, type);
         }
@@ -2307,8 +2308,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         // Perform viewpoint adaption before type argument substitution.
         if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptMethod(
-                    receiverType, methodElt, memberTypeWithoutOverrides);
+            viewpointAdapter.viewpointAdaptMethod(receiverType, methodElt, memberTypeWithOverrides);
         }
 
         AnnotatedExecutableType methodType =
@@ -2624,12 +2624,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             con = t;
         }
 
-        constructorFromUsePreSubstitution(tree, con);
-
-        if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
-        }
-
         if (tree.getClassBody() != null) {
             // The artificial constructor for an anonymous class only contains an invocation of the
             // corresponding super class constructor. The artificial constructor does not have all
@@ -2654,6 +2648,14 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             con = superCtorType;
             ctor = superCtor;
         }
+
+        constructorFromUsePreSubstitution(tree, con);
+
+        if (viewpointAdapter != null) {
+            viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
+        }
+
+        con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
 
         Map<TypeVariable, AnnotatedTypeMirror> typeParamToTypeArg =
                 AnnotatedTypes.findTypeArguments(processingEnv, this, tree, ctor, con);

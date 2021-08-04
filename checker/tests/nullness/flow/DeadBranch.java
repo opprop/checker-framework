@@ -1,9 +1,9 @@
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class IfTrue {
+class DeadBranch {
 
     Object foo(@Nullable Object myObj, boolean x) {
-        if (x) {
+        if (true) {
             myObj = new Object();
         }
         return myObj;

@@ -1069,6 +1069,6 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
 
     @Override
     public boolean isBottom() {
-        return true;
+        return false;
     }
 }

@@ -2303,8 +2303,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 getAnnotatedType(methodElt); // get unsubstituted type
         AnnotatedExecutableType memberTypeWithOverrides =
                 applyFakeOverrides(receiverType, methodElt, memberTypeWithoutOverrides);
-
-        methodFromUsePreSubstitution(tree, memberTypeWithoutOverrides);
+        methodFromUsePreSubstitution(tree, memberTypeWithOverrides);
 
         // Perform viewpoint adaption before type argument substitution.
         if (viewpointAdapter != null) {

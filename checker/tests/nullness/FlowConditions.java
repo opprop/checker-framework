@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-class FlowConditions {
+public class FlowConditions {
     void m(@Nullable Object x, @Nullable Object y) {
         if (x == null || y == null) {
             // :: error: (dereference.of.nullable)

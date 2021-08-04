@@ -10,8 +10,6 @@ import org.checkerframework.common.value.util.NumberMath;
 import org.checkerframework.common.value.util.NumberUtils;
 import org.checkerframework.common.value.util.Range;
 import org.checkerframework.dataflow.analysis.ConditionalTransferResult;
-import org.checkerframework.dataflow.analysis.FlowExpressions;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
@@ -22,6 +20,7 @@ import org.checkerframework.dataflow.cfg.node.BitwiseXorNode;
 import org.checkerframework.dataflow.cfg.node.ConditionalAndNode;
 import org.checkerframework.dataflow.cfg.node.ConditionalNotNode;
 import org.checkerframework.dataflow.cfg.node.ConditionalOrNode;
+import org.checkerframework.dataflow.cfg.node.EqualToNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.FloatingDivisionNode;
 import org.checkerframework.dataflow.cfg.node.FloatingRemainderNode;
@@ -35,6 +34,7 @@ import org.checkerframework.dataflow.cfg.node.LessThanOrEqualNode;
 import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.NotEqualNode;
 import org.checkerframework.dataflow.cfg.node.NumericalAdditionNode;
 import org.checkerframework.dataflow.cfg.node.NumericalMinusNode;
 import org.checkerframework.dataflow.cfg.node.NumericalMultiplicationNode;
@@ -46,6 +46,8 @@ import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
 import org.checkerframework.dataflow.cfg.node.UnsignedRightShiftNode;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.dataflow.util.NodeUtils;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
@@ -54,10 +56,11 @@ import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeSystemError;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.CollectionsPlume;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,15 +76,19 @@ import javax.lang.model.type.TypeMirror;
 /** The transfer class for the Value Checker. */
 public class ValueTransfer extends CFTransfer {
     /** The Value type factory. */
-    protected final ValueAnnotatedTypeFactory atypefactory;
+    protected final ValueAnnotatedTypeFactory atypeFactory;
     /** The Value qualifier hierarchy. */
     protected final QualifierHierarchy hierarchy;
 
-    /** Create a new ValueTransfer. */
+    /**
+     * Create a new ValueTransfer.
+     *
+     * @param analysis the corresponding analysis
+     */
     public ValueTransfer(CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
         super(analysis);
-        atypefactory = (ValueAnnotatedTypeFactory) analysis.getTypeFactory();
-        hierarchy = atypefactory.getQualifierHierarchy();
+        atypeFactory = (ValueAnnotatedTypeFactory) analysis.getTypeFactory();
+        hierarchy = atypeFactory.getQualifierHierarchy();
     }
 
     /** Returns a range of possible lengths for an integer from a range, as casted to a String. */
@@ -108,7 +115,7 @@ public class ValueTransfer extends CFTransfer {
      *
      * @param subNode some subnode of {@code p}
      * @param p TransferInput
-     * @return a range of possible lengths for {@code subNode}, as casted to a String.
+     * @return a range of possible lengths for {@code subNode}, as casted to a String
      */
     private Range getStringLengthRange(Node subNode, TransferInput<CFValue, CFStore> p) {
         CFValue value = p.getValueOfSubNode(subNode);
@@ -119,7 +126,7 @@ public class ValueTransfer extends CFTransfer {
         }
         String annoName = AnnotationUtils.annotationName(anno);
         if (annoName.equals(ValueAnnotatedTypeFactory.ARRAYLENRANGE_NAME)) {
-            return ValueAnnotatedTypeFactory.getRange(anno);
+            return atypeFactory.getRange(anno);
         } else if (annoName.equals(ValueAnnotatedTypeFactory.BOTTOMVAL_NAME)) {
             return Range.NOTHING;
         }
@@ -156,9 +163,9 @@ public class ValueTransfer extends CFTransfer {
         }
         String annoName = AnnotationUtils.annotationName(anno);
         if (annoName.equals(ValueAnnotatedTypeFactory.ARRAYLEN_NAME)) {
-            return ValueAnnotatedTypeFactory.getArrayLength(anno);
+            return atypeFactory.getArrayLength(anno);
         } else if (annoName.equals(ValueAnnotatedTypeFactory.BOTTOMVAL_NAME)) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         TypeKind subNodeTypeKind = subNode.getType().getKind();
@@ -170,9 +177,9 @@ public class ValueTransfer extends CFTransfer {
             // characters always have length 1
             return Collections.singletonList(1);
         } else if (isIntRange(subNode, p)) {
-            // Try to get a list of lengths from a range of integer values converted to string
+            // Try to get a list of lengths from a range of integer values converted to string.
             // @IntVal is not checked for, because if it is present, we would already have the
-            // actual string values
+            // actual string values.
             Range lengthRange = getIntRangeStringLengthRange(subNode, p);
             return ValueCheckerUtils.getValuesFromRange(lengthRange, Integer.class);
         } else if (subNodeTypeKind == TypeKind.BYTE) {
@@ -206,9 +213,9 @@ public class ValueTransfer extends CFTransfer {
             case ValueAnnotatedTypeFactory.UNKNOWN_NAME:
                 return null;
             case ValueAnnotatedTypeFactory.BOTTOMVAL_NAME:
-                return new ArrayList<>();
+                return Collections.emptyList();
             case ValueAnnotatedTypeFactory.STRINGVAL_NAME:
-                return ValueAnnotatedTypeFactory.getStringValues(anno);
+                return atypeFactory.getStringValues(anno);
             default:
                 // Do nothing.
         }
@@ -231,21 +238,51 @@ public class ValueTransfer extends CFTransfer {
         if (values == null) {
             return null;
         }
-        List<String> stringValues = new ArrayList<>();
-        for (Object o : values) {
-            stringValues.add(o.toString());
-        }
+        List<String> stringValues = CollectionsPlume.mapList(Object::toString, values);
         // Empty list means bottom value
         return stringValues.isEmpty() ? Collections.singletonList("null") : stringValues;
     }
 
-    /** Get possible boolean values from @BoolVal. */
+    /**
+     * Create a @BoolVal CFValue for the given boolean value.
+     *
+     * @param value the value for the @BoolVal annotation
+     * @return a @BoolVal CFValue for the given boolean value
+     */
+    private CFValue createBooleanCFValue(boolean value) {
+        return analysis.createSingleAnnotationValue(
+                value ? atypeFactory.BOOLEAN_TRUE : atypeFactory.BOOLEAN_FALSE,
+                atypeFactory.types.getPrimitiveType(TypeKind.BOOLEAN));
+    }
+
+    /**
+     * Get the unique possible boolean value from @BoolVal. Returns null if that is not the case
+     * (including if the CFValue is not @BoolVal).
+     *
+     * @param value a CFValue
+     * @return theboolean if {@code value} represents a single boolean value; otherwise null
+     */
+    private Boolean getBooleanValue(CFValue value) {
+        AnnotationMirror boolAnno =
+                AnnotationUtils.getAnnotationByName(
+                        value.getAnnotations(), ValueAnnotatedTypeFactory.BOOLVAL_NAME);
+        return atypeFactory.getBooleanValue(boolAnno);
+    }
+
+    /**
+     * Get possible boolean values for a node. Returns null if there is no estimate, because the
+     * node's value is not @BoolVal.
+     *
+     * @param subNode the node whose value to obtain
+     * @param p the transfer input in which to look up values
+     * @return the possible boolean values for the node
+     */
     private List<Boolean> getBooleanValues(Node subNode, TransferInput<CFValue, CFStore> p) {
         CFValue value = p.getValueOfSubNode(subNode);
         AnnotationMirror intAnno =
                 AnnotationUtils.getAnnotationByName(
                         value.getAnnotations(), ValueAnnotatedTypeFactory.BOOLVAL_NAME);
-        return ValueAnnotatedTypeFactory.getBooleanValues(intAnno);
+        return atypeFactory.getBooleanValues(intAnno);
     }
 
     /** Get possible char values from annotation @IntRange or @IntVal. */
@@ -257,18 +294,18 @@ public class ValueTransfer extends CFTransfer {
                 AnnotationUtils.getAnnotationByName(
                         value.getAnnotations(), ValueAnnotatedTypeFactory.INTVAL_NAME);
         if (intAnno != null) {
-            return ValueAnnotatedTypeFactory.getCharValues(intAnno);
+            return atypeFactory.getCharValues(intAnno);
         }
 
-        if (atypefactory.isIntRange(value.getAnnotations())) {
+        if (atypeFactory.isIntRange(value.getAnnotations())) {
             intAnno =
                     hierarchy.findAnnotationInHierarchy(
-                            value.getAnnotations(), atypefactory.UNKNOWNVAL);
-            Range range = ValueAnnotatedTypeFactory.getRange(intAnno);
+                            value.getAnnotations(), atypeFactory.UNKNOWNVAL);
+            Range range = atypeFactory.getRange(intAnno);
             return ValueCheckerUtils.getValuesFromRange(range, Character.class);
         }
 
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
 
     private AnnotationMirror getValueAnnotation(Node subNode, TransferInput<CFValue, CFStore> p) {
@@ -284,7 +321,7 @@ public class ValueTransfer extends CFTransfer {
      */
     private AnnotationMirror getValueAnnotation(CFValue cfValue) {
         return hierarchy.findAnnotationInHierarchy(
-                cfValue.getAnnotations(), atypefactory.UNKNOWNVAL);
+                cfValue.getAnnotations(), atypeFactory.UNKNOWNVAL);
     }
 
     /**
@@ -312,14 +349,14 @@ public class ValueTransfer extends CFTransfer {
             return null;
         } else if (AnnotationUtils.areSameByName(
                 valueAnno, ValueAnnotatedTypeFactory.BOTTOMVAL_NAME)) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
         List<? extends Number> values;
         if (AnnotationUtils.areSameByName(valueAnno, ValueAnnotatedTypeFactory.INTVAL_NAME)) {
-            values = ValueAnnotatedTypeFactory.getIntValues(valueAnno);
+            values = atypeFactory.getIntValues(valueAnno);
         } else if (AnnotationUtils.areSameByName(
                 valueAnno, ValueAnnotatedTypeFactory.DOUBLEVAL_NAME)) {
-            values = ValueAnnotatedTypeFactory.getDoubleValues(valueAnno);
+            values = atypeFactory.getDoubleValues(valueAnno);
         } else {
             return null;
         }
@@ -346,13 +383,13 @@ public class ValueTransfer extends CFTransfer {
         if (val == null
                 || AnnotationUtils.areSameByName(val, ValueAnnotatedTypeFactory.UNKNOWN_NAME)) {
             range = Range.EVERYTHING;
-        } else if (atypefactory.isIntRange(val)) {
-            range = ValueAnnotatedTypeFactory.getRange(val);
+        } else if (atypeFactory.isIntRange(val)) {
+            range = atypeFactory.getRange(val);
         } else if (AnnotationUtils.areSameByName(val, ValueAnnotatedTypeFactory.INTVAL_NAME)) {
-            List<Long> values = ValueAnnotatedTypeFactory.getIntValues(val);
+            List<Long> values = atypeFactory.getIntValues(val);
             range = ValueCheckerUtils.getRangeFromValues(values);
         } else if (AnnotationUtils.areSameByName(val, ValueAnnotatedTypeFactory.DOUBLEVAL_NAME)) {
-            List<Double> values = ValueAnnotatedTypeFactory.getDoubleValues(val);
+            List<Double> values = atypeFactory.getDoubleValues(val);
             range = ValueCheckerUtils.getRangeFromValues(values);
         } else if (AnnotationUtils.areSameByName(val, ValueAnnotatedTypeFactory.BOTTOMVAL_NAME)) {
             return Range.NOTHING;
@@ -367,11 +404,11 @@ public class ValueTransfer extends CFTransfer {
      *
      * @param subNode subNode of {@code p}
      * @param p TransferInput
-     * @return true if this subNode is annotated with {@code @IntRange}.
+     * @return true if this subNode is annotated with {@code @IntRange}
      */
     private boolean isIntRange(Node subNode, TransferInput<CFValue, CFStore> p) {
         CFValue value = p.getValueOfSubNode(subNode);
-        return atypefactory.isIntRange(value.getAnnotations());
+        return atypeFactory.isIntRange(value.getAnnotations());
     }
 
     /**
@@ -379,11 +416,11 @@ public class ValueTransfer extends CFTransfer {
      *
      * @param node a node
      * @param anno annotation mirror
-     * @return true if node is annotated with {@code @UnknownVal} and it is an integral type.
+     * @return true if node is annotated with {@code @UnknownVal} and it is an integral type
      */
     private boolean isIntegralUnknownVal(Node node, AnnotationMirror anno) {
         return AnnotationUtils.areSameByName(anno, ValueAnnotatedTypeFactory.UNKNOWN_NAME)
-                && TypesUtils.isIntegral(node.getType());
+                && TypesUtils.isIntegralPrimitive(node.getType());
     }
 
     /**
@@ -421,7 +458,7 @@ public class ValueTransfer extends CFTransfer {
             CFStore elseStore,
             List<Boolean> resultValues,
             TypeMirror underlyingType) {
-        AnnotationMirror boolVal = atypefactory.createBooleanAnnotation(resultValues);
+        AnnotationMirror boolVal = atypeFactory.createBooleanAnnotation(resultValues);
         CFValue newResultValue = analysis.createSingleAnnotationValue(boolVal, underlyingType);
         if (elseStore != null) {
             return new ConditionalTransferResult<>(newResultValue, thenStore, elseStore);
@@ -443,7 +480,7 @@ public class ValueTransfer extends CFTransfer {
     public TransferResult<CFValue, CFStore> visitMethodInvocation(
             MethodInvocationNode n, TransferInput<CFValue, CFStore> p) {
         TransferResult<CFValue, CFStore> result = super.visitMethodInvocation(n, p);
-        refineStringAtLengthInvocation(n, result.getRegularStore());
+        refineAtLengthInvocation(n, result.getRegularStore());
         return result;
     }
 
@@ -460,29 +497,42 @@ public class ValueTransfer extends CFTransfer {
     }
 
     /**
-     * If string.length() is encountered, transform its @IntVal annotation into an @ArrayLen
-     * annotation for string.
+     * If length method is invoked for a sequence, transform its @IntVal annotation into
+     * an @ArrayLen annotation.
+     *
+     * @param lengthNode the length method invocation node
+     * @param store the Checker Framework store
      */
-    private void refineStringAtLengthInvocation(
-            MethodInvocationNode stringLengthNode, CFStore store) {
-        MethodAccessNode methodAccessNode = stringLengthNode.getTarget();
-
-        if (atypefactory.getMethodIdentifier().isStringLengthMethod(methodAccessNode.getMethod())) {
-            refineAtLengthAccess(stringLengthNode, methodAccessNode.getReceiver(), store);
+    private void refineAtLengthInvocation(MethodInvocationNode lengthNode, CFStore store) {
+        if (atypeFactory
+                .getMethodIdentifier()
+                .isStringLengthMethod(lengthNode.getTarget().getMethod())) {
+            MethodAccessNode methodAccessNode = lengthNode.getTarget();
+            refineAtLengthAccess(lengthNode, methodAccessNode.getReceiver(), store);
+        } else if (atypeFactory
+                .getMethodIdentifier()
+                .isArrayGetLengthMethod(lengthNode.getTarget().getMethod())) {
+            Node node = lengthNode.getArguments().get(0);
+            refineAtLengthAccess(lengthNode, node, store);
         }
     }
 
-    /** Gets a value checker annotation relevant for an array or a string. */
+    /**
+     * Gets a value checker annotation relevant for an array or a string.
+     *
+     * @param arrayOrStringNode the node whose annotation to return
+     * @return the value checker annotation for the array or a string
+     */
     private AnnotationMirror getArrayOrStringAnnotation(Node arrayOrStringNode) {
         AnnotationMirror arrayOrStringAnno =
-                atypefactory.getAnnotationMirror(arrayOrStringNode.getTree(), StringVal.class);
+                atypeFactory.getAnnotationMirror(arrayOrStringNode.getTree(), StringVal.class);
         if (arrayOrStringAnno == null) {
             arrayOrStringAnno =
-                    atypefactory.getAnnotationMirror(arrayOrStringNode.getTree(), ArrayLen.class);
+                    atypeFactory.getAnnotationMirror(arrayOrStringNode.getTree(), ArrayLen.class);
         }
         if (arrayOrStringAnno == null) {
             arrayOrStringAnno =
-                    atypefactory.getAnnotationMirror(
+                    atypeFactory.getAnnotationMirror(
                             arrayOrStringNode.getTree(), ArrayLenRange.class);
         }
 
@@ -492,17 +542,22 @@ public class ValueTransfer extends CFTransfer {
     /**
      * Transform @IntVal or @IntRange annotations of a array or string length into an @ArrayLen
      * or @ArrayLenRange annotation for the array or string.
+     *
+     * @param lengthNode an invocation of method {@code length} or an access of the {@code length}
+     *     field
+     * @param receiverNode the receiver of {@code lengthNode}
+     * @param store the store to update
      */
     private void refineAtLengthAccess(Node lengthNode, Node receiverNode, CFStore store) {
-        Receiver lengthRec = FlowExpressions.internalReprOf(analysis.getTypeFactory(), lengthNode);
+        JavaExpression lengthExpr = JavaExpression.fromNode(lengthNode);
 
         // If the expression is not representable (for example if String.length() for some reason is
         // not marked @Pure, then do not refine.
-        if (lengthRec instanceof FlowExpressions.Unknown) {
+        if (lengthExpr instanceof Unknown) {
             return;
         }
 
-        CFValue value = store.getValue(lengthRec);
+        CFValue value = store.getValue(lengthExpr);
         if (value == null) {
             return;
         }
@@ -514,22 +569,22 @@ public class ValueTransfer extends CFTransfer {
         if (AnnotationUtils.areSameByName(lengthAnno, ValueAnnotatedTypeFactory.BOTTOMVAL_NAME)) {
             // If the length is bottom, then this is dead code, so the receiver type
             // should also be bottom.
-            Receiver receiver = FlowExpressions.internalReprOf(atypefactory, receiverNode);
+            JavaExpression receiver = JavaExpression.fromNode(receiverNode);
             store.insertValue(receiver, lengthAnno);
             return;
         }
 
         RangeOrListOfValues rolv;
-        if (atypefactory.isIntRange(lengthAnno)) {
-            rolv = new RangeOrListOfValues(ValueAnnotatedTypeFactory.getRange(lengthAnno));
+        if (atypeFactory.isIntRange(lengthAnno)) {
+            rolv = new RangeOrListOfValues(atypeFactory.getRange(lengthAnno));
         } else if (AnnotationUtils.areSameByName(
                 lengthAnno, ValueAnnotatedTypeFactory.INTVAL_NAME)) {
-            List<Long> lengthValues = ValueAnnotatedTypeFactory.getIntValues(lengthAnno);
+            List<Long> lengthValues = atypeFactory.getIntValues(lengthAnno);
             rolv = new RangeOrListOfValues(RangeOrListOfValues.convertLongsToInts(lengthValues));
         } else {
             return;
         }
-        AnnotationMirror newRecAnno = rolv.createAnnotation(atypefactory);
+        AnnotationMirror newRecAnno = rolv.createAnnotation(atypeFactory);
         AnnotationMirror oldRecAnno = getArrayOrStringAnnotation(receiverNode);
 
         AnnotationMirror combinedRecAnno;
@@ -541,7 +596,7 @@ public class ValueTransfer extends CFTransfer {
         } else {
             combinedRecAnno = hierarchy.greatestLowerBound(oldRecAnno, newRecAnno);
         }
-        Receiver receiver = FlowExpressions.internalReprOf(analysis.getTypeFactory(), receiverNode);
+        JavaExpression receiver = JavaExpression.fromNode(receiverNode);
         store.insertValue(receiver, combinedRecAnno);
     }
 
@@ -619,28 +674,28 @@ public class ValueTransfer extends CFTransfer {
         List<String> rightValues = getStringValues(rightOperand, p);
 
         boolean nonNullStringConcat =
-                atypefactory.getContext().getChecker().hasOption("nonNullStringsConcatenation");
+                atypeFactory.getChecker().hasOption("nonNullStringsConcatenation");
 
         if (leftValues != null && rightValues != null) {
             // Both operands have known string values, compute set of results
             if (!nonNullStringConcat) {
                 if (isNullable(leftOperand)) {
-                    leftValues.add("null");
+                    leftValues = CollectionsPlume.append(leftValues, "null");
                 }
                 if (isNullable(rightOperand)) {
-                    rightValues.add("null");
+                    rightValues = CollectionsPlume.append(rightValues, "null");
                 }
             } else {
                 if (leftOperand instanceof StringConversionNode) {
                     if (((StringConversionNode) leftOperand).getOperand().getType().getKind()
                             == TypeKind.NULL) {
-                        leftValues.add("null");
+                        leftValues = CollectionsPlume.append(leftValues, "null");
                     }
                 }
                 if (rightOperand instanceof StringConversionNode) {
                     if (((StringConversionNode) rightOperand).getOperand().getType().getKind()
                             == TypeKind.NULL) {
-                        rightValues.add("null");
+                        rightValues = CollectionsPlume.append(rightValues, "null");
                     }
                 }
             }
@@ -651,7 +706,7 @@ public class ValueTransfer extends CFTransfer {
                     concatValues.add(left + right);
                 }
             }
-            return atypefactory.createStringAnnotation(concatValues);
+            return atypeFactory.createStringAnnotation(concatValues);
         }
 
         // Try using sets of lengths
@@ -668,14 +723,16 @@ public class ValueTransfer extends CFTransfer {
             // Both operands have known lengths, compute set of result lengths
             if (!nonNullStringConcat) {
                 if (isNullable(leftOperand)) {
+                    leftLengths = new ArrayList<>(leftLengths);
                     leftLengths.add(4); // "null"
                 }
                 if (isNullable(rightOperand)) {
+                    rightLengths = new ArrayList<>(rightLengths);
                     rightLengths.add(4); // "null"
                 }
             }
             List<Integer> concatLengths = calculateLengthAddition(leftLengths, rightLengths);
-            return atypefactory.createArrayLenAnnotation(concatLengths);
+            return atypeFactory.createArrayLenAnnotation(concatLengths);
         }
 
         // Try using ranges of lengths
@@ -692,18 +749,18 @@ public class ValueTransfer extends CFTransfer {
             // Both operands have a length from a known range, compute a range of result lengths
             if (!nonNullStringConcat) {
                 if (isNullable(leftOperand)) {
-                    leftLengthRange.union(Range.create(4, 4)); // "null"
+                    leftLengthRange = leftLengthRange.union(Range.create(4, 4)); // "null"
                 }
                 if (isNullable(rightOperand)) {
-                    rightLengthRange.union(Range.create(4, 4)); // "null"
+                    rightLengthRange = rightLengthRange.union(Range.create(4, 4)); // "null"
                 }
             }
             Range concatLengthRange =
                     calculateLengthRangeAddition(leftLengthRange, rightLengthRange);
-            return atypefactory.createArrayLenRangeAnnotation(concatLengthRange);
+            return atypeFactory.createArrayLenRangeAnnotation(concatLengthRange);
         }
 
-        return atypefactory.UNKNOWNVAL;
+        return atypeFactory.UNKNOWNVAL;
     }
 
     public TransferResult<CFValue, CFStore> stringConcatenation(
@@ -752,10 +809,10 @@ public class ValueTransfer extends CFTransfer {
         if (!isIntRangeOrIntegralUnknownVal(leftNode, p)
                 && !isIntRangeOrIntegralUnknownVal(rightNode, p)) {
             List<Number> resultValues = calculateValuesBinaryOp(leftNode, rightNode, op, p);
-            return atypefactory.createNumberAnnotationMirror(resultValues);
+            return atypeFactory.createNumberAnnotationMirror(resultValues);
         } else {
             Range resultRange = calculateRangeBinaryOp(leftNode, rightNode, op, p);
-            return atypefactory.createIntRangeAnnotation(resultRange);
+            return atypeFactory.createIntRangeAnnotation(resultRange);
         }
     }
 
@@ -765,8 +822,8 @@ public class ValueTransfer extends CFTransfer {
             Node rightNode,
             NumericalBinaryOps op,
             TransferInput<CFValue, CFStore> p) {
-        if (TypesUtils.isIntegral(leftNode.getType())
-                && TypesUtils.isIntegral(rightNode.getType())) {
+        if (TypesUtils.isIntegralPrimitive(leftNode.getType())
+                && TypesUtils.isIntegralPrimitive(rightNode.getType())) {
             Range leftRange = getIntRange(leftNode, p);
             Range rightRange = getIntRange(rightNode, p);
             Range resultRange;
@@ -805,7 +862,7 @@ public class ValueTransfer extends CFTransfer {
                     resultRange = leftRange.bitwiseXor(rightRange);
                     break;
                 default:
-                    throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                    throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
             }
             // Any integral type with less than 32 bits would be promoted to 32-bit int type during
             // operations.
@@ -874,7 +931,7 @@ public class ValueTransfer extends CFTransfer {
                         resultValues.add(nmLeft.bitwiseXor(right));
                         break;
                     default:
-                        throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                        throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
                 }
             }
         }
@@ -1039,17 +1096,24 @@ public class ValueTransfer extends CFTransfer {
             Node operand, NumericalUnaryOps op, TransferInput<CFValue, CFStore> p) {
         if (!isIntRange(operand, p)) {
             List<Number> resultValues = calculateValuesUnaryOp(operand, op, p);
-            return atypefactory.createNumberAnnotationMirror(resultValues);
+            return atypeFactory.createNumberAnnotationMirror(resultValues);
         } else {
             Range resultRange = calculateRangeUnaryOp(operand, op, p);
-            return atypefactory.createIntRangeAnnotation(resultRange);
+            return atypeFactory.createIntRangeAnnotation(resultRange);
         }
     }
 
-    /** Calculate the result range after a unary operation of a numerical type node. */
+    /**
+     * Calculate the result range after a unary operation of a numerical type node.
+     *
+     * @param operand the node that represents the operand
+     * @param op the operator type
+     * @param p the transfer input
+     * @return the result annotation mirror
+     */
     private Range calculateRangeUnaryOp(
             Node operand, NumericalUnaryOps op, TransferInput<CFValue, CFStore> p) {
-        if (TypesUtils.isIntegral(operand.getType())) {
+        if (TypesUtils.isIntegralPrimitive(operand.getType())) {
             Range range = getIntRange(operand, p);
             Range resultRange;
             switch (op) {
@@ -1063,7 +1127,7 @@ public class ValueTransfer extends CFTransfer {
                     resultRange = range.bitwiseComplement();
                     break;
                 default:
-                    throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                    throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
             }
             // Any integral type with less than 32 bits would be promoted to 32-bit int type during
             // operations.
@@ -1082,7 +1146,7 @@ public class ValueTransfer extends CFTransfer {
         if (lefts == null) {
             return null;
         }
-        List<Number> resultValues = new ArrayList<>();
+        List<Number> resultValues = new ArrayList<>(lefts.size());
         for (Number left : lefts) {
             NumberMath<?> nmLeft = NumberMath.getNumberMath(left);
             switch (op) {
@@ -1096,7 +1160,7 @@ public class ValueTransfer extends CFTransfer {
                     resultValues.add(nmLeft.bitwiseComplement());
                     break;
                 default:
-                    throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                    throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
             }
         }
         return resultValues;
@@ -1149,32 +1213,32 @@ public class ValueTransfer extends CFTransfer {
         AnnotationMirror leftAnno = getValueAnnotation(leftValue);
         AnnotationMirror rightAnno = getValueAnnotation(rightValue);
 
-        if (atypefactory.isIntRange(leftAnno)
-                || atypefactory.isIntRange(rightAnno)
+        if (atypeFactory.isIntRange(leftAnno)
+                || atypeFactory.isIntRange(rightAnno)
                 || isIntegralUnknownVal(rightNode, rightAnno)
                 || isIntegralUnknownVal(leftNode, leftAnno)) {
             // If either is @UnknownVal, then refineIntRanges will treat it as the max range and
-            // thus refine it if possible.  Also, if either is an @IntVal, then it will be
-            // converted to a range.  This is less precise in some cases, but avoids the
-            // complexity of comparing a list of values to a range. (This could be implemented in
-            // the future.)
+            // thus refine it if possible.  Also, if either is an @IntVal, then it will be converted
+            // to a range.  This is less precise in some cases, but avoids the complexity of
+            // comparing a list of values to a range. (This could be implemented in the future.)
             return refineIntRanges(
                     leftNode, leftAnno, rightNode, rightAnno, op, thenStore, elseStore);
         }
-        // This is a list of all the values that the expression can evaluate to.
-        List<Boolean> resultValues = new ArrayList<>();
 
         List<? extends Number> lefts = getNumericalValues(leftNode, leftAnno);
         List<? extends Number> rights = getNumericalValues(rightNode, rightAnno);
 
         if (lefts == null || rights == null) {
             // Appropriately handle bottom when something is compared to bottom.
-            if (AnnotationUtils.areSame(leftAnno, atypefactory.BOTTOMVAL)
-                    || AnnotationUtils.areSame(rightAnno, atypefactory.BOTTOMVAL)) {
-                return new ArrayList<>();
+            if (AnnotationUtils.areSame(leftAnno, atypeFactory.BOTTOMVAL)
+                    || AnnotationUtils.areSame(rightAnno, atypeFactory.BOTTOMVAL)) {
+                return Collections.emptyList();
             }
             return null;
         }
+
+        // This is a list of all the values that the expression can evaluate to.
+        List<Boolean> resultValues = new ArrayList<>();
 
         // These lists are used to refine the values in the store based on the results of the
         // comparison.
@@ -1207,7 +1271,7 @@ public class ValueTransfer extends CFTransfer {
                         result = nmLeft.notEqualTo(right);
                         break;
                     default:
-                        throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                        throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
                 }
                 resultValues.add(result);
                 if (result) {
@@ -1287,7 +1351,7 @@ public class ValueTransfer extends CFTransfer {
                 elseLeftRange = elseRightRange; // Equality only needs to be computed once.
                 break;
             default:
-                throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+                throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
         }
 
         createAnnotationFromRangeAndAddToStore(thenStore, thenRightRange, rightNode);
@@ -1303,10 +1367,14 @@ public class ValueTransfer extends CFTransfer {
      * Takes a list of result values (i.e. the values possible after the comparison) and creates the
      * appropriate annotation from them, then combines that annotation with the existing annotation
      * on the node. The resulting annotation is inserted into the store.
+     *
+     * @param store the store
+     * @param results the result values
+     * @param node the node whose existing annotation to refine
      */
     private void createAnnotationFromResultsAndAddToStore(
             CFStore store, List<?> results, Node node) {
-        AnnotationMirror anno = atypefactory.createResultingAnnotation(node.getType(), results);
+        AnnotationMirror anno = atypeFactory.createResultingAnnotation(node.getType(), results);
         addAnnotationToStore(store, anno, node);
     }
 
@@ -1314,36 +1382,41 @@ public class ValueTransfer extends CFTransfer {
      * Takes a range and creates the appropriate annotation from it, then combines that annotation
      * with the existing annotation on the node. The resulting annotation is inserted into the
      * store.
+     *
+     * @param store the store
+     * @param range the range to create an annotation for
+     * @param node the node whose existing annotation to refine
      */
     private void createAnnotationFromRangeAndAddToStore(CFStore store, Range range, Node node) {
-        AnnotationMirror anno = atypefactory.createIntRangeAnnotation(range);
+        AnnotationMirror anno = atypeFactory.createIntRangeAnnotation(range);
         addAnnotationToStore(store, anno, node);
     }
 
     private void addAnnotationToStore(CFStore store, AnnotationMirror anno, Node node) {
         // If node is assignment, iterate over lhs and rhs; otherwise, iterator contains just node.
         for (Node internal : splitAssignments(node)) {
-            Receiver rec = FlowExpressions.internalReprOf(analysis.getTypeFactory(), internal);
+            JavaExpression je = JavaExpression.fromNode(internal);
             CFValue currentValueFromStore;
-            if (CFAbstractStore.canInsertReceiver(rec)) {
-                currentValueFromStore = store.getValue(rec);
+            if (CFAbstractStore.canInsertJavaExpression(je)) {
+                currentValueFromStore = store.getValue(je);
             } else {
                 // Don't just `continue;` which would skip the calls to refine{Array,String}...
                 currentValueFromStore = null;
             }
             AnnotationMirror currentAnno =
                     (currentValueFromStore == null
-                            ? atypefactory.UNKNOWNVAL
+                            ? atypeFactory.UNKNOWNVAL
                             : getValueAnnotation(currentValueFromStore));
             // Combine the new annotations based on the results of the comparison with the existing
             // type.
             AnnotationMirror newAnno = hierarchy.greatestLowerBound(anno, currentAnno);
-            store.insertValue(rec, newAnno);
+            store.insertValue(je, newAnno);
 
             if (node instanceof FieldAccessNode) {
                 refineArrayAtLengthAccess((FieldAccessNode) internal, store);
             } else if (node instanceof MethodInvocationNode) {
-                refineStringAtLengthInvocation((MethodInvocationNode) internal, store);
+                MethodInvocationNode miNode = (MethodInvocationNode) node;
+                refineAtLengthInvocation(miNode, store);
             }
         }
     }
@@ -1470,21 +1543,20 @@ public class ValueTransfer extends CFTransfer {
         // For String.startsWith(String) and String.endsWith(String), refine the minimum length
         // of the receiver to the minimum length of the argument.
 
-        ValueMethodIdentifier methodIdentifier = atypefactory.getMethodIdentifier();
+        ValueMethodIdentifier methodIdentifier = atypeFactory.getMethodIdentifier();
         if (methodIdentifier.isStartsWithMethod(methodElement)
                 || methodIdentifier.isEndsWithMethod(methodElement)) {
 
             Node argumentNode = n.getArgument(0);
             AnnotationMirror argumentAnno = getArrayOrStringAnnotation(argumentNode);
-            int minLength = atypefactory.getMinLenValue(argumentAnno);
+            int minLength = atypeFactory.getMinLenValue(argumentAnno);
             // Update the annotation of the receiver
             if (minLength != 0) {
-                Receiver receiver =
-                        FlowExpressions.internalReprOf(atypefactory, n.getTarget().getReceiver());
+                JavaExpression receiver = JavaExpression.fromNode(n.getTarget().getReceiver());
 
                 AnnotationMirror minLenAnno =
-                        atypefactory.createArrayLenRangeAnnotation(minLength, Integer.MAX_VALUE);
-                thenStore.insertValue(receiver, minLenAnno);
+                        atypeFactory.createArrayLenRangeAnnotation(minLength, Integer.MAX_VALUE);
+                thenStore.insertValuePermitNondeterministic(receiver, minLenAnno);
             }
         }
 
@@ -1509,7 +1581,6 @@ public class ValueTransfer extends CFTransfer {
         if (lefts == null) {
             lefts = ALL_BOOLEANS;
         }
-        List<Boolean> resultValues = new ArrayList<>();
         List<Boolean> rights = null;
         if (rightNode != null) {
             rights = getBooleanValues(rightNode, p);
@@ -1517,12 +1588,11 @@ public class ValueTransfer extends CFTransfer {
                 rights = ALL_BOOLEANS;
             }
         }
+        // This list can contain duplicates.  It is deduplicated later by createBooleanAnnotation.
+        List<Boolean> resultValues = new ArrayList<>(2);
         switch (op) {
             case NOT:
-                for (Boolean left : lefts) {
-                    resultValues.add(!left);
-                }
-                return resultValues;
+                return CollectionsPlume.mapList((Boolean left) -> !left, lefts);
             case OR:
                 for (Boolean left : lefts) {
                     for (Boolean right : rights) {
@@ -1538,7 +1608,69 @@ public class ValueTransfer extends CFTransfer {
                 }
                 return resultValues;
         }
-        throw new BugInCF("ValueTransfer: unsupported operation: " + op);
+        throw new TypeSystemError("ValueTransfer: unsupported operation: " + op);
+    }
+
+    @Override
+    public TransferResult<CFValue, CFStore> visitEqualTo(
+            EqualToNode n, TransferInput<CFValue, CFStore> p) {
+        TransferResult<CFValue, CFStore> res = super.visitEqualTo(n, p);
+
+        Node leftN = n.getLeftOperand();
+        Node rightN = n.getRightOperand();
+        CFValue leftV = p.getValueOfSubNode(leftN);
+        CFValue rightV = p.getValueOfSubNode(rightN);
+
+        // if annotations differ, use the one that is more precise for both
+        // sides (and add it to the store if possible)
+        res = strengthenAnnotationOfEqualTo(res, leftN, rightN, leftV, rightV, false);
+        res = strengthenAnnotationOfEqualTo(res, rightN, leftN, rightV, leftV, false);
+
+        Boolean leftBoolean = getBooleanValue(leftV);
+        if (leftBoolean != null) {
+            CFValue notLeftV = createBooleanCFValue(!leftBoolean);
+            res = strengthenAnnotationOfEqualTo(res, leftN, rightN, notLeftV, rightV, true);
+            res = strengthenAnnotationOfEqualTo(res, rightN, leftN, rightV, notLeftV, true);
+        }
+        Boolean rightBoolean = getBooleanValue(rightV);
+        if (rightBoolean != null) {
+            CFValue notRightV = createBooleanCFValue(!rightBoolean);
+            res = strengthenAnnotationOfEqualTo(res, leftN, rightN, leftV, notRightV, true);
+            res = strengthenAnnotationOfEqualTo(res, rightN, leftN, notRightV, leftV, true);
+        }
+
+        return res;
+    }
+
+    @Override
+    public TransferResult<CFValue, CFStore> visitNotEqual(
+            NotEqualNode n, TransferInput<CFValue, CFStore> p) {
+        TransferResult<CFValue, CFStore> res = super.visitNotEqual(n, p);
+
+        Node leftN = n.getLeftOperand();
+        Node rightN = n.getRightOperand();
+        CFValue leftV = p.getValueOfSubNode(leftN);
+        CFValue rightV = p.getValueOfSubNode(rightN);
+
+        // if annotations differ, use the one that is more precise for both
+        // sides (and add it to the store if possible)
+        res = strengthenAnnotationOfEqualTo(res, leftN, rightN, leftV, rightV, true);
+        res = strengthenAnnotationOfEqualTo(res, rightN, leftN, rightV, leftV, true);
+
+        Boolean leftBoolean = getBooleanValue(leftV);
+        if (leftBoolean != null) {
+            CFValue notLeftV = createBooleanCFValue(!leftBoolean);
+            res = strengthenAnnotationOfEqualTo(res, leftN, rightN, notLeftV, rightV, false);
+            res = strengthenAnnotationOfEqualTo(res, rightN, leftN, rightV, notLeftV, false);
+        }
+        Boolean rightBoolean = getBooleanValue(rightV);
+        if (rightBoolean != null) {
+            CFValue notRightV = createBooleanCFValue(!rightBoolean);
+            res = strengthenAnnotationOfEqualTo(res, leftN, rightN, leftV, notRightV, false);
+            res = strengthenAnnotationOfEqualTo(res, rightN, leftN, notRightV, leftV, false);
+        }
+
+        return res;
     }
 
     @Override

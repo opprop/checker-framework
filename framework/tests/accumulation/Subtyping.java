@@ -1,9 +1,7 @@
-// A basic test that subtyping between accumulation annotations
-// works as expected. Note that GJF botches the formatting
-// in this file, so the comments for error messages are in weird
-// places.
+// A basic test that subtyping between accumulation annotations works as expected. Note that GJF
+// botches the formatting in this file, so the comments for error messages are in weird places.
 
-import testaccumulation.qual.*;
+import org.checkerframework.framework.testchecker.testaccumulation.qual.*;
 
 public class Subtyping {
     void top(@TestAccumulation() Object o1) {

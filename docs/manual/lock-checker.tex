@@ -87,7 +87,7 @@ This section describes the lock annotations you can write on types and methods.
 
   Section~\ref{java-expressions-as-arguments} explains which
   expressions the Lock Checker is able to analyze as lock expressions.
-  These include \code{<self>}, i.e. the value of the annotated reference
+  These include \code{<self>}, the value of the annotated reference
   (non-primitive) variable.  For example, \code{@GuardedBy("<self>") Object o}
   indicates that the value referenced by \<o> is guarded by the intrinsic
   (monitor) lock of the value referenced by \<o>.
@@ -119,6 +119,11 @@ This section describes the lock annotations you can write on types and methods.
   \<@GuardedByUnknown> is the conservative
   default type qualifier for method receivers in unannotated libraries
   (see \chapterpageref{annotating-libraries}).
+
+\item[\refqualclass{checker/lock/qual}{NewObject}]
+  This type represents a newly-consructed value; such as the result of
+  calling a constructor or factory method.  The client can use the value as
+  any \refqualclass{checker/lock/qual}{GuardedBy} type.
 
 \item[\refqualclass{checker/lock/qual}{GuardedByBottom}]
   If a variable \<x> has type \code{@GuardedByBottom}, then
@@ -709,6 +714,11 @@ filename = filename.append(extension);
 This section gives some details that are helpful for understanding how Java
 locking and the Lock Checker works.
 
+The paper ``Locking discipline inference and checking''~\cite{ErnstLMST2016} (ICSE 2016,
+\myurl{https://homes.cs.washington.edu/~mernst/pubs/locking-inference-checking-icse2016-abstract.html})
+gives additional details.
+
+
 \subsectionAndLabel{Two types of locking:  monitor locks and explicit locks}{lock-two-types}
 
 Java provides two types of locking:  monitor locks and explicit locks.
@@ -919,8 +929,8 @@ $\Rightarrow$
 
 \subsectionAndLabel{Relationship to annotations in \emph{Java Concurrency in Practice}}{lock-jcip-annotations}
 
-The book \href{http://jcip.net/}{\emph{Java Concurrency in Practice}}~\cite{Goetz2006} defines a
-\href{http://jcip.net.s3-website-us-east-1.amazonaws.com/annotations/doc/net/jcip/annotations/GuardedBy.html}{\code{@GuardedBy}} annotation that is the inspiration for ours.  The book's
+The book \href{https://jcip.net/}{\emph{Java Concurrency in Practice}}~\cite{Goetz2006} defines a
+\href{https://jcip.net/annotations/doc/net/jcip/annotations/GuardedBy.html}{\code{@GuardedBy}} annotation that is the inspiration for ours.  The book's
 \code{@GuardedBy} serves two related but distinct purposes:
 
 \begin{itemize}

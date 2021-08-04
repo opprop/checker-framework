@@ -24,6 +24,7 @@ import java.util.List;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 
 /**
  * An annotation processor for counting the size of Java code:
@@ -61,6 +62,17 @@ public class JavaCodeStatistics extends SourceChecker {
      */
     int numberOfIndexWarningSuppressions = 0;
 
+    /** The SuppressWarnings.value field/element. */
+    final ExecutableElement suppressWarningsValueElement =
+            TreeUtils.getMethod(SuppressWarnings.class, "value", 0, processingEnv);
+
+    /** Creates a JavaCodeStatistics. */
+    public JavaCodeStatistics() {
+        // This checker never issues any warnings, so don't warn about
+        // @SuppressWarnings("allcheckers:...").
+        this.useAllcheckersPrefix = false;
+    }
+
     @Override
     public void typeProcessingOver() {
         Log log = getCompilerLog();
@@ -95,7 +107,7 @@ public class JavaCodeStatistics extends SourceChecker {
                     .equals(SuppressWarnings.class.getCanonicalName())) {
                 List<String> keys =
                         AnnotationUtils.getElementValueArray(
-                                annotationMirror, "value", String.class, true);
+                                annotationMirror, suppressWarningsValueElement, String.class);
                 for (String foundKey : keys) {
                     for (String indexKey : warningKeys) {
                         if (foundKey.startsWith(indexKey)) {
@@ -127,9 +139,8 @@ public class JavaCodeStatistics extends SourceChecker {
         @Override
         public Void visitClass(ClassTree tree, Void p) {
             if (shouldSkipDefs(tree)) {
-                // Not "return super.visitClass(classTree, p);" because that would
-                // recursively call visitors on subtrees; we want to skip the
-                // class entirely.
+                // Not "return super.visitClass(classTree, p);" because that would recursively call
+                // visitors on subtrees; we want to skip the class entirely.
                 return null;
             }
             generics += tree.getTypeParameters().size();

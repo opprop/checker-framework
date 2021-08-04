@@ -17,9 +17,9 @@ import java.util.Collections;
  * </pre>
  *
  * Java source and the AST representation do not have "short" literals. They have integer literals
- * that may be narrowed to shorts depending on context. If we use explicit NarrowingConversionNodes,
- * do we need ShortLiteralNodes too? TODO: Decide this question.
+ * that may be narrowed to shorts depending on context.
  */
+// TODO: If we use explicit NarrowingConversionNodes, do we need ShortLiteralNodes too?
 public class ShortLiteralNode extends ValueLiteralNode {
 
     /**

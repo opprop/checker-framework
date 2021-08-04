@@ -6,7 +6,7 @@ import org.checkerframework.checker.nullness.qual.*;
 import java.util.HashMap;
 import java.util.Map;
 
-class KeyForLocalVariable {
+public class KeyForLocalVariable {
 
     public static void localVariableShadowing() {
         // :: error: (expression.unparsable.type.invalid)

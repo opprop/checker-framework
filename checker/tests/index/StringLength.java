@@ -10,7 +10,7 @@ import org.checkerframework.common.value.qual.MinLen;
 
 import java.util.Random;
 
-class StringLength {
+public class StringLength {
     void testMinLenSubtractPositive(@MinLen(10) String s) {
         @Positive int i1 = s.length() - 9;
         @NonNegative int i0 = s.length() - 10;

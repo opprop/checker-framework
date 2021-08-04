@@ -5,6 +5,7 @@ import org.checkerframework.checker.i18n.qual.*;
 
 import java.util.ArrayList;
 
+@SuppressWarnings("anno.on.irrelevant")
 @LocalizableKey class Issue2186 {
     // :: error: (super.invocation.invalid) :: warning: (inconsistent.constructor.type)
     Issue2186() {}

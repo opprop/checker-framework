@@ -6,7 +6,7 @@ import org.checkerframework.checker.nullness.qual.*;
 import java.util.HashMap;
 import java.util.Map;
 
-class Issue273 {
+public class Issue273 {
     public static void main(String... p) {
         Map<String, Integer> m0 = new HashMap<>();
         Map<String, Integer> m1 = new HashMap<>();

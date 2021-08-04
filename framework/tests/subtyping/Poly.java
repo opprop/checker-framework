@@ -1,10 +1,10 @@
-import testlib.util.*;
+import org.checkerframework.framework.testchecker.util.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class Poly {
+public class Poly {
 
     void test() {
 

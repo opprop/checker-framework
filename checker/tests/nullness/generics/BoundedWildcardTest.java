@@ -7,7 +7,7 @@ import java.util.List;
 
 class Styleable {}
 
-class BoundedWildcardTest {
+public class BoundedWildcardTest {
 
     private void locChildren(Styleable c) {
         // ...

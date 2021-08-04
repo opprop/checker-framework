@@ -2,7 +2,7 @@ import org.checkerframework.common.value.qual.*;
 
 import javax.swing.plaf.BorderUIResource;
 
-class Fields {
+public class Fields {
 
     static final int field = 1;
 

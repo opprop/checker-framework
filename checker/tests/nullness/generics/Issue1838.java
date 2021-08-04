@@ -6,7 +6,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-class Issue1838 {
+public class Issue1838 {
     public static void main(String[] args) {
         f();
     }

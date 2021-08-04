@@ -5,7 +5,7 @@ import java.awt.event.MouseEvent;
 
 // Test the stub file handling
 @UIType
-class MouseTest extends MouseAdapter {
+public class MouseTest extends MouseAdapter {
     @Override
     public void mouseEntered(MouseEvent arg0) {
         IAsyncUITask t = null;

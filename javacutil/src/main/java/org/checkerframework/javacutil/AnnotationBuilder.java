@@ -1,19 +1,22 @@
 package org.checkerframework.javacutil;
 
 import org.checkerframework.checker.interning.qual.Interned;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.signature.qual.CanonicalName;
+import org.checkerframework.checker.signature.qual.FullyQualifiedName;
 import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.plumelib.util.StringsPlume;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
@@ -84,9 +87,9 @@ public class AnnotationBuilder {
      * they can be added later).
      *
      * @param env the processing environment
-     * @param name the fully-qualified name of the annotation to build
+     * @param name the canonical name of the annotation to build
      */
-    public AnnotationBuilder(ProcessingEnvironment env, CharSequence name) {
+    public AnnotationBuilder(ProcessingEnvironment env, @FullyQualifiedName CharSequence name) {
         this.elements = env.getElementUtils();
         this.types = env.getTypeUtils();
         this.annotationElt = elements.getTypeElement(name);
@@ -118,13 +121,30 @@ public class AnnotationBuilder {
     }
 
     /**
-     * Creates an {@link AnnotationMirror} given by a particular annotation class. getElementValues
-     * on the result returns an empty map. This may be in conflict with the annotation's definition,
-     * which might contain elements (annotation fields). Use an AnnotationBuilder for annotations
-     * that contain elements.
+     * Returns the type element of the annotation that is being built.
      *
-     * <p>This method raises an user error if the annotation corresponding to the class could not be
-     * loaded.
+     * @return the type element of the annotation that is being built
+     */
+    public TypeElement getAnnotationElt() {
+        return annotationElt;
+    }
+
+    /**
+     * Creates a mapping between element/field names and values.
+     *
+     * @param elementName the name of an element/field to initialize
+     * @param elementValue the initial value for the element/field
+     * @return a mappnig from the element name to the element value
+     */
+    public static Map<String, AnnotationValue> elementNamesValues(
+            String elementName, Object elementValue) {
+        return Collections.singletonMap(elementName, createValue(elementValue));
+    }
+
+    /**
+     * Creates an {@link AnnotationMirror} that uses default values for elements/fields.
+     * getElementValues on the result returns default values. If any element does not have a
+     * default, this method throws an exception.
      *
      * <p>Most clients should use {@link #fromName}, using a Name created by the compiler. This
      * method is provided as a convenience to create an AnnotationMirror from scratch in a checker's
@@ -133,12 +153,36 @@ public class AnnotationBuilder {
      * @param elements the element utilities to use
      * @param aClass the annotation class
      * @return an {@link AnnotationMirror} of the given type
+     * @throws UserError if the annotation corresponding to the class could not be loaded
      */
     public static AnnotationMirror fromClass(
             Elements elements, Class<? extends Annotation> aClass) {
+        return fromClass(elements, aClass, Collections.emptyMap());
+    }
+
+    /**
+     * Creates an {@link AnnotationMirror} given by a particular annotation class and a
+     * name-to-value mapping for the elements/fields.
+     *
+     * <p>For other elements, getElementValues on the result returns default values. If any such
+     * element does not have a default, this method throws an exception.
+     *
+     * <p>Most clients should use {@link #fromName}, using a Name created by the compiler. This
+     * method is provided as a convenience to create an AnnotationMirror from scratch in a checker's
+     * code.
+     *
+     * @param elements the element utilities to use
+     * @param aClass the annotation class
+     * @param elementNamesValues the values for the annotation's elements/fields
+     * @return an {@link AnnotationMirror} of the given type
+     */
+    public static AnnotationMirror fromClass(
+            Elements elements,
+            Class<? extends Annotation> aClass,
+            Map<String, AnnotationValue> elementNamesValues) {
         String name = aClass.getCanonicalName();
         assert name != null : "@AssumeAssertion(nullness): assumption";
-        AnnotationMirror res = fromName(elements, name);
+        AnnotationMirror res = fromName(elements, name, elementNamesValues);
         if (res == null) {
             throw new UserError(
                     "AnnotationBuilder: error: fromClass can't load Class %s%n"
@@ -150,9 +194,8 @@ public class AnnotationBuilder {
 
     /**
      * Creates an {@link AnnotationMirror} given by a particular fully-qualified name.
-     * getElementValues on the result returns an empty map. This may be in conflict with the
-     * annotation's definition, which might contain elements (annotation fields). Use an
-     * AnnotationBuilder for annotations that contain elements.
+     * getElementValues on the result returns default values. If any element does not have a
+     * default, this method throws an exception.
      *
      * <p>This method returns null if the annotation corresponding to the name could not be loaded.
      *
@@ -161,7 +204,29 @@ public class AnnotationBuilder {
      * @return an {@link AnnotationMirror} of type {@code} name or null if the annotation couldn't
      *     be loaded
      */
-    public static @Nullable AnnotationMirror fromName(Elements elements, CharSequence name) {
+    public static @Nullable AnnotationMirror fromName(
+            Elements elements, @FullyQualifiedName CharSequence name) {
+        return fromName(elements, name, Collections.emptyMap());
+    }
+
+    /**
+     * Creates an {@link AnnotationMirror} given by a particular fully-qualified name and
+     * element/field values. If any element is not specified by the {@code elementValues} argument,
+     * the default value is used. If any such element does not have a default, this method throws an
+     * exception.
+     *
+     * <p>This method returns null if the annotation corresponding to the name could not be loaded.
+     *
+     * @param elements the element utilities to use
+     * @param name the name of the annotation to create
+     * @param elementNamesValues the values for the annotation's elements/fields
+     * @return an {@link AnnotationMirror} of type {@code} name or null if the annotation couldn't
+     *     be loaded
+     */
+    public static @Nullable AnnotationMirror fromName(
+            Elements elements,
+            @FullyQualifiedName CharSequence name,
+            Map<String, AnnotationValue> elementNamesValues) {
         final TypeElement annoElt = elements.getTypeElement(name);
         if (annoElt == null) {
             return null;
@@ -174,8 +239,26 @@ public class AnnotationBuilder {
         if (annoType == null) {
             return null;
         }
-        AnnotationMirror result =
-                new CheckerFrameworkAnnotationMirror(annoType, Collections.emptyMap());
+
+        List<ExecutableElement> methods = ElementFilter.methodsIn(annoElt.getEnclosedElements());
+        Map<ExecutableElement, AnnotationValue> elementValues = new LinkedHashMap<>(methods.size());
+        for (ExecutableElement annoElement : methods) {
+            AnnotationValue elementValue =
+                    elementNamesValues.get(annoElement.getSimpleName().toString());
+            if (elementValue == null) {
+                AnnotationValue defaultValue = annoElement.getDefaultValue();
+                if (defaultValue == null) {
+                    throw new BugInCF(
+                            "AnnotationBuilder.fromName: no value for element %s of %s",
+                            annoElement, name);
+                } else {
+                    elementValue = defaultValue;
+                }
+            }
+            elementValues.put(annoElement, elementValue);
+        }
+
+        AnnotationMirror result = new CheckerFrameworkAnnotationMirror(annoType, elementValues);
         return result;
     }
 
@@ -199,21 +282,41 @@ public class AnnotationBuilder {
      * doesn't exist in the annotation to be built, an error is raised unless the element is
      * specified in {@code ignorableElements}.
      *
-     * @param valueHolder the annotation that holds the values to be copied
-     * @param ignorableElements the elements that can be safely dropped
+     * @param other the annotation that holds the values to be copied; need not be an annotation of
+     *     the same type of the one being built
+     * @param ignorableElements the names of elements of {@code other} that can be safely dropped
      */
     public void copyElementValuesFromAnnotation(
-            AnnotationMirror valueHolder, String... ignorableElements) {
-        Set<String> ignorableElementsSet = new HashSet<>(Arrays.asList(ignorableElements));
+            AnnotationMirror other, String... ignorableElements) {
+        List<String> ignorableElementsList = Arrays.asList(ignorableElements);
         for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> eltValToCopy :
-                valueHolder.getElementValues().entrySet()) {
+                other.getElementValues().entrySet()) {
             Name eltNameToCopy = eltValToCopy.getKey().getSimpleName();
-            if (ignorableElementsSet.contains(eltNameToCopy.toString())) {
+            if (ignorableElementsList.contains(eltNameToCopy.toString())) {
                 continue;
             }
             elementValues.put(findElement(eltNameToCopy), eltValToCopy.getValue());
         }
-        return;
+    }
+
+    /**
+     * Copies every element value from the given annotation. If an element in the given annotation
+     * doesn't exist in the annotation to be built, an error is raised unless the element is
+     * specified in {@code ignorableElements}.
+     *
+     * @param valueHolder the annotation that holds the values to be copied; must be the same type
+     *     as the annotation being built
+     * @param ignorableElements the elements that can be safely dropped
+     */
+    public void copyElementValuesFromAnnotation(
+            AnnotationMirror valueHolder, Collection<ExecutableElement> ignorableElements) {
+        for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry :
+                valueHolder.getElementValues().entrySet()) {
+            if (ignorableElements.contains(entry.getKey())) {
+                continue;
+            }
+            elementValues.put(entry.getKey(), entry.getValue());
+        }
     }
 
     /**
@@ -246,23 +349,42 @@ public class AnnotationBuilder {
         return this;
     }
 
-    /** Set the element/field with the given name, to the given value. */
+    /**
+     * Set the element/field with the given name, to the given value.
+     *
+     * @param elementName the element/field name
+     * @param values the new value for the element/field
+     * @return this
+     */
     public AnnotationBuilder setValue(CharSequence elementName, List<? extends Object> values) {
         assertNotBuilt();
-        List<AnnotationValue> avalues = new ArrayList<>(values.size());
         ExecutableElement var = findElement(elementName);
-        TypeMirror expectedType = var.getReturnType();
+        return setValue(var, values);
+    }
+
+    /**
+     * Set the element to the given value.
+     *
+     * @param element the element
+     * @param values the new value for the element
+     * @return this
+     */
+    public AnnotationBuilder setValue(
+            ExecutableElement element, List<? extends @NonNull Object> values) {
+        assertNotBuilt();
+        TypeMirror expectedType = element.getReturnType();
         if (expectedType.getKind() != TypeKind.ARRAY) {
             throw new BugInCF("value is an array while expected type is not");
         }
         expectedType = ((ArrayType) expectedType).getComponentType();
 
+        List<AnnotationValue> avalues = new ArrayList<>(values.size());
         for (Object v : values) {
             checkSubtype(expectedType, v);
             avalues.add(createValue(v));
         }
         AnnotationValue aval = createValue(avalues);
-        elementValues.put(var, aval);
+        elementValues.put(element, aval);
         return this;
     }
 
@@ -343,25 +465,14 @@ public class AnnotationBuilder {
         return this;
     }
 
+    /**
+     * Given a class, return the corresponding TypeMirror.
+     *
+     * @param clazz a class
+     * @return the TypeMirror corresponding to the given class
+     */
     private TypeMirror typeFromClass(Class<?> clazz) {
-        if (clazz == void.class) {
-            return types.getNoType(TypeKind.VOID);
-        } else if (clazz.isPrimitive()) {
-            String primitiveName = clazz.getName().toUpperCase();
-            TypeKind primitiveKind = TypeKind.valueOf(primitiveName);
-            return types.getPrimitiveType(primitiveKind);
-        } else if (clazz.isArray()) {
-            TypeMirror componentType = typeFromClass(clazz.getComponentType());
-            return types.getArrayType(componentType);
-        } else {
-            String name = clazz.getCanonicalName();
-            assert name != null : "@AssumeAssertion(nullness): assumption";
-            TypeElement element = elements.getTypeElement(name);
-            if (element == null) {
-                throw new BugInCF("Unrecognized class: " + clazz);
-            }
-            return element.asType();
-        }
+        return TypesUtils.typeFromClass(clazz, types, elements);
     }
 
     public AnnotationBuilder setValue(CharSequence elementName, Class<?> value) {
@@ -577,14 +688,22 @@ public class AnnotationBuilder {
         private final Map<ExecutableElement, AnnotationValue> elementValues;
         /** The annotation name. */
         // default visibility to allow access from within package.
-        final @Interned String annotationName;
+        final @Interned @CanonicalName String annotationName;
 
+        /**
+         * Create a CheckerFrameworkAnnotationMirror.
+         *
+         * @param annotationType the annotation type
+         * @param elementValues the element values
+         */
+        @SuppressWarnings("signature:assignment.type.incompatible") // needs JDK annotations
         CheckerFrameworkAnnotationMirror(
-                DeclaredType at, Map<ExecutableElement, AnnotationValue> ev) {
-            this.annotationType = at;
-            final TypeElement elm = (TypeElement) at.asElement();
+                DeclaredType annotationType,
+                Map<ExecutableElement, AnnotationValue> elementValues) {
+            this.annotationType = annotationType;
+            final TypeElement elm = (TypeElement) annotationType.asElement();
             this.annotationName = elm.getQualifiedName().toString().intern();
-            this.elementValues = ev;
+            this.elementValues = elementValues;
         }
 
         @Override
@@ -662,19 +781,8 @@ public class AnnotationBuilder {
             } else if (value instanceof Character) {
                 toStringVal = "\'" + value + "\'";
             } else if (value instanceof List<?>) {
-                StringBuilder sb = new StringBuilder();
                 List<?> list = (List<?>) value;
-                sb.append('{');
-                boolean isFirst = true;
-                for (Object o : list) {
-                    if (!isFirst) {
-                        sb.append(", ");
-                    }
-                    isFirst = false;
-                    sb.append(Objects.toString(o));
-                }
-                sb.append('}');
-                toStringVal = sb.toString();
+                toStringVal = "{" + StringsPlume.join(", ", list) + "}";
             } else if (value instanceof VariableElement) {
                 // for Enums
                 VariableElement var = (VariableElement) value;

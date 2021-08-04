@@ -7,7 +7,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Arrays;
 
 // Note that with -AinvariantArrays we would get additional errors.
-class Issue296 {
+public class Issue296 {
     public static <T> void f1(T[] a) {
         @Nullable T[] r1 = Arrays.copyOf(a, a.length + 1);
         // :: error: (argument.type.incompatible)

@@ -18,7 +18,7 @@ import javax.annotation.processing.SupportedOptions;
  *
  * <ul>
  *   <li>{@code -Aquals}: specifies the annotations in the qualifier hierarchy (as a comma-separated
- *       list of fully-qualified annotation names with no spaces in between). Only the annotation
+ *       list of fully-qualified annotation names with no spaces in between). Only the annotations
  *       for one qualified subtype hierarchy can be passed.
  * </ul>
  *
@@ -30,8 +30,8 @@ public final class SubtypingChecker extends BaseTypeChecker {
     /**
      * Compute SuppressWarnings prefixes, based on the names of all the qualifiers.
      *
-     * <p>Provided for the convenience of checkers that do not subclass Subtyping Checker (because
-     * it is final). Clients should call it like:
+     * <p>Provided for the convenience of checkers that do not subclass {@code SubtypingChecker}
+     * (because it is final). Clients should call it like:
      *
      * <pre>{@code
      * SubtypingChecker.getSuppressWarningsPrefixes(this.visitor, super.getSuppressWarningsPrefixes());
@@ -46,10 +46,14 @@ public final class SubtypingChecker extends BaseTypeChecker {
             SourceVisitor<?, ?> visitor, SortedSet<String> superSupportedTypeQualifiers) {
         TreeSet<String> result = new TreeSet<>(superSupportedTypeQualifiers);
 
-        Set<Class<? extends Annotation>> annos =
-                ((BaseTypeVisitor<?>) visitor).getTypeFactory().getSupportedTypeQualifiers();
-        for (Class<? extends Annotation> anno : annos) {
-            result.add(anno.getSimpleName().toLowerCase());
+        // visitor can be null if there was an error when calling the visitor class's constructor --
+        // that is, when there is a bug in a checker implementation.
+        if (visitor != null) {
+            Set<Class<? extends Annotation>> annos =
+                    ((BaseTypeVisitor<?>) visitor).getTypeFactory().getSupportedTypeQualifiers();
+            for (Class<? extends Annotation> anno : annos) {
+                result.add(anno.getSimpleName().toLowerCase());
+            }
         }
 
         return result;

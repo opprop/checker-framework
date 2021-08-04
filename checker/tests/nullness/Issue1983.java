@@ -6,9 +6,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.function.Function;
 
-@SuppressWarnings("initialization.fields.uninitialized")
-class Issue1983 {
+public class Issue1983 {
 
+    @SuppressWarnings("initialization.field.uninitialized")
     Converter<String> converter;
 
     void test(List<Object[]> params) {

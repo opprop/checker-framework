@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
-class ObjectsRequireNonNull {
+public class ObjectsRequireNonNull {
     void foo(@Nullable Object nble, @NonNull Object nn) {
         // :: error: (argument.type.incompatible)
         Objects.requireNonNull(null);

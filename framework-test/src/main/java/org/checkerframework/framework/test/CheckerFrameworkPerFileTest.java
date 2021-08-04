@@ -52,8 +52,8 @@ public abstract class CheckerFrameworkPerFileTest {
     /** The file containing test code, which will be type-checked. */
     protected final File testFile;
 
-    /** The fully-qualified class name of the checker to use for tests. */
-    protected final String checkerName;
+    /** The checker to use for tests. */
+    protected final Class<?> checker;
 
     /** The path, relative to currentDir/test to the directory containing test inputs. */
     protected final String testDir;
@@ -78,7 +78,7 @@ public abstract class CheckerFrameworkPerFileTest {
             String testDir,
             String... checkerOptions) {
         this.testFile = testFile;
-        this.checkerName = checker.getName();
+        this.checker = checker;
         this.testDir = "tests" + File.separator + testDir;
         this.checkerOptions = new ArrayList<>(Arrays.asList(checkerOptions));
     }
@@ -90,9 +90,9 @@ public abstract class CheckerFrameworkPerFileTest {
                 customizeOptions(Collections.unmodifiableList(checkerOptions));
         TestConfiguration config =
                 TestConfigurationBuilder.buildDefaultConfiguration(
-                        testDir, testFile, checkerName, customizedOptions, shouldEmitDebugInfo);
+                        testDir, testFile, checker, customizedOptions, shouldEmitDebugInfo);
         TypecheckResult testResult = new TypecheckExecutor().runTest(config);
-        TestUtilities.assertResultsAreValid(testResult);
+        TestUtilities.assertTestDidNotFail(testResult);
     }
 
     /**

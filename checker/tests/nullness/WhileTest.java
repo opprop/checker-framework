@@ -24,9 +24,7 @@ public class WhileTest {
 
     public void testwhile2() {
         z = null;
-        while (z == null) {
-            ;
-        }
+        while (z == null) {}
         nnz = z;
     }
 
@@ -41,9 +39,7 @@ public class WhileTest {
 
     public void testdo2() {
         z = null;
-        do {
-            ;
-        } while (z == null);
+        do {} while (z == null);
         nnz = z;
     }
 
@@ -58,9 +54,7 @@ public class WhileTest {
 
     public void testfor2() {
         z = null;
-        for (; z == null; ) {
-            ;
-        }
+        for (; z == null; ) {}
         nnz = z;
     }
 }

@@ -6,7 +6,7 @@ import org.checkerframework.checker.nullness.qual.*;
 
 import java.util.List;
 
-class TernaryNested {
+public class TernaryNested {
     Object foo(boolean b) {
         Object o = b ? "" : (b ? "" : "");
         return o;

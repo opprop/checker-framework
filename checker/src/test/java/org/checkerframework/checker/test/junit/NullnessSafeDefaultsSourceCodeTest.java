@@ -1,7 +1,6 @@
 package org.checkerframework.checker.test.junit;
 
 import org.checkerframework.checker.nullness.NullnessChecker;
-import org.checkerframework.framework.test.*;
 import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.checkerframework.framework.test.TestConfiguration;
 import org.checkerframework.framework.test.TestConfigurationBuilder;

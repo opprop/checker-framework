@@ -7,8 +7,6 @@ import org.checkerframework.framework.testchecker.typedecldefault.quals.TypeDecl
 import org.checkerframework.framework.testchecker.typedecldefault.quals.TypeDeclDefaultMiddle;
 import org.checkerframework.framework.testchecker.typedecldefault.quals.TypeDeclDefaultTop;
 
-import typedecldefault.quals.*;
-
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.HashSet;

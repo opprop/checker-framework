@@ -353,11 +353,11 @@ def createCheckTypeTask(projectName, taskName, checker, args = []) {
 
         if (isJava8) {
             options.compilerArgs += [
-                    "-source",
-                    "8",
-                    "-target",
-                    "8"
-            ]
+                "-source",
+                "8",
+                "-target",
+                "8"
+                ]
         } else {
             options.fork = true
             options.forkOptions.jvmArgs += [
@@ -852,11 +852,11 @@ subprojects {
                         if (isJava8) {
                             // Use Error Prone javac and source/target 8
                             args += [
-                                    "-vmoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
-                                    "-javacoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
-                                    "-javacoptions:-source 8",
-                                    "-javacoptions:-target 8"
-                            ]
+                                "-vmoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
+                                "-javacoptions:-Xbootclasspath/p:${configurations.javacJar.asPath}",
+                                "-javacoptions:-source 8",
+                                "-javacoptions:-target 8"
+                                ]
                         } else {
                             args += [
                                     // checker/jtreg/nullness/defaultsPersist/ReferenceInfoUtil.java

@@ -27,7 +27,6 @@ import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.util.Options;
 
 import org.checkerframework.checker.interning.qual.FindDistinct;
@@ -2613,15 +2612,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         ExecutableElement ctor = TreeUtils.constructor(tree);
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
-        if (TreeUtils.hasSyntheticArgument(tree)) {
-            AnnotatedExecutableType t =
-                    (AnnotatedExecutableType) getAnnotatedType(((JCNewClass) tree).constructor);
-            List<AnnotatedTypeMirror> p = new ArrayList<>(con.getParameterTypes().size() + 1);
-            p.add(t.getParameterTypes().get(0));
-            p.addAll(1, con.getParameterTypes());
-            t.setParameterTypes(p);
-            con = t;
-        }
 
         if (tree.getClassBody() != null) {
             // The artificial constructor for an anonymous class only contains an invocation of the
@@ -2632,7 +2622,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
             AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
 
-            if (tree.getArguments().size() == superCtorType.getParameterTypes().size() + 1) {
+            if (TreeUtils.hasSyntheticArgument(tree)) {
                 // In JDK 8, an anonymous class instantiation with enclosing expression passes
                 // the enclosing expression as the first argument (i.e. synthetic argument),
                 // while the super constructor parameters does not have the counterpart.

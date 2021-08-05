@@ -59,32 +59,32 @@ public final class CFBottomStore extends CFStore {
         return analysis.createAbstractValue(bottomAnnos, type);
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(FlowExpressions.Receiver expr) {
         return getBottomValue(expr.getType());
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(FieldAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(MethodInvocationNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(ArrayAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(LocalVariableNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public CFValue getValue(ThisLiteralNode n) {
         return getBottomValue(n.getType());
     }

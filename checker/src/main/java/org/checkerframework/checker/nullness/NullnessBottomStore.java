@@ -57,7 +57,7 @@ public class NullnessBottomStore extends NullnessStore {
         return this == o;
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(FlowExpressions.Receiver expr) {
         return getBottomValue(expr.getType());
     }
@@ -66,27 +66,27 @@ public class NullnessBottomStore extends NullnessStore {
         return analysis.createAbstractValue(bottomAnnos, type);
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(FieldAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(MethodInvocationNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(ArrayAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(LocalVariableNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public NullnessValue getValue(ThisLiteralNode n) {
         return getBottomValue(n.getType());
     }

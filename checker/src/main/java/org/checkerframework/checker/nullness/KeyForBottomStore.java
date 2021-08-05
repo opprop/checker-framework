@@ -60,32 +60,32 @@ public class KeyForBottomStore extends KeyForStore {
         return analysis.createAbstractValue(bottomAnnos, type);
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(FlowExpressions.Receiver expr) {
         return getBottomValue(expr.getType());
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(FieldAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(MethodInvocationNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(ArrayAccessNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(LocalVariableNode n) {
         return getBottomValue(n.getType());
     }
 
-    @Nullable @Override
+    @Override
     public KeyForValue getValue(ThisLiteralNode n) {
         return getBottomValue(n.getType());
     }

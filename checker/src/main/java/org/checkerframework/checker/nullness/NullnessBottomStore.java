@@ -10,18 +10,24 @@ import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.QualifierHierarchy;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
 
 public class NullnessBottomStore extends NullnessStore {
-    private final AnnotationMirror NONNULL;
+    private final Set<AnnotationMirror> bottomAnnos;
 
     public NullnessBottomStore(
             CFAbstractAnalysis<NullnessValue, NullnessStore, ?> analysis,
             boolean sequentialSemantics) {
         super(analysis, sequentialSemantics);
-        NONNULL = ((NullnessAnnotatedTypeFactory) analysis.getTypeFactory()).NONNULL;
+        QualifierHierarchy qualifierHierarchy = analysis.getTypeFactory().getQualifierHierarchy();
+        bottomAnnos = new HashSet<>();
+        bottomAnnos.addAll(qualifierHierarchy.getBottomAnnotations());
     }
 
     @Override
@@ -53,11 +59,11 @@ public class NullnessBottomStore extends NullnessStore {
 
     @Nullable @Override
     public NullnessValue getValue(FlowExpressions.Receiver expr) {
-        return analysis.createSingleAnnotationValue(NONNULL, expr.getType());
+        return analysis.createAbstractValue(bottomAnnos, expr.getType());
     }
 
     private NullnessValue getBottomValue(Node n) {
-        return analysis.createSingleAnnotationValue(NONNULL, n.getType());
+        return analysis.createAbstractValue(bottomAnnos, n.getType());
     }
 
     @Nullable @Override

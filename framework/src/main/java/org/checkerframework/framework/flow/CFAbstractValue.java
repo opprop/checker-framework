@@ -333,6 +333,14 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
         @Override
         protected void visitAnnotationExistInOneSet(
                 AnnotationMirror anno, AnnotatedTypeVariable atv, AnnotationMirror top) {
+            AnnotationMirror backup = getBackUpAnnoIn(top);
+            if (atv == null) {
+                if (backup != null) {
+                    mostSpecific.add(backup);
+                }
+                return;
+            }
+
             QualifierHierarchy hierarchy = analysis.getTypeFactory().getQualifierHierarchy();
             AnnotationMirror upperBound = atv.getEffectiveAnnotationInHierarchy(top);
 
@@ -347,11 +355,8 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
                 // no anno is more specific than anno
             } else if (hierarchy.isSubtype(anno, lowerBound)) {
                 mostSpecific.add(anno);
-            } else {
-                AnnotationMirror backup = getBackUpAnnoIn(top);
-                if (backup != null) {
-                    mostSpecific.add(backup);
-                }
+            } else if (backup != null) {
+                mostSpecific.add(backup);
             }
         }
     }

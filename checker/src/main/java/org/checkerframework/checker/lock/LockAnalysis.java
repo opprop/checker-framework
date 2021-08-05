@@ -51,6 +51,6 @@ public class LockAnalysis extends CFAbstractAnalysis<CFValue, LockStore, LockTra
 
     @Override
     public LockStore getBottomStore(boolean sequentialSemantics) {
-        return null;
+        return new LockBottomStore(this, sequentialSemantics);
     }
 }

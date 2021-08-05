@@ -9,15 +9,23 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.QualifierHierarchy;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
 
 public final class CFBottomStore extends CFStore {
+    private final Set<AnnotationMirror> bottomAnnos;
 
     public CFBottomStore(
             CFAbstractAnalysis<CFValue, CFStore, ?> analysis, boolean sequentialSemantics) {
         super(analysis, sequentialSemantics);
+        QualifierHierarchy qualifierHierarchy = analysis.getTypeFactory().getQualifierHierarchy();
+        bottomAnnos = new HashSet<>();
+        bottomAnnos.addAll(qualifierHierarchy.getBottomAnnotations());
     }
 
     @Override
@@ -47,34 +55,38 @@ public final class CFBottomStore extends CFStore {
         return this == o;
     }
 
+    private CFValue getBottomValue(TypeMirror type) {
+        return analysis.createAbstractValue(bottomAnnos, type);
+    }
+
     @Nullable @Override
     public CFValue getValue(FlowExpressions.Receiver expr) {
-        return null;
+        return getBottomValue(expr.getType());
     }
 
     @Nullable @Override
     public CFValue getValue(FieldAccessNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public CFValue getValue(MethodInvocationNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public CFValue getValue(ArrayAccessNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public CFValue getValue(LocalVariableNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public CFValue getValue(ThisLiteralNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Override

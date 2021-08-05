@@ -10,14 +10,23 @@ import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisLiteralNode;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.type.QualifierHierarchy;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
 
 public class KeyForBottomStore extends KeyForStore {
+    private final Set<AnnotationMirror> bottomAnnos;
+
     public KeyForBottomStore(
             CFAbstractAnalysis<KeyForValue, KeyForStore, ?> analysis, boolean sequentialSemantics) {
         super(analysis, sequentialSemantics);
+        QualifierHierarchy qualifierHierarchy = analysis.getTypeFactory().getQualifierHierarchy();
+        bottomAnnos = new HashSet<>();
+        bottomAnnos.addAll(qualifierHierarchy.getBottomAnnotations());
     }
 
     @Override
@@ -47,34 +56,38 @@ public class KeyForBottomStore extends KeyForStore {
         return this == o;
     }
 
+    private KeyForValue getBottomValue(TypeMirror type) {
+        return analysis.createAbstractValue(bottomAnnos, type);
+    }
+
     @Nullable @Override
     public KeyForValue getValue(FlowExpressions.Receiver expr) {
-        return null;
+        return getBottomValue(expr.getType());
     }
 
     @Nullable @Override
     public KeyForValue getValue(FieldAccessNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public KeyForValue getValue(MethodInvocationNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public KeyForValue getValue(ArrayAccessNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public KeyForValue getValue(LocalVariableNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Nullable @Override
     public KeyForValue getValue(ThisLiteralNode n) {
-        return null;
+        return getBottomValue(n.getType());
     }
 
     @Override

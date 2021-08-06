@@ -2633,7 +2633,14 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                 actualParams.add(con.getParameterTypes().get(0));
                 actualParams.addAll(superCtorType.getParameterTypes());
                 superCtorType.setParameterTypes(actualParams);
+
+                // In this case, the constructor type should record the anonymous constructor
+                // element rather than the super constructor element. The additional synthetic
+                // argument will count during the constructor argument checking. See
+                // org.checkerframework.common.basetype.BaseTypeVisitor#checkConstructorInvocation
+                superCtorType.setElement(ctor);
             }
+
             con = superCtorType;
             ctor = superCtor;
         }

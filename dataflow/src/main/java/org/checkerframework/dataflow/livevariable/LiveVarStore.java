@@ -142,9 +142,4 @@ public class LiveVarStore implements Store<LiveVarStore> {
     public String toString() {
         return liveVarValueSet.toString();
     }
-
-    @Override
-    public boolean isBottom() {
-        return false;
-    }
 }

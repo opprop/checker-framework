@@ -1223,9 +1223,9 @@ public abstract class CFAbstractTransfer<
         TransferResult<V, S> result = super.visitBooleanLiteral(n, vsTransferInput);
         if (n.getValue()) {
             thenStore = result.getThenStore();
-            elseStore = analysis.getBottomStore(sequentialSemantics);
+            elseStore = analysis.createBottomStore(sequentialSemantics);
         } else {
-            thenStore = analysis.getBottomStore(sequentialSemantics);
+            thenStore = analysis.createBottomStore(sequentialSemantics);
             elseStore = result.getElseStore();
         }
 

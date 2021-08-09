@@ -36,6 +36,14 @@ public class KeyForAnalysis extends CFAbstractAnalysis<KeyForValue, KeyForStore,
     }
 
     @Override
+    public KeyForStore createBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = new KeyForStore(this, sequentialSemantics, true);
+        }
+        return bottomStore;
+    }
+
+    @Override
     public KeyForStore createCopiedStore(KeyForStore store) {
         return new KeyForStore(store);
     }
@@ -48,13 +56,5 @@ public class KeyForAnalysis extends CFAbstractAnalysis<KeyForValue, KeyForStore,
             return null;
         }
         return new KeyForValue(this, annotations, underlyingType);
-    }
-
-    @Override
-    public KeyForStore getBottomStore(boolean sequentialSemantics) {
-        if (bottomStore == null) {
-            bottomStore = new KeyForBottomStore(this, sequentialSemantics);
-        }
-        return bottomStore;
     }
 }

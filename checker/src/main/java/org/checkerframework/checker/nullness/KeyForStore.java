@@ -9,6 +9,13 @@ public class KeyForStore extends CFAbstractStore<KeyForValue, KeyForStore> {
         super(analysis, sequentialSemantics);
     }
 
+    public KeyForStore(
+            CFAbstractAnalysis<KeyForValue, KeyForStore, ?> analysis,
+            boolean sequentialSemantics,
+            boolean isBottom) {
+        super(analysis, sequentialSemantics, isBottom);
+    }
+
     protected KeyForStore(CFAbstractStore<KeyForValue, KeyForStore> other) {
         super(other);
     }

@@ -39,6 +39,14 @@ public class LockAnalysis extends CFAbstractAnalysis<CFValue, LockStore, LockTra
     }
 
     @Override
+    public LockStore createBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = new LockStore(this, sequentialSemantics, true);
+        }
+        return bottomStore;
+    }
+
+    @Override
     public LockStore createCopiedStore(LockStore s) {
         return new LockStore(this, s);
     }
@@ -47,10 +55,5 @@ public class LockAnalysis extends CFAbstractAnalysis<CFValue, LockStore, LockTra
     public CFValue createAbstractValue(
             Set<AnnotationMirror> annotations, TypeMirror underlyingType) {
         return defaultCreateAbstractValue(this, annotations, underlyingType);
-    }
-
-    @Override
-    public LockStore getBottomStore(boolean sequentialSemantics) {
-        return new LockBottomStore(this, sequentialSemantics);
     }
 }

@@ -95,11 +95,19 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      */
     protected final boolean sequentialSemantics;
 
+    /** Is the store for unreachable code branch? */
+    protected final boolean isBottom;
+
     /* --------------------------------------------------------- */
     /* Initialization */
     /* --------------------------------------------------------- */
 
     protected CFAbstractStore(CFAbstractAnalysis<V, S, ?> analysis, boolean sequentialSemantics) {
+        this(analysis, sequentialSemantics, false);
+    }
+
+    protected CFAbstractStore(
+            CFAbstractAnalysis<V, S, ?> analysis, boolean sequentialSemantics, boolean isBottom) {
         this.analysis = analysis;
         localVariableValues = new HashMap<>();
         thisValue = null;
@@ -108,6 +116,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         arrayValues = new HashMap<>();
         classValues = new HashMap<>();
         this.sequentialSemantics = sequentialSemantics;
+        this.isBottom = isBottom;
     }
 
     /** Copy constructor. */
@@ -120,6 +129,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         arrayValues = new HashMap<>(other.arrayValues);
         classValues = new HashMap<>(other.classValues);
         sequentialSemantics = other.sequentialSemantics;
+        this.isBottom = other.isBottom;
     }
 
     /**
@@ -856,16 +866,16 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
     @SuppressWarnings("unchecked")
     @Override
     public S leastUpperBound(S other) {
-        if (this.isBottom()) return other;
-        if (other != null && other.isBottom()) return (S) this;
+        if (this.isBottom) return other;
+        if (other != null && other.isBottom) return (S) this;
         return upperBound(other, false);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public S widenedUpperBound(S previous) {
-        if (this.isBottom()) return previous;
-        if (previous != null && previous.isBottom()) return (S) this;
+        if (this.isBottom) return previous;
+        if (previous != null && previous.isBottom) return (S) this;
         return upperBound(previous, true);
     }
 
@@ -1065,10 +1075,5 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
             res.append(viz.visualizeStoreClassVals(entry.getKey(), entry.getValue()));
         }
         return res.toString();
-    }
-
-    @Override
-    public boolean isBottom() {
-        return false;
     }
 }

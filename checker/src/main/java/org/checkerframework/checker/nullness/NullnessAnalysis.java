@@ -32,6 +32,14 @@ public class NullnessAnalysis
     }
 
     @Override
+    public NullnessStore createBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = new NullnessStore(this, sequentialSemantics, true);
+        }
+        return bottomStore;
+    }
+
+    @Override
     public NullnessStore createCopiedStore(NullnessStore s) {
         return new NullnessStore(s);
     }
@@ -43,13 +51,5 @@ public class NullnessAnalysis
             return null;
         }
         return new NullnessValue(this, annotations, underlyingType);
-    }
-
-    @Override
-    public NullnessStore getBottomStore(boolean sequentialSemantics) {
-        if (bottomStore == null) {
-            bottomStore = new NullnessBottomStore(this, sequentialSemantics);
-        }
-        return bottomStore;
     }
 }

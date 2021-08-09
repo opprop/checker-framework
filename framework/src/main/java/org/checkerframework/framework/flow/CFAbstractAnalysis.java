@@ -68,6 +68,7 @@ public abstract class CFAbstractAnalysis<
     /** Instance of the types utility. */
     protected final Types types;
 
+    /** The singleton of bottom store in dataflow analysis for a specific type system */
     protected S bottomStore;
 
     /**
@@ -138,7 +139,7 @@ public abstract class CFAbstractAnalysis<
      *
      * @return the bottom store instance of the appropriate type
      */
-    public abstract S getBottomStore(boolean sequentialSemantics);
+    public abstract S createBottomStore(boolean sequentialSemantics);
 
     /**
      * Returns an identical copy of the store {@code s}.

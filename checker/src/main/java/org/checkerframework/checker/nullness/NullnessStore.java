@@ -22,6 +22,14 @@ public class NullnessStore extends InitializationStore<NullnessValue, NullnessSt
         isPolyNullNull = false;
     }
 
+    public NullnessStore(
+            CFAbstractAnalysis<NullnessValue, NullnessStore, ?> analysis,
+            boolean sequentialSemantics,
+            boolean isBottom) {
+        super(analysis, sequentialSemantics);
+        this.isPolyNullNull = false;
+    }
+
     public NullnessStore(NullnessStore s) {
         super(s);
         isPolyNullNull = s.isPolyNullNull;

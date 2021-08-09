@@ -9,6 +9,13 @@ public class CFStore extends CFAbstractStore<CFValue, CFStore> {
 
     public CFStore(
             CFAbstractAnalysis<CFValue, CFStore, ?> analysis,
+            boolean sequentialSemantics,
+            boolean isBottom) {
+        super(analysis, sequentialSemantics, isBottom);
+    }
+
+    public CFStore(
+            CFAbstractAnalysis<CFValue, CFStore, ?> analysis,
             CFAbstractStore<CFValue, CFStore> other) {
         super(other);
     }

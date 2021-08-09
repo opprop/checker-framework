@@ -167,9 +167,4 @@ public class ConstantPropagationStore implements Store<ConstantPropagationStore>
     public String visualize(CFGVisualizer<?, ConstantPropagationStore, ?> viz) {
         return viz.visualizeStoreKeyVal("constant propagation", null);
     }
-
-    @Override
-    public boolean isBottom() {
-        return false;
-    }
 }

@@ -8,7 +8,7 @@ import javax.lang.model.element.TypeElement;
 
 public class PolySignatureTest2 {
 
-    @DotSeparatedIdentifiers Name m1(TypeElement e) {
+    @CanonicalNameOrEmpty Name m1(TypeElement e) {
         return e.getQualifiedName();
     }
 

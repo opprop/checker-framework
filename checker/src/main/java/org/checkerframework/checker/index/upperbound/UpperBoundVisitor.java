@@ -6,7 +6,6 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
 
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -19,23 +18,23 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.value.ValueAnnotatedTypeFactory;
 import org.checkerframework.common.value.ValueCheckerUtils;
-import org.checkerframework.dataflow.analysis.FlowExpressions;
-import org.checkerframework.dataflow.analysis.FlowExpressions.FieldAccess;
-import org.checkerframework.dataflow.analysis.FlowExpressions.LocalVariable;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
-import org.checkerframework.dataflow.analysis.FlowExpressions.ThisReference;
-import org.checkerframework.dataflow.analysis.FlowExpressions.ValueLiteral;
+import org.checkerframework.dataflow.expression.FieldAccess;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.LocalVariable;
+import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.dataflow.expression.ValueLiteral;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
-import org.checkerframework.framework.util.FlowExpressionParseUtil;
-import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionContext;
-import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionParseException;
+import org.checkerframework.framework.util.JavaExpressionParseUtil.JavaExpressionParseException;
+import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -85,9 +84,14 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
                 // If offsets are provided, there must be the same number of them as there are
                 // arrays.
                 List<String> sequences =
-                        AnnotationUtils.getElementValueArray(anno, "value", String.class, true);
+                        AnnotationUtils.getElementValueArray(
+                                anno, atypeFactory.ltLengthOfValueElement, String.class);
                 List<String> offsets =
-                        AnnotationUtils.getElementValueArray(anno, "offset", String.class, true);
+                        AnnotationUtils.getElementValueArray(
+                                anno,
+                                atypeFactory.ltLengthOfOffsetElement,
+                                String.class,
+                                Collections.emptyList());
                 if (sequences.size() != offsets.size() && !offsets.isEmpty()) {
                     checker.reportError(
                             node,
@@ -98,47 +102,51 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
                 }
             }
         } else if (atypeFactory.areSameByClass(anno, HasSubsequence.class)) {
-            // Check that the arguments to a HasSubsequence annotation are valid flow expressions,
+            // Check that the arguments to a HasSubsequence annotation are valid JavaExpressions,
             // and issue an error if one of them is not.
 
-            String seq = AnnotationUtils.getElementValue(anno, "subsequence", String.class, true);
-            String from = AnnotationUtils.getElementValue(anno, "from", String.class, true);
-            String to = AnnotationUtils.getElementValue(anno, "to", String.class, true);
+            String seq = atypeFactory.hasSubsequenceSubsequenceValue(anno);
+            String from = atypeFactory.hasSubsequenceFromValue(anno);
+            String to = atypeFactory.hasSubsequenceToValue(anno);
 
-            // check that each expression is parseable in this context
-            ClassTree enclosingClass = TreeUtils.enclosingClass(getCurrentPath());
-            FlowExpressionContext context =
-                    FlowExpressionContext.buildContextForClassDeclaration(enclosingClass, checker);
-            checkEffectivelyFinalAndParsable(seq, context, node);
-            checkEffectivelyFinalAndParsable(from, context, node);
-            checkEffectivelyFinalAndParsable(to, context, node);
+            // check that each expression is parsable at the declaration of this class
+            ClassTree enclosingClass = TreePathUtil.enclosingClass(getCurrentPath());
+            checkEffectivelyFinalAndParsable(seq, enclosingClass, node);
+            checkEffectivelyFinalAndParsable(from, enclosingClass, node);
+            checkEffectivelyFinalAndParsable(to, enclosingClass, node);
         }
         return super.visitAnnotation(node, p);
     }
 
     /**
-     * Determines if the Java expression named by s is effectively final at the current program
-     * location.
+     * Reports an error if the Java expression named by s is not effectively final when parsed at
+     * the declaration of the given class.
+     *
+     * @param s a Java expression
+     * @param classTree the expression is parsed with respect to this class
+     * @param whereToReportError the tree at which to possibly report an error
      */
     private void checkEffectivelyFinalAndParsable(
-            String s, FlowExpressionContext context, Tree error) {
-        Receiver rec;
+            String s, ClassTree classTree, Tree whereToReportError) {
+        JavaExpression je;
         try {
-            rec = FlowExpressionParseUtil.parse(s, context, getCurrentPath(), false);
-        } catch (FlowExpressionParseException e) {
-            checker.report(error, e.getDiagMessage());
+            je =
+                    StringToJavaExpression.atTypeDecl(
+                            s, TreeUtils.elementFromDeclaration(classTree), checker);
+        } catch (JavaExpressionParseException e) {
+            checker.report(whereToReportError, e.getDiagMessage());
             return;
         }
         Element element = null;
-        if (rec instanceof LocalVariable) {
-            element = ((LocalVariable) rec).getElement();
-        } else if (rec instanceof FieldAccess) {
-            element = ((FieldAccess) rec).getField();
-        } else if (rec instanceof ThisReference || rec instanceof ValueLiteral) {
+        if (je instanceof LocalVariable) {
+            element = ((LocalVariable) je).getElement();
+        } else if (je instanceof FieldAccess) {
+            element = ((FieldAccess) je).getField();
+        } else if (je instanceof ThisReference || je instanceof ValueLiteral) {
             return;
         }
         if (element == null || !ElementUtils.isEffectivelyFinal(element)) {
-            checker.reportError(error, NOT_FINAL, rec);
+            checker.reportError(whereToReportError, NOT_FINAL, je);
         }
     }
 
@@ -146,10 +154,13 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
      * Checks if this array access is legal. Uses the common assignment check and a simple MinLen
      * check of its own. The MinLen check is needed because the common assignment check always
      * returns false when the upper bound qualifier is @UpperBoundUnknown.
+     *
+     * @param indexTree the array index
+     * @param arrTree the array
      */
     private void visitAccess(ExpressionTree indexTree, ExpressionTree arrTree) {
 
-        String arrName = FlowExpressions.internalReprOf(this.atypeFactory, arrTree).toString();
+        String arrName = JavaExpression.fromTree(arrTree).toString();
         LessThanLengthOf lhsQual = (LessThanLengthOf) UBQualifier.createUBQualifier(arrName, "0");
         if (relaxedCommonAssignmentCheck(lhsQual, indexTree) || checkMinLen(indexTree, arrTree)) {
             return;
@@ -162,7 +173,9 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
         // 3. If neither of the above, issue an error that names the upper bound type.
 
         AnnotatedTypeMirror indexType = atypeFactory.getAnnotatedType(indexTree);
-        UBQualifier qualifier = UBQualifier.createUBQualifier(indexType, atypeFactory.UNKNOWN);
+        UBQualifier qualifier =
+                UBQualifier.createUBQualifier(
+                        indexType, atypeFactory.UNKNOWN, (UpperBoundChecker) checker);
         ValueAnnotatedTypeFactory valueFactory = atypeFactory.getValueAnnotatedTypeFactory();
         Long valMax = ValueCheckerUtils.getMaxValue(indexTree, valueFactory);
 
@@ -193,7 +206,10 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
 
     @Override
     protected void commonAssignmentCheck(
-            Tree varTree, ExpressionTree valueTree, @CompilerMessageKey String errorKey) {
+            Tree varTree,
+            ExpressionTree valueTree,
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
 
         // check that when an assignment to a variable b declared as @HasSubsequence(a, from, to)
         // occurs, to <= a.length, i.e. to is @LTEqLengthOf(a).
@@ -205,13 +221,13 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
                 anm =
                         atypeFactory.getAnnotationMirrorFromJavaExpressionString(
                                 subSeq.to, varTree, getCurrentPath());
-            } catch (FlowExpressionParseException e) {
+            } catch (JavaExpressionParseException e) {
                 anm = null;
             }
 
             boolean ltelCheckFailed = true;
             if (anm != null) {
-                UBQualifier qual = UBQualifier.createUBQualifier(anm);
+                UBQualifier qual = UBQualifier.createUBQualifier(anm, (UpperBoundChecker) checker);
                 ltelCheckFailed = !qual.isLessThanOrEqualTo(subSeq.array);
             }
 
@@ -240,14 +256,15 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             }
         }
 
-        super.commonAssignmentCheck(varTree, valueTree, errorKey);
+        super.commonAssignmentCheck(varTree, valueTree, errorKey, extraArgs);
     }
 
     @Override
     protected void commonAssignmentCheck(
             AnnotatedTypeMirror varType,
             ExpressionTree valueTree,
-            @CompilerMessageKey String errorKey) {
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
         AnnotatedTypeMirror valueType = atypeFactory.getAnnotatedType(valueTree);
         commonAssignmentCheckStartDiagnostic(varType, valueType, valueTree);
         if (!relaxedCommonAssignment(varType, valueTree)) {
@@ -256,7 +273,7 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
                     varType,
                     valueType,
                     valueTree);
-            super.commonAssignmentCheck(varType, valueTree, errorKey);
+            super.commonAssignmentCheck(varType, valueTree, errorKey, extraArgs);
         } else if (checker.hasOption("showchecks")) {
             commonAssignmentCheckEndDiagnostic(
                     true, "relaxedCommonAssignment", varType, valueType, valueTree);
@@ -292,7 +309,7 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
      * @return true if the assignment is legal based on special Upper Bound rules
      */
     private boolean relaxedCommonAssignment(AnnotatedTypeMirror varType, ExpressionTree valueExp) {
-        if (valueExp.getKind() == Kind.NEW_ARRAY && varType.getKind() == TypeKind.ARRAY) {
+        if (valueExp.getKind() == Tree.Kind.NEW_ARRAY && varType.getKind() == TypeKind.ARRAY) {
             List<? extends ExpressionTree> expressions =
                     ((NewArrayTree) valueExp).getInitializers();
             if (expressions == null || expressions.isEmpty()) {
@@ -301,7 +318,8 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             // The qualifier we need for an array is in the component type, not varType.
             AnnotatedTypeMirror componentType = ((AnnotatedArrayType) varType).getComponentType();
             UBQualifier qualifier =
-                    UBQualifier.createUBQualifier(componentType, atypeFactory.UNKNOWN);
+                    UBQualifier.createUBQualifier(
+                            componentType, atypeFactory.UNKNOWN, (UpperBoundChecker) checker);
             if (!qualifier.isLessThanLengthQualifier()) {
                 return false;
             }
@@ -313,56 +331,48 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             return true;
         }
 
-        UBQualifier qualifier = UBQualifier.createUBQualifier(varType, atypeFactory.UNKNOWN);
+        UBQualifier qualifier =
+                UBQualifier.createUBQualifier(
+                        varType, atypeFactory.UNKNOWN, (UpperBoundChecker) checker);
         return qualifier.isLessThanLengthQualifier()
                 && relaxedCommonAssignmentCheck((LessThanLengthOf) qualifier, valueExp);
     }
 
     /**
      * Fetches a receiver and an offset from a String using the passed type factory. Returns null if
-     * there is a parse exception. This wraps
-     * GenericAnnotatedTypeFactory#getReceiverFromJavaExpressionString.
+     * there is a parse exception. This wraps GenericAnnotatedTypeFactory#parseJavaExpressionString.
      *
-     * <p>This is useful for expressions like "n+1", for which {@link
-     * #getReceiverFromJavaExpressionString} returns null because the whole expression is not a
-     * receiver.
+     * <p>This is useful for expressions like "n+1", for which {@link #parseJavaExpressionString}
+     * returns null because the whole expression is not a receiver.
      */
-    static Pair<Receiver, String> getReceiverAndOffsetFromJavaExpressionString(
+    static Pair<JavaExpression, String> getExpressionAndOffsetFromJavaExpressionString(
             String s, UpperBoundAnnotatedTypeFactory atypeFactory, TreePath currentPath) {
 
         Pair<String, String> p = AnnotatedTypeFactory.getExpressionAndOffset(s);
 
-        Receiver rec = getReceiverFromJavaExpressionString(p.first, atypeFactory, currentPath);
-        if (rec == null) {
+        JavaExpression je = parseJavaExpressionString(p.first, atypeFactory, currentPath);
+        if (je == null) {
             return null;
         }
-        return Pair.of(rec, p.second);
+        return Pair.of(je, p.second);
     }
 
     /**
      * Fetches a receiver from a String using the passed type factory. Returns null if there is a
-     * parse exception -- that is, if the string does not represent an expression for a Receiver.
-     * For example, the expression "n+1" does not represent a Receiver.
+     * parse exception -- that is, if the string does not represent an expression for a
+     * JavaExpression. For example, the expression "n+1" does not represent a JavaExpression.
      *
-     * <p>This wraps GenericAnnotatedTypeFactory#getReceiverFromJavaExpressionString.
+     * <p>This wraps GenericAnnotatedTypeFactory#parseJavaExpressionString.
      */
-    static Receiver getReceiverFromJavaExpressionString(
+    static JavaExpression parseJavaExpressionString(
             String s, UpperBoundAnnotatedTypeFactory atypeFactory, TreePath currentPath) {
-        Receiver rec;
+        JavaExpression result;
         try {
-            rec = atypeFactory.getReceiverFromJavaExpressionString(s, currentPath);
-        } catch (FlowExpressionParseException e) {
-            rec = null;
+            result = atypeFactory.parseJavaExpressionString(s, currentPath);
+        } catch (JavaExpressionParseException e) {
+            result = null;
         }
-        return rec;
-    }
-
-    /**
-     * Given a Java expression, returns the additive inverse, as a String. Assumes that
-     * FlowExpressions do not contain multiplication.
-     */
-    private String negateString(String s, FlowExpressionContext context) {
-        return Subsequence.negateString(s, getCurrentPath(), context);
+        return result;
     }
 
     /*
@@ -390,7 +400,9 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             LessThanLengthOf varLtlQual, ExpressionTree valueExp) {
 
         AnnotatedTypeMirror expType = atypeFactory.getAnnotatedType(valueExp);
-        UBQualifier expQual = UBQualifier.createUBQualifier(expType, atypeFactory.UNKNOWN);
+        UBQualifier expQual =
+                UBQualifier.createUBQualifier(
+                        expType, atypeFactory.UNKNOWN, (UpperBoundChecker) checker);
 
         UBQualifier lessThanQual = atypeFactory.fromLessThan(valueExp, getCurrentPath());
         if (lessThanQual != null) {
@@ -408,9 +420,8 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
 
         // Take advantage of information available on a HasSubsequence(a, from, to) annotation
         // on the lhs qualifier (varLtlQual):
-        // this allows us to show that iff varLtlQual includes LTL(b),
-        // b has HSS, and expQual includes LTL(a, -from), then the LTL(b) can be removed from
-        // varLtlQual.
+        // this allows us to show that iff varLtlQual includes LTL(b), b has HSS, and expQual
+        // includes LTL(a, -from), then the LTL(b) can be removed from varLtlQual.
 
         UBQualifier newLHS = processSubsequenceForLHS(varLtlQual, expQual);
         if (newLHS.isUnknown()) {
@@ -470,18 +481,15 @@ public class UpperBoundVisitor extends BaseTypeVisitor<UpperBoundAnnotatedTypeFa
             // check is lhsSeq is an actual LTL
             if (varLtlQual.hasSequenceWithOffset(lhsSeq, 0)) {
 
-                Receiver rec =
-                        getReceiverFromJavaExpressionString(lhsSeq, atypeFactory, getCurrentPath());
-                FlowExpressionContext context = Subsequence.getContextFromReceiver(rec, checker);
+                JavaExpression lhsSeqExpr =
+                        parseJavaExpressionString(lhsSeq, atypeFactory, getCurrentPath());
                 Subsequence subSeq =
-                        Subsequence.getSubsequenceFromReceiver(
-                                rec, atypeFactory, getCurrentPath(), context);
+                        Subsequence.getSubsequenceFromReceiver(lhsSeqExpr, atypeFactory);
 
                 if (subSeq != null) {
                     String from = subSeq.from;
                     String a = subSeq.array;
-
-                    if (expQual.hasSequenceWithOffset(a, negateString(from, context))) {
+                    if (expQual.hasSequenceWithOffset(a, Subsequence.negateString(from))) {
                         // This cast is safe because LTLs cannot contain duplicates.
                         // Note that this updates newLHS on each iteration from its old value,
                         // so even if there are multiple HSS arrays the result will be correct.

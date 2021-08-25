@@ -3,7 +3,7 @@ import org.checkerframework.checker.nullness.qual.*;
 // This is the example from manual section:
 // "Generics (parametric polymorphism or type polymorphism)"
 // whose source code is ../../../docs/manual/advanced-features.tex
-class GenericsExampleMin {
+public class GenericsExampleMin {
 
     class MyList1<@Nullable T> {
         T t;
@@ -23,8 +23,7 @@ class GenericsExampleMin {
 
         // This method works.
         // Note that it fails to work if it is moved after m2() in the syntax tree.
-        // TODO: the above comment seems out-of-date, as method
-        // m3 below works.
+        // TODO: the above comment seems out-of-date, as method m3 below works.
         void m1() {
             t = this.get(0);
             nble = this.get(0);

@@ -4,11 +4,14 @@ import com.sun.source.tree.NewClassTree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.javacutil.TreeUtils;
+import org.plumelib.util.StringsPlume;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+
+import javax.lang.model.element.ExecutableElement;
 
 /**
  * A node for new object creation.
@@ -36,6 +39,16 @@ public class ObjectCreationNode extends Node {
         this.constructor = constructor;
         this.arguments = arguments;
         this.classbody = classbody;
+
+        // set assignment contexts for parameters
+        int i = 0;
+        ExecutableElement elem = TreeUtils.elementFromUse(tree);
+        if (elem != null) {
+            for (Node arg : arguments) {
+                AssignmentContext ctx = new AssignmentContext.MethodParameterContext(elem, i++);
+                arg.setAssignmentContext(ctx);
+            }
+        }
     }
 
     public Node getConstructor() {
@@ -68,14 +81,7 @@ public class ObjectCreationNode extends Node {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("new " + constructor + "(");
-        boolean needComma = false;
-        for (Node arg : arguments) {
-            if (needComma) {
-                sb.append(", ");
-            }
-            sb.append(arg);
-            needComma = true;
-        }
+        sb.append(StringsPlume.join(", ", arguments));
         sb.append(")");
         if (classbody != null) {
             // TODO: maybe this can be done nicer...

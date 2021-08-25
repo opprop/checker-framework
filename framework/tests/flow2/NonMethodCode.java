@@ -1,8 +1,7 @@
 import org.checkerframework.framework.test.*;
+import org.checkerframework.framework.testchecker.util.*;
 
-import testlib.util.*;
-
-class NonMethodCode {
+public class NonMethodCode {
 
     @Odd String f1 = null;
     String g1 = "def";

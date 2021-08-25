@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 import java.util.ArrayList;
 import java.util.List;
 
-class TestInfer {
+public class TestInfer {
     <T extends Object> T getValue(List<T> l) {
         return l.get(0);
     }
@@ -16,8 +16,7 @@ class TestInfer {
         List<@UnknownKeyFor ? extends Object> ls = new ArrayList<>();
         bar(getValue(ls)); // this fails, but just getValue(ls) is OK
         // casting is also OK, ie bar((Object)getValue(ls))
-        // the constraint should be T<:Object, which should typecheck
-        // since ls:List<? extends Object> unifies with List<T> where
-        // T<:Object.
+        // The constraint should be T<:Object, which should typecheck since ls:List<? extends
+        // Object> unifies with List<T> where T<:Object.
     }
 }

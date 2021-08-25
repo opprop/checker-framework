@@ -1,9 +1,9 @@
-import testlib.util.*;
+import org.checkerframework.framework.testchecker.util.*;
 
 import java.util.LinkedList;
 import java.util.List;
 
-class InvariantArrays {
+public class InvariantArrays {
     Object[] oa;
     @Encrypted Object[] eoa;
 

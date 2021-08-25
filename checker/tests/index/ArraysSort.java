@@ -2,7 +2,7 @@ import org.checkerframework.common.value.qual.MinLen;
 
 import java.util.Arrays;
 
-class ArraysSort {
+public class ArraysSort {
 
     void sortInt(int @MinLen(10) [] nums) {
         // Checks the correct handling of the toIndex parameter

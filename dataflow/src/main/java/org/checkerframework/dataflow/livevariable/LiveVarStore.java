@@ -1,9 +1,7 @@
 package org.checkerframework.dataflow.livevariable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.Store;
-import org.checkerframework.dataflow.cfg.CFGVisualizer;
 import org.checkerframework.dataflow.cfg.node.BinaryOperationNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.InstanceOfNode;
@@ -12,9 +10,12 @@ import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.TernaryExpressionNode;
 import org.checkerframework.dataflow.cfg.node.TypeCastNode;
 import org.checkerframework.dataflow.cfg.node.UnaryOperationNode;
+import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.javacutil.BugInCF;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -26,7 +27,7 @@ public class LiveVarStore implements Store<LiveVarStore> {
 
     /** Create a new LiveVarStore. */
     public LiveVarStore() {
-        liveVarValueSet = new HashSet<>();
+        liveVarValueSet = new LinkedHashSet<>();
     }
 
     /**
@@ -108,7 +109,8 @@ public class LiveVarStore implements Store<LiveVarStore> {
 
     @Override
     public LiveVarStore leastUpperBound(LiveVarStore other) {
-        Set<LiveVarValue> liveVarValueSetLub = new HashSet<>();
+        Set<LiveVarValue> liveVarValueSetLub =
+                new HashSet<>(this.liveVarValueSet.size() + other.liveVarValueSet.size());
         liveVarValueSetLub.addAll(this.liveVarValueSet);
         liveVarValueSetLub.addAll(other.liveVarValueSet);
         return new LiveVarStore(liveVarValueSetLub);
@@ -121,7 +123,7 @@ public class LiveVarStore implements Store<LiveVarStore> {
     }
 
     @Override
-    public boolean canAlias(Receiver a, Receiver b) {
+    public boolean canAlias(JavaExpression a, JavaExpression b) {
         return true;
     }
 

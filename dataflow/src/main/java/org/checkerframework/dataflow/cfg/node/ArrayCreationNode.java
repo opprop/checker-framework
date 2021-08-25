@@ -4,6 +4,7 @@ import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.plumelib.util.StringsPlume;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,8 +17,8 @@ import javax.lang.model.type.TypeMirror;
  * A node for new array creation.
  *
  * <pre>
- *   <em>new type [1][2]</em>
- *   <em>new type [] = { expr1, expr2, ... }</em>
+ *   <em>new type[1][2]</em>
+ *   <em>new type[] = { expr1, expr2, ... }</em>
  * </pre>
  */
 public class ArrayCreationNode extends Node {
@@ -27,7 +28,8 @@ public class ArrayCreationNode extends Node {
 
     /**
      * The length of this list is the number of dimensions in the array. Each element is the size of
-     * the given dimension.
+     * the given dimension. It can be empty if initializers is non-empty, as in {@code new
+     * SomeType[] = { expr1, expr2, ... }}.
      */
     protected final List<Node> dimensions;
 
@@ -75,27 +77,13 @@ public class ArrayCreationNode extends Node {
         StringBuilder sb = new StringBuilder();
         sb.append("new " + type);
         if (!dimensions.isEmpty()) {
-            boolean needComma = false;
             sb.append(" (");
-            for (Node dim : dimensions) {
-                if (needComma) {
-                    sb.append(", ");
-                }
-                sb.append(dim);
-                needComma = true;
-            }
+            sb.append(StringsPlume.join(", ", dimensions));
             sb.append(")");
         }
         if (!initializers.isEmpty()) {
-            boolean needComma = false;
             sb.append(" = {");
-            for (Node init : initializers) {
-                if (needComma) {
-                    sb.append(", ");
-                }
-                sb.append(init);
-                needComma = true;
-            }
+            sb.append(StringsPlume.join(", ", initializers));
             sb.append("}");
         }
         return sb.toString();

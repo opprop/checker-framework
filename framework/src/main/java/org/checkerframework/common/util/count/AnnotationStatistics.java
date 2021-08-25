@@ -53,6 +53,7 @@ import javax.lang.model.element.Name;
  *   <li>{@code -Aannotations}: prints information about the annotations
  *   <li>{@code -Anolocations}: suppresses location output; only makes sense in conjunction with
  *       {@code -Aannotations}
+ *   <li>{@code -Aannotationsummaryonly}: with both of the obove, only outputs a summary
  * </ul>
  *
  * @see JavaCodeStatistics
@@ -62,11 +63,22 @@ import javax.lang.model.element.Name;
  * This e.g. influences the output of "method return", which is only valid
  * for type annotations for non-void methods.
  */
-@SupportedOptions({"nolocations", "annotations"})
+@SupportedOptions({"nolocations", "annotations", "annotationsummaryonly"})
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class AnnotationStatistics extends SourceChecker {
 
+    /**
+     * Map from annotation name (as the toString() of its Name representation) to number of times
+     * the annotation was written in source code.
+     */
     final Map<String, Integer> annotationCount = new HashMap<>();
+
+    /** Creates an AnnotationStatistics. */
+    public AnnotationStatistics() {
+        // This checker never issues any warnings, so don't warn about
+        // @SuppressWarnings("allcheckers:...").
+        this.useAllcheckersPrefix = false;
+    }
 
     @Override
     public void typeProcessingOver() {
@@ -107,11 +119,20 @@ public class AnnotationStatistics extends SourceChecker {
         /** Whether annotation details should be printed. */
         private final boolean annotations;
 
+        /** Whether only a summary should be printed. */
+        private final boolean annotationsummaryonly;
+
+        /**
+         * Create a new Visitor.
+         *
+         * @param l the AnnotationStatistics object, used for obtaining command-line arguments
+         */
         public Visitor(AnnotationStatistics l) {
             super(l);
 
             locations = !l.hasOption("nolocations");
             annotations = l.hasOption("annotations");
+            annotationsummaryonly = l.hasOption("annotationsummaryonly");
         }
 
         @Override
@@ -120,12 +141,11 @@ public class AnnotationStatistics extends SourceChecker {
                 Name annoName = ((JCAnnotation) tree).annotationType.type.tsym.getQualifiedName();
                 incrementCount(annoName);
 
-                // An annotation is a body annotation if, while ascending the
-                // AST from the annotation to the root, we find a block
-                // immediately enclosed by a method.
+                // An annotation is a body annotation if, while ascending the AST from the
+                // annotation to the root, we find a block immediately enclosed by a method.
                 //
-                // If an annotation is not a body annotation, it's a signature
-                // (declaration) annotation.
+                // If an annotation is not a body annotation, it's a signature (declaration)
+                // annotation.
 
                 boolean isBodyAnnotation = false;
                 TreePath path = getCurrentPath();
@@ -140,12 +160,14 @@ public class AnnotationStatistics extends SourceChecker {
                     prev = t;
                 }
 
-                System.out.printf(
-                        ":annotation %s %s %s %s%n",
-                        tree.getAnnotationType(),
-                        tree,
-                        root.getSourceFile().getName(),
-                        (isBodyAnnotation ? "body" : "sig"));
+                if (!annotationsummaryonly) {
+                    System.out.printf(
+                            ":annotation %s %s %s %s%n",
+                            tree.getAnnotationType(),
+                            tree,
+                            root.getSourceFile().getName(),
+                            (isBodyAnnotation ? "body" : "sig"));
+                }
             }
             return super.visitAnnotation(tree, p);
         }
@@ -161,9 +183,8 @@ public class AnnotationStatistics extends SourceChecker {
         @Override
         public Void visitClass(ClassTree tree, Void p) {
             if (shouldSkipDefs(tree)) {
-                // Not "return super.visitClass(classTree, p);" because that would
-                // recursively call visitors on subtrees; we want to skip the
-                // class entirely.
+                // Not "return super.visitClass(classTree, p);" because that would recursively call
+                // visitors on subtrees; we want to skip the class entirely.
                 return null;
             }
             if (locations) {

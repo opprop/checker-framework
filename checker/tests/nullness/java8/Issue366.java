@@ -8,7 +8,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Optional;
 
-class Issue366 {
+public class Issue366 {
     static Optional<@NonNull String> getPossiblyEmptyString() {
         return Optional.ofNullable(null);
     }

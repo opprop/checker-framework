@@ -7,7 +7,7 @@ import org.checkerframework.common.value.qual.StringVal;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
-class MethodValInferenceTest {
+public class MethodValInferenceTest {
     boolean flag = true;
 
     public void testGetMethodParamLen(

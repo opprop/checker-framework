@@ -1,5 +1,7 @@
 package org.checkerframework.framework.stub;
 
+import org.checkerframework.checker.signature.qual.BinaryName;
+
 import scenelib.annotations.Annotation;
 import scenelib.annotations.Annotations;
 import scenelib.annotations.el.ABlock;
@@ -44,15 +46,18 @@ public class AddAnnotatedFor {
 
     static {
         Class<?> annotatedFor = org.checkerframework.framework.qual.AnnotatedFor.class;
-        Set<Annotation> annotatedForMetaAnnotations = new HashSet<>();
+        Set<Annotation> annotatedForMetaAnnotations = new HashSet<>(2);
         annotatedForMetaAnnotations.add(Annotations.aRetentionSource);
         annotatedForMetaAnnotations.add(
                 Annotations.createValueAnnotation(
                         Annotations.adTarget,
                         Arrays.asList("TYPE", "METHOD", "CONSTRUCTOR", "PACKAGE")));
+        @SuppressWarnings(
+                "signature") // TODO bug: AnnotationDef requires @BinaryName, gets CanonicalName
+        @BinaryName String name = annotatedFor.getCanonicalName();
         adAnnotatedFor =
                 new AnnotationDef(
-                        annotatedFor.getCanonicalName(),
+                        name,
                         annotatedForMetaAnnotations,
                         Collections.singletonMap(
                                 "value", new ArrayAFT(BasicAFT.forType(String.class))),
@@ -81,14 +86,18 @@ public class AddAnnotatedFor {
         IndexFileWriter.write(scene, new PrintWriter(System.out, true));
     }
 
+    /**
+     * Add {@code @AnnotatedFor} annotations to each class in the given scene.
+     *
+     * @param scene an {@code @AnnotatedFor} annotation is added to each class in this scene
+     */
     public static void addAnnotatedFor(AScene scene) {
         for (AClass clazz : new HashSet<>(scene.classes.values())) {
-            Set<String> annotatedFor = new HashSet<>();
+            Set<String> annotatedFor = new HashSet<>(2); // usually few @AnnotatedFor are applicable
             clazz.accept(annotatedForVisitor, annotatedFor);
             if (!annotatedFor.isEmpty()) {
-                // Set eliminates duplicates, but it must be converted to List;
-                // for whatever reason, IndexFileWriter recognizes array
-                // arguments only in List form.
+                // Set eliminates duplicates, but it must be converted to List; for whatever reason,
+                // IndexFileWriter recognizes array arguments only in List form.
                 List<String> annotatedForList = new ArrayList<>(annotatedFor);
                 clazz.tlAnnotationsHere.add(
                         new Annotation(
@@ -97,6 +106,11 @@ public class AddAnnotatedFor {
         }
     }
 
+    /**
+     * This visitor collects the names of all the type systems, one of whose annotations is written.
+     * These need to be the arguments to an {@code AnnotatedFor} annotation on the class, so that
+     * all of the given type systems are run.
+     */
     private static ElementVisitor<Void, Set<String>> annotatedForVisitor =
             new ElementVisitor<Void, Set<String>>() {
                 @Override

@@ -2,7 +2,6 @@ package org.checkerframework.framework.type;
 
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Symbol;
 
@@ -10,6 +9,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.visitor.AnnotatedTypeScanner;
 import org.checkerframework.framework.util.element.ClassTypeParamApplier;
+import org.checkerframework.framework.util.element.ElementAnnotationUtil.ErrorTypeKindException;
 import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
 import org.checkerframework.framework.util.element.MethodApplier;
 import org.checkerframework.framework.util.element.MethodTypeParamApplier;
@@ -35,9 +35,9 @@ import javax.lang.model.element.VariableElement;
  * represents that element (or a use of that Element).
  *
  * <p>In a way, this class is a hack: the Type representation for the Elements should contain all
- * annotations that we want. However, due to javac bugs
- * http://mail.openjdk.java.net/pipermail/type-annotations-dev/2013-December/001449.html decoding
- * the type annotations from the Element is necessary.
+ * annotations that we want. However, due to <a
+ * href="http://mail.openjdk.java.net/pipermail/type-annotations-dev/2013-December/001449.html">javac
+ * bugs</a> decoding the type annotations from the Element is necessary.
  *
  * <p>Even once these bugs are fixed, this class might be useful: in TypesIntoElements it is easy to
  * add additional annotations to the element and have them stored in the bytecode by the compiler.
@@ -78,12 +78,17 @@ public class ElementAnnotationApplier {
             final Element element,
             final AnnotatedTypeFactory typeFactory) {
         try {
-            applyInternal(type, element, typeFactory);
-        } catch (UnexpectedAnnotationLocationException e) {
-            reportInvalidLocation(element, typeFactory);
+            try {
+                applyInternal(type, element, typeFactory);
+            } catch (UnexpectedAnnotationLocationException e) {
+                reportInvalidLocation(element, typeFactory);
+            }
+            // Also copy annotations from type parameters to their uses.
+            new TypeVarAnnotator().visit(type, typeFactory);
+        } catch (ErrorTypeKindException e) {
+            // Do nothing if an ERROR TypeKind was found.
+            // This is triggered by Issue #244.
         }
-        // Also copy annotations from type parameters to their uses.
-        new TypeVarAnnotator().visit(type, typeFactory);
     }
 
     /** Issues an "invalid.annotation.location.bytecode warning. */
@@ -102,7 +107,7 @@ public class ElementAnnotationApplier {
             typeFactory.checker.reportWarning(
                     element,
                     "invalid.annotation.location.bytecode",
-                    ElementUtils.getVerboseName(report));
+                    ElementUtils.getQualifiedName(report));
         }
     }
 
@@ -190,7 +195,7 @@ public class ElementAnnotationApplier {
 
         if (paramDecl != null) {
             final Tree parentTree = typeFactory.getPath(paramDecl).getParentPath().getLeaf();
-            if (parentTree != null && parentTree.getKind() == Kind.LAMBDA_EXPRESSION) {
+            if (parentTree != null && parentTree.getKind() == Tree.Kind.LAMBDA_EXPRESSION) {
                 return Pair.of(paramDecl, (LambdaExpressionTree) parentTree);
             }
         }

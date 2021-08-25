@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class Issue1630 {
+public class Issue1630 {
     static @Nullable String toString(Object o) {
         return null;
     }

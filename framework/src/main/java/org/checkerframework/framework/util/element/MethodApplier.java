@@ -13,7 +13,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVari
 import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.SystemUtil;
+import org.plumelib.util.StringsPlume;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -170,7 +170,7 @@ public class MethodApplier extends TargetedElementAnnotationApplier {
         if (!unmatched.isEmpty()) {
             throw new BugInCF(
                     "Unexpected annotations ( "
-                            + SystemUtil.join(",", unmatched)
+                            + StringsPlume.join(",", unmatched)
                             + " ) for"
                             + "type ( "
                             + type
@@ -207,7 +207,7 @@ public class MethodApplier extends TargetedElementAnnotationApplier {
                                 + " for annotation: "
                                 + anno
                                 + " for element: "
-                                + ElementUtils.getVerboseName(element));
+                                + ElementUtils.getQualifiedName(element));
             }
         }
 

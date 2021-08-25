@@ -7,7 +7,7 @@ import java.util.List;
  * and method type argument inference.
  * A previously existing Unqualified annotation wasn't correctly removed.
  */
-class ClassDefaults {
+public class ClassDefaults {
     @Interned class Test {}
 
     public static interface Visitor<T> {}

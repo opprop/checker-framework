@@ -2,7 +2,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.lang.annotation.Annotation;
 
-class DotClass {
+public class DotClass {
 
     void test() {
         doStuff(NonNull.class);

@@ -43,14 +43,17 @@ public class CollectionToArrayHeuristics {
     /** The type factory. */
     private final NullnessAnnotatedTypeFactory atypeFactory;
 
+    /** Whether to trust {@code @ArrayLen(0)} annotations. */
+    private final boolean trustArrayLenZero;
+
+    /** The Collection type. */
+    private final AnnotatedDeclaredType collectionType;
     /** The Collection.toArray(T[]) method. */
     private final ExecutableElement collectionToArrayE;
     /** The Collection.size() method. */
     private final ExecutableElement size;
-    /** The Collection type. */
-    private final AnnotatedDeclaredType collectionType;
-    /** Whether to trust {@code @ArrayLen(0)} annotations. */
-    private final boolean trustArrayLenZero;
+    /** The ArrayLen.value field/element. */
+    private final ExecutableElement arrayLenValueElement;
 
     /**
      * Create a CollectionToArrayHeuristics.
@@ -64,14 +67,12 @@ public class CollectionToArrayHeuristics {
         this.checker = checker;
         this.atypeFactory = factory;
 
-        this.collectionToArrayE =
-                TreeUtils.getMethod(
-                        java.util.Collection.class.getName(), "toArray", processingEnv, "T[]");
-        this.size =
-                TreeUtils.getMethod(java.util.Collection.class.getName(), "size", 0, processingEnv);
         this.collectionType =
-                factory.fromElement(
-                        processingEnv.getElementUtils().getTypeElement("java.util.Collection"));
+                factory.fromElement(ElementUtils.getTypeElement(processingEnv, Collection.class));
+        this.collectionToArrayE =
+                TreeUtils.getMethod("java.util.Collection", "toArray", processingEnv, "T[]");
+        this.size = TreeUtils.getMethod("java.util.Collection", "size", 0, processingEnv);
+        this.arrayLenValueElement = TreeUtils.getMethod(ArrayLen.class, "value", 0, processingEnv);
 
         this.trustArrayLenZero =
                 checker.getLintOption(
@@ -104,9 +105,9 @@ public class CollectionToArrayHeuristics {
 
             if (receiverIsNonNull && !argIsHandled) {
                 if (argument.getKind() != Tree.Kind.NEW_ARRAY) {
-                    checker.reportWarning(tree, "toArray.nullable.elements.not.newarray");
+                    checker.reportWarning(tree, "toarray.nullable.elements.not.newarray");
                 } else {
-                    checker.reportWarning(tree, "toArray.nullable.elements.mismatched.size");
+                    checker.reportWarning(tree, "toarray.nullable.elements.mismatched.size");
                 }
             }
         }
@@ -178,10 +179,10 @@ public class CollectionToArrayHeuristics {
             if (t.getKind() == TypeKind.ARRAY) {
                 List<? extends AnnotationMirror> ams = t.getAnnotationMirrors();
                 for (AnnotationMirror am : ams) {
-                    if (AnnotationUtils.areSameByClass(am, ArrayLen.class)) {
+                    if (atypeFactory.areSameByClass(am, ArrayLen.class)) {
                         List<Integer> lens =
                                 AnnotationUtils.getElementValueArray(
-                                        am, "value", Integer.class, false);
+                                        am, arrayLenValueElement, Integer.class);
                         if (lens.size() == 1 && lens.get(0) == 0) {
                             return true;
                         }

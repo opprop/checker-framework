@@ -2,12 +2,15 @@ package org.checkerframework.checker.interning;
 
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.CompoundAssignmentTree;
+import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 
+import org.checkerframework.checker.interning.qual.FindDistinct;
 import org.checkerframework.checker.interning.qual.InternMethod;
 import org.checkerframework.checker.interning.qual.Interned;
+import org.checkerframework.checker.interning.qual.InternedDistinct;
 import org.checkerframework.checker.interning.qual.PolyInterned;
 import org.checkerframework.checker.interning.qual.UnknownInterned;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -50,11 +53,18 @@ import javax.lang.model.type.TypeMirror;
  *   <li value="6">is a use of a class declared to be @Interned
  * </ol>
  *
- * This factory extends {@link BaseAnnotatedTypeFactory} and inherits its functionality, including:
- * flow-sensitive qualifier inference, qualifier polymorphism (of {@link PolyInterned}), implicit
- * annotations via {@link org.checkerframework.framework.qual.DefaultFor} on {@link Interned} (to
- * handle cases 1, 2, 4), and user-specified defaults via {@link DefaultQualifier}. Case 5 is
- * handled by the stub library.
+ * This type factory adds {@link InternedDistinct} to formal parameters that have a {@code @}{@link
+ * FindDistinct} declaration annotation. (TODO: That isn't a good implementation, because it is not
+ * accurate: the value might be equals() to some other Java value. More seriously, it permits too
+ * much. Writing {@code @FindDistinct} should permit equality tests on the given formal parameter,
+ * but should not (for example) permit the formal parameter to be assigned into an
+ * {@code @InternedDistinct} location.)
+ *
+ * <p>This factory extends {@link BaseAnnotatedTypeFactory} and inherits its functionality,
+ * including: flow-sensitive qualifier inference, qualifier polymorphism (of {@link PolyInterned}),
+ * implicit annotations via {@link org.checkerframework.framework.qual.DefaultFor} on {@link
+ * Interned} (to handle cases 1, 2, 4), and user-specified defaults via {@link DefaultQualifier}.
+ * Case 5 is handled by the stub library.
  */
 public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
@@ -62,6 +72,9 @@ public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     final AnnotationMirror TOP = AnnotationBuilder.fromClass(elements, UnknownInterned.class);
     /** The {@link Interned} annotation. */
     final AnnotationMirror INTERNED = AnnotationBuilder.fromClass(elements, Interned.class);
+    /** The {@link InternedDistinct} annotation. */
+    final AnnotationMirror INTERNED_DISTINCT =
+            AnnotationBuilder.fromClass(elements, InternedDistinct.class);
 
     /**
      * Creates a new {@link InterningAnnotatedTypeFactory} that operates on a particular AST.
@@ -72,7 +85,7 @@ public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         super(checker);
 
         // If you update the following, also update ../../../../../docs/manual/interning-checker.tex
-        addAliasedAnnotation("com.sun.istack.internal.Interned", INTERNED);
+        addAliasedTypeAnnotation("com.sun.istack.internal.Interned", INTERNED);
 
         this.postInit();
     }
@@ -187,6 +200,16 @@ public class InterningAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 type.replaceAnnotation(INTERNED);
             }
             return super.visitTypeCast(node, type);
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror type) {
+            Element e = TreeUtils.elementFromTree(node);
+            if (atypeFactory.getDeclAnnotation(e, FindDistinct.class) != null) {
+                // TODO: See note above about this being a poor implementation.
+                type.replaceAnnotation(INTERNED_DISTINCT);
+            }
+            return super.visitIdentifier(node, type);
         }
     }
 

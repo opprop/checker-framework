@@ -10,6 +10,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestClass;
+import org.plumelib.util.CollectionsPlume;
 
 import java.io.File;
 import java.lang.annotation.ElementType;
@@ -20,6 +21,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
 
 // TODO: large parts of this file are the same as PerDirectorySuite.java.
 // Reduce duplication by moving common parts to an abstract class.
@@ -52,6 +54,7 @@ public class PerFileSuite extends Suite {
      *
      * @param klass the class whose tests to run
      */
+    @SuppressWarnings("nullness") // JUnit needs to be annotated
     public PerFileSuite(Class<?> klass) throws Throwable {
         super(klass, Collections.emptyList());
         final TestClass testClass = getTestClass();
@@ -64,25 +67,28 @@ public class PerFileSuite extends Suite {
     }
 
     /** Returns a list of one-element arrays, each containing a Java File. */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({
+        "unchecked",
+        "nullness" // JUnit needs to be annotated
+    })
     private List<Object[]> getParametersList(TestClass klass) throws Throwable {
         FrameworkMethod method = getParametersMethod(klass);
 
         List<File> javaFiles;
         // We will have either a method getTestDirs which returns String [] or getTestFiles
         // which returns List<Object []> or getParametersMethod would fail
+        if (method == null) {
+            throw new BugInCF("no method annotated with @Parameters");
+        }
         if (method.getReturnType().isArray()) {
             String[] dirs = (String[]) method.invokeExplosively(null);
             javaFiles = TestUtilities.findNestedJavaTestFiles(dirs);
-
         } else {
             javaFiles = (List<File>) method.invokeExplosively(null);
         }
 
-        List<Object[]> argumentLists = new ArrayList<>();
-        for (File javaFile : javaFiles) {
-            argumentLists.add(new Object[] {javaFile});
-        }
+        List<Object[]> argumentLists =
+                CollectionsPlume.mapList((File javaFile) -> new Object[] {javaFile}, javaFiles);
 
         return argumentLists;
     }
@@ -92,20 +98,17 @@ public class PerFileSuite extends Suite {
         final List<FrameworkMethod> parameterMethods =
                 testClass.getAnnotatedMethods(Parameters.class);
         if (parameterMethods.size() != 1) {
-            StringBuilder methods = new StringBuilder();
+            // Construct error message
 
+            String methods;
             if (parameterMethods.isEmpty()) {
-                methods.append("[No methods specified]");
+                methods = "[No methods specified]";
             } else {
-                boolean first = true;
+                StringJoiner sj = new StringJoiner(", ");
                 for (FrameworkMethod method : parameterMethods) {
-                    if (!first) {
-                        methods.append(", ");
-                    } else {
-                        first = false;
-                    }
-                    methods.append(method.getName());
+                    sj.add(method.getName());
                 }
+                methods = sj.toString();
             }
 
             throw new BugInCF(requiredFormsMessage, testClass.getName(), methods);
@@ -127,9 +130,9 @@ public class PerFileSuite extends Suite {
                 break;
 
             case "getTestFiles":
-                // we'll force people to return a List for now but enforcing exactl List<File> or a
-                // subtype thereof is not easy
-                if (!returnType.getCanonicalName().equals(List.class.getCanonicalName())) {
+                // We'll force people to return a List for now but enforcing exactly List<File> or a
+                // subtype thereof is not easy.
+                if (!List.class.getCanonicalName().equals(returnType.getCanonicalName())) {
                     throw new RuntimeException(
                             "getTestFiles must return a List<File>, found " + returnType);
                 }

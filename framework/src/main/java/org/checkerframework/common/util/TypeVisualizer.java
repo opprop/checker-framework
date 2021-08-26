@@ -1,5 +1,7 @@
 package org.checkerframework.common.util;
 
+import org.checkerframework.checker.interning.qual.FindDistinct;
+import org.checkerframework.checker.interning.qual.InternedDistinct;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -16,7 +18,7 @@ import org.checkerframework.framework.type.visitor.AnnotatedTypeVisitor;
 import org.checkerframework.framework.util.DefaultAnnotationFormatter;
 import org.checkerframework.framework.util.ExecUtil;
 import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.SystemUtil;
+import org.plumelib.util.StringsPlume;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
@@ -176,9 +179,15 @@ public class TypeVisualizer {
      * create a wrapper that performed referential equality on types and use a LinkedHashMap.
      */
     private static class Node {
-        private final AnnotatedTypeMirror type;
+        /** The delegate; that is, the wrapped value. */
+        private final @InternedDistinct AnnotatedTypeMirror type;
 
-        private Node(final AnnotatedTypeMirror type) {
+        /**
+         * Create a new Node that wraps the given type.
+         *
+         * @param type the type that the newly-constructed Node represents
+         */
+        private Node(final @FindDistinct AnnotatedTypeMirror type) {
             this.type = type;
         }
 
@@ -208,7 +217,7 @@ public class TypeVisualizer {
         /** A map from Node (type) to a dot string declaring that node. */
         private final Map<Node, String> nodes = new LinkedHashMap<>();
 
-        /** list of connections between nodes. Lines will refer to identifiers in nodes.values() */
+        /** List of connections between nodes. Lines refer to identifiers in nodes.values(). */
         private final List<String> lines = new ArrayList<>();
 
         private final String graphName;
@@ -257,18 +266,14 @@ public class TypeVisualizer {
                     writer.flush();
                 } catch (IOException e) {
                     throw new BugInCF(
-                            String.format(
-                                    "Exception visualizing type:%nfile=%s%ntype=%s", file, type),
-                            e);
+                            e, "Exception visualizing type:%nfile=%s%ntype=%s", file, type);
                 } finally {
                     if (writer != null) {
                         writer.close();
                     }
                 }
             } catch (IOException exc) {
-                throw new BugInCF(
-                        String.format("Exception visualizing type:%nfile=%s%ntype=%s", file, type),
-                        exc);
+                throw new BugInCF(exc, "Exception visualizing type:%nfile=%s%ntype=%s", file, type);
             }
         }
 
@@ -300,9 +305,9 @@ public class TypeVisualizer {
 
             @Override
             public Void visitIntersection(AnnotatedIntersectionType type, Void aVoid) {
-                final List<AnnotatedDeclaredType> superTypes = type.directSuperTypes();
-                for (int i = 0; i < superTypes.size(); i++) {
-                    lines.add(connect(type, superTypes.get(i)) + " " + makeLabel("&"));
+                final List<AnnotatedTypeMirror> bounds = type.getBounds();
+                for (int i = 0; i < bounds.size(); i++) {
+                    lines.add(connect(type, bounds.get(i)) + " " + makeLabel("&"));
                 }
                 return null;
             }
@@ -461,7 +466,7 @@ public class TypeVisualizer {
             public Void visitIntersection(AnnotatedIntersectionType type, Void aVoid) {
                 if (checkOrAdd(type)) {
                     addLabeledNode(type, getAnnoStr(type) + " Intersection", "shape=octagon");
-                    visitAll(type.directSuperTypes());
+                    visitAll(type.getBounds());
                 }
 
                 return null;
@@ -553,13 +558,19 @@ public class TypeVisualizer {
                 return null;
             }
 
+            /**
+             * Returns a string representation of the annotations on a type.
+             *
+             * @param atm an annotated type
+             * @return a string representation of the annotations on {@code atm}
+             */
             public String getAnnoStr(final AnnotatedTypeMirror atm) {
-                List<String> annoNames = new ArrayList<>();
+                StringJoiner sj = new StringJoiner(" ");
                 for (final AnnotationMirror anno : atm.getAnnotations()) {
                     // TODO: More comprehensive escaping
-                    annoNames.add(annoFormatter.formatAnnotationMirror(anno).replace("\"", "\\"));
+                    sj.add(annoFormatter.formatAnnotationMirror(anno).replace("\"", "\\"));
                 }
-                return String.join(" ", annoNames);
+                return sj.toString();
             }
 
             public boolean checkOrAdd(final AnnotatedTypeMirror atm) {
@@ -597,13 +608,13 @@ public class TypeVisualizer {
                 builder.append(methodElem.getReturnType().toString());
                 builder.append(" <");
 
-                builder.append(SystemUtil.join(", ", methodElem.getTypeParameters()));
+                builder.append(StringsPlume.join(", ", methodElem.getTypeParameters()));
                 builder.append("> ");
 
                 builder.append(methodElem.getSimpleName().toString());
 
                 builder.append("(");
-                builder.append(SystemUtil.join(",", methodElem.getParameters()));
+                builder.append(StringsPlume.join(",", methodElem.getParameters()));
                 builder.append(")");
                 return builder.toString();
             }

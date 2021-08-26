@@ -6,7 +6,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
-class Issue355 {
+public class Issue355 {
     static <T extends @Nullable Object> @NonNull T checkNotNull(@Nullable T sample) {
         throw new RuntimeException();
     }

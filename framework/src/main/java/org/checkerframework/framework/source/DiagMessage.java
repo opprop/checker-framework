@@ -4,6 +4,7 @@ import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
+import org.checkerframework.framework.qual.AnnotatedFor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import javax.tools.Diagnostic.Kind;
  *
  * <p>By contrast, {@code javax.tools.Diagnostic} has just a string message.
  */
+@AnnotatedFor("nullness")
 public class DiagMessage {
     /** The kind of message. */
     private final Kind kind;

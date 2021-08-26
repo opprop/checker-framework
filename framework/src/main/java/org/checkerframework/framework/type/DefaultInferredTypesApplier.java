@@ -1,9 +1,9 @@
 package org.checkerframework.framework.type;
 
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.TypesUtils;
 
 import java.util.Set;
 
@@ -91,12 +91,6 @@ public class DefaultInferredTypesApplier {
             }
             if ((omitSubtypingCheck || hierarchy.isSubtype(inferred, primary))) {
                 type.replaceAnnotation(inferred);
-                if (type.getKind() == TypeKind.INTERSECTION) {
-                    for (AnnotatedTypeMirror superType :
-                            ((AnnotatedIntersectionType) type).directSuperTypes()) {
-                        superType.replaceAnnotation(inferred);
-                    }
-                }
             }
         }
     }
@@ -109,6 +103,9 @@ public class DefaultInferredTypesApplier {
         if (inferredTypeMirror.getKind() != TypeKind.TYPEVAR) {
             throw new BugInCF(
                     "Inferred value should not be missing annotations: " + inferredTypeMirror);
+        }
+        if (TypesUtils.isCapturedTypeVariable(inferredTypeMirror)) {
+            return;
         }
 
         TypeVariable typeVar = (TypeVariable) inferredTypeMirror;

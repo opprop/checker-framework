@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Vector;
 
-class Issue1522 {
+public class Issue1522 {
     void copyInto(String p) {}
 
     void bar() {

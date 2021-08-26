@@ -4,7 +4,7 @@ import org.checkerframework.framework.qual.TypeUseLocation;
 
 import java.util.List;
 
-class MethodTypeVars4 {
+public class MethodTypeVars4 {
     @DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.IMPLICIT_UPPER_BOUND)
     interface I {
         <T> T doit();

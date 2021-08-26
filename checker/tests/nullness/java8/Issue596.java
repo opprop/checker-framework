@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.*;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-class Issue596 {
+public class Issue596 {
 
     private static String getOrEmpty(AtomicReference<String> ref) {
         return Optional596.fromNullable(ref.get()).or("");

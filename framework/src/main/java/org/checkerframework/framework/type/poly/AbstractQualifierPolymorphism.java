@@ -167,7 +167,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             return;
         }
         List<AnnotatedTypeMirror> parameters =
-                AnnotatedTypes.expandVarArgs(atypeFactory, type, tree.getArguments());
+                AnnotatedTypes.expandVarArgsParameters(atypeFactory, type, tree.getArguments());
         List<AnnotatedTypeMirror> arguments =
                 AnnotatedTypes.getAnnotatedTypes(atypeFactory, parameters, tree.getArguments());
 
@@ -201,7 +201,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             return;
         }
         List<AnnotatedTypeMirror> parameters =
-                AnnotatedTypes.expandVarArgs(atypeFactory, type, tree.getArguments());
+                AnnotatedTypes.expandVarArgsParameters(atypeFactory, type, tree.getArguments());
         List<AnnotatedTypeMirror> arguments =
                 AnnotatedTypes.getAnnotatedTypes(atypeFactory, parameters, tree.getArguments());
 
@@ -251,7 +251,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
     public void resolve(
             AnnotatedExecutableType functionalInterface, AnnotatedExecutableType memberReference) {
         for (AnnotationMirror type : functionalInterface.getReturnType().getAnnotations()) {
-            if (QualifierPolymorphism.hasPolymorphicQualifier(type)) {
+            if (atypeFactory.getQualifierHierarchy().isPolymorphicQualifier(type)) {
                 // functional interface has a polymorphic qualifier, so they should not be resolved
                 // on memberReference.
                 return;
@@ -265,7 +265,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             // If the member reference is a reference to an instance method of an arbitrary
             // object, then first parameter of the functional interface corresponds to the
             // receiver of the member reference.
-            List<AnnotatedTypeMirror> newParameters = new ArrayList<>();
+            List<AnnotatedTypeMirror> newParameters = new ArrayList<>(parameters.size() + 1);
             newParameters.add(memberReference.getReceiverType());
             newParameters.addAll(parameters);
             parameters = newParameters;
@@ -283,7 +283,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
         }
         // Deal with varargs
         if (memberReference.isVarArgs() && !functionalInterface.isVarArgs()) {
-            parameters = AnnotatedTypes.expandVarArgsFromTypes(memberReference, args);
+            parameters = AnnotatedTypes.expandVarArgsParametersFromTypes(memberReference, args);
         }
 
         instantiationMapping =
@@ -444,14 +444,14 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
             }
             if (itert.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is longer than polyTypes:%n  types = %s%n "
-                                + " polyTypes = %s%n",
+                        "PolyCollector.visit: types is longer than polyTypes:%n"
+                                + "  types = %s%n  polyTypes = %s%n",
                         types, polyTypes);
             }
             if (itera.hasNext()) {
                 throw new BugInCF(
-                        "PolyCollector.visit: types is shorter than polyTypes:%n  types = %s%n "
-                                + " polyTypes = %s%n",
+                        "PolyCollector.visit: types is shorter than polyTypes:%n"
+                                + "  types = %s%n  polyTypes = %s%n",
                         types, polyTypes);
             }
             return result;
@@ -529,7 +529,7 @@ public abstract class AbstractQualifierPolymorphism implements QualifierPolymorp
                 if (TypesUtils.isErasedSubtype(
                         type1Arg.getUnderlyingType(),
                         type2Arg.getUnderlyingType(),
-                        atypeFactory.getContext().getTypeUtils())) {
+                        atypeFactory.getChecker().getTypeUtils())) {
                     result = reduce(result, visit(type1Arg, type2Arg));
                 } // else an unchecked warning was issued by Java, ignore this part of the type.
             }

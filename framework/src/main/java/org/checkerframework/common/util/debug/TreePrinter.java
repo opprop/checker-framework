@@ -26,8 +26,6 @@ import javax.lang.model.element.TypeElement;
  *
  * <p>java org.checkerframework.common.util.debug.TreePrinter *.java
  *
- * <p>TODO: is there an environment variable for the bootclasspath?
- *
  * <p>The visitor simply uses the javac Pretty visitor to output a nicely formatted version of the
  * AST.
  *

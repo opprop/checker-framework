@@ -2,7 +2,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Hashtable;
 
-class HashtableTest {
+public class HashtableTest {
 
     public static void main(String[] args) {
 

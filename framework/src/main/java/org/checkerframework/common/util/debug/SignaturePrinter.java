@@ -35,7 +35,7 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.util.AbstractElementVisitor7;
+import javax.lang.model.util.AbstractElementVisitor8;
 
 /**
  * Outputs the method signatures of a class with fully annotated types.
@@ -130,7 +130,9 @@ public class SignaturePrinter extends AbstractTypeProcessor {
     }
 
     ////////// Printer //////////
-    static class ElementPrinter extends AbstractElementVisitor7<Void, Void> {
+    /** Element printer. */
+    static class ElementPrinter extends AbstractElementVisitor8<Void, Void> {
+        /** String used for indentation. */
         private static final String INDENTION = "    ";
 
         private final PrintStream out;
@@ -276,15 +278,20 @@ public class SignaturePrinter extends AbstractTypeProcessor {
             return null;
         }
 
+        /**
+         * Print the supertypes.
+         *
+         * @param dt the type whos supertypes to print
+         */
         private void printSupers(AnnotatedDeclaredType dt) {
-            if (dt.directSuperTypes().isEmpty()) {
+            if (dt.directSupertypes().isEmpty()) {
                 return;
             }
 
             out.print("extends ");
 
             boolean isntFirst = false;
-            for (AnnotatedDeclaredType st : dt.directSuperTypes()) {
+            for (AnnotatedDeclaredType st : dt.directSupertypes()) {
                 if (isntFirst) {
                     out.print(", ");
                 }

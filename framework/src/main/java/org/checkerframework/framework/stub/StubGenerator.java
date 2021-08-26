@@ -6,9 +6,12 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.Options;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.CollectionsPlume;
+import org.plumelib.util.StringsPlume;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -32,8 +35,8 @@ import javax.lang.model.util.ElementFilter;
 /**
  * Generates a stub file from a single class or an entire package.
  *
- * <p>A stub file can be used to add annotations to methods of classes, that are only available in
- * binary or the source of which cannot be edited.
+ * <p>TODO: StubGenerator needs to be reimplemented, because it no longer works due to changes in
+ * JDK 9.
  *
  * @checker_framework.manual #stub Using stub classes
  */
@@ -79,7 +82,7 @@ public class StubGenerator {
             return;
         }
 
-        String pkg = ElementUtils.getVerboseName(ElementUtils.enclosingPackage(elt));
+        String pkg = ElementUtils.getQualifiedName(ElementUtils.enclosingPackage(elt));
         if (!"".equals(pkg)) {
             currentPackage = pkg;
             currentIndention = "    ";
@@ -112,7 +115,7 @@ public class StubGenerator {
             return;
         }
 
-        String newPackage = ElementUtils.getVerboseName(ElementUtils.enclosingPackage(elt));
+        String newPackage = ElementUtils.getQualifiedName(ElementUtils.enclosingPackage(elt));
         if (!newPackage.equals("")) {
             currentPackage = newPackage;
             currentIndention = "    ";
@@ -133,7 +136,7 @@ public class StubGenerator {
         }
 
         String newPackageName =
-                ElementUtils.getVerboseName(ElementUtils.enclosingPackage(typeElement));
+                ElementUtils.getQualifiedName(ElementUtils.enclosingPackage(typeElement));
         boolean newPackage = !newPackageName.equals(currentPackage);
         currentPackage = newPackageName;
 
@@ -169,10 +172,14 @@ public class StubGenerator {
         printClass(typeElement, null);
     }
 
-    /** helper method that outputs the index for the provided class. */
-    private void printClass(TypeElement typeElement, String outerClass) {
-        List<TypeElement> innerClass = new ArrayList<>();
-
+    /**
+     * Helper method that prints the stub file for the provided class.
+     *
+     * @param typeElement the class to output
+     * @param outerClass the outer class of the class, or null if {@code typeElement} is a top-level
+     *     class
+     */
+    private void printClass(TypeElement typeElement, @Nullable String outerClass) {
         indent();
 
         List<? extends AnnotationMirror> teannos = typeElement.getAnnotationMirrors();
@@ -214,10 +221,9 @@ public class StubGenerator {
         if (!typeElement.getInterfaces().isEmpty()) {
             final boolean isInterface = typeElement.getKind() == ElementKind.INTERFACE;
             out.print(isInterface ? " extends " : " implements ");
-            List<String> ls = new ArrayList<>();
-            for (TypeMirror itf : typeElement.getInterfaces()) {
-                ls.add(formatType(itf));
-            }
+            List<String> ls =
+                    CollectionsPlume.mapList(
+                            StubGenerator::formatType, typeElement.getInterfaces());
             out.print(formatList(ls));
         }
 
@@ -226,6 +232,9 @@ public class StubGenerator {
 
         currentIndention = currentIndention + INDENTION;
 
+        // Inner classes, which the stub generator prints later.
+        List<TypeElement> innerClass = new ArrayList<>();
+        // side-effects innerClass
         printTypeMembers(typeElement.getEnclosedElements(), innerClass);
 
         currentIndention = tempIndention;
@@ -355,10 +364,8 @@ public class StubGenerator {
 
         if (!method.getThrownTypes().isEmpty()) {
             out.print(" throws ");
-            List<String> ltt = new ArrayList<>();
-            for (TypeMirror tt : method.getThrownTypes()) {
-                ltt.add(formatType(tt));
-            }
+            List<String> ltt =
+                    CollectionsPlume.mapList(StubGenerator::formatType, method.getThrownTypes());
             out.print(formatList(ltt));
         }
         out.println(';');
@@ -370,21 +377,14 @@ public class StubGenerator {
     }
 
     /**
-     * Return a string representation of the list in the form of {@code item1, item2, item3, ...}.
+     * Return a string representation of the list in the form of {@code item1, item2, item3, ...},
+     * without surrounding square brackets as the default representation has.
      *
-     * <p>instead of the default representation, {@code [item1, item2, item3, ...]}
+     * @param lst a list to format
+     * @return a string representation of the list, without surrounding square brackets
      */
     private String formatList(List<?> lst) {
-        StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        for (Object o : lst) {
-            if (!isFirst) {
-                sb.append(", ");
-            }
-            sb.append(o);
-            isFirst = false;
-        }
-        return sb.toString();
+        return StringsPlume.join(", ", lst);
     }
 
     /** Returns true if the element is public or protected element. */
@@ -393,8 +393,13 @@ public class StubGenerator {
                 || element.getModifiers().contains(Modifier.PROTECTED);
     }
 
-    /** Outputs the simple name of the type. */
-    private String formatType(TypeMirror typeRep) {
+    /**
+     * Returns the simple name of the type.
+     *
+     * @param typeRep a type
+     * @return the simple name of the type
+     */
+    private static String formatType(TypeMirror typeRep) {
         StringTokenizer tokenizer = new StringTokenizer(typeRep.toString(), "()<>[], ", true);
         StringBuilder sb = new StringBuilder();
 
@@ -410,6 +415,12 @@ public class StubGenerator {
         return sb.toString();
     }
 
+    /**
+     * The main entry point to StubGenerator.
+     *
+     * @param args command-line arguments
+     */
+    @SuppressWarnings("signature") // User-supplied arguments to main
     public static void main(String[] args) {
         if (args.length != 1) {
             System.out.println("Usage:");

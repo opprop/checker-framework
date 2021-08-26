@@ -4,7 +4,7 @@ import com.sun.source.tree.BinaryTree;
 
 import org.checkerframework.javacutil.TreeUtils;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -44,9 +44,6 @@ public abstract class BinaryOperationNode extends Node {
 
     @Override
     public Collection<Node> getOperands() {
-        ArrayList<Node> list = new ArrayList<>(2);
-        list.add(getLeftOperand());
-        list.add(getRightOperand());
-        return list;
+        return Arrays.asList(getLeftOperand(), getRightOperand());
     }
 }

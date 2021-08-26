@@ -26,14 +26,13 @@ import com.sun.tools.javac.util.Names;
 
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.CollectionsPlume;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
@@ -86,12 +85,9 @@ public class TreeBuilder {
 
         for (ExecutableElement method :
                 ElementFilter.methodsIn(elements.getAllMembers(exprElement))) {
-            Name methodName = method.getSimpleName();
-
-            if (method.getParameters().isEmpty()) {
-                if (methodName.contentEquals("iterator")) {
-                    iteratorMethod = (Symbol.MethodSymbol) method;
-                }
+            if (method.getParameters().isEmpty()
+                    && method.getSimpleName().contentEquals("iterator")) {
+                iteratorMethod = (Symbol.MethodSymbol) method;
             }
         }
 
@@ -110,7 +106,7 @@ public class TreeBuilder {
 
         if (numIterTypeArgs == 1) {
             TypeMirror elementType = iteratorType.getTypeArguments().get(0);
-            // Remove captured type from a wildcard.
+            // Remove captured type variable from a wildcard.
             if (elementType instanceof Type.CapturedType) {
                 elementType = ((Type.CapturedType) elementType).wildcard;
 
@@ -154,12 +150,9 @@ public class TreeBuilder {
 
         for (ExecutableElement method :
                 ElementFilter.methodsIn(elements.getAllMembers(exprElement))) {
-            Name methodName = method.getSimpleName();
-
-            if (method.getParameters().isEmpty()) {
-                if (methodName.contentEquals("hasNext")) {
-                    hasNextMethod = (Symbol.MethodSymbol) method;
-                }
+            if (method.getParameters().isEmpty()
+                    && method.getSimpleName().contentEquals("hasNext")) {
+                hasNextMethod = (Symbol.MethodSymbol) method;
             }
         }
 
@@ -190,12 +183,8 @@ public class TreeBuilder {
 
         for (ExecutableElement method :
                 ElementFilter.methodsIn(elements.getAllMembers(exprElement))) {
-            Name methodName = method.getSimpleName();
-
-            if (method.getParameters().isEmpty()) {
-                if (methodName.contentEquals("next")) {
-                    nextMethod = (Symbol.MethodSymbol) method;
-                }
+            if (method.getParameters().isEmpty() && method.getSimpleName().contentEquals("next")) {
+                nextMethod = (Symbol.MethodSymbol) method;
             }
         }
 
@@ -433,9 +422,7 @@ public class TreeBuilder {
         TypeElement boxedElement = (TypeElement) ((DeclaredType) boxedType).asElement();
         for (ExecutableElement method :
                 ElementFilter.methodsIn(env.getElementUtils().getAllMembers(boxedElement))) {
-            Name methodName = method.getSimpleName();
-
-            if (methodName.contentEquals("valueOf")) {
+            if (method.getSimpleName().contentEquals("valueOf")) {
                 List<? extends VariableElement> params = method.getParameters();
                 if (params.size() == 1
                         && env.getTypeUtils().isSameType(params.get(0).asType(), unboxedType)) {
@@ -469,9 +456,8 @@ public class TreeBuilder {
 
         for (ExecutableElement method :
                 ElementFilter.methodsIn(elements.getAllMembers(boxedElement))) {
-            Name methodName = method.getSimpleName();
-
-            if (methodName.contentEquals(primValueName) && method.getParameters().isEmpty()) {
+            if (method.getSimpleName().contentEquals(primValueName)
+                    && method.getParameters().isEmpty()) {
                 primValueMethod = (Symbol.MethodSymbol) method;
             }
         }
@@ -676,10 +662,7 @@ public class TreeBuilder {
      * @return a NewArrayTree to create a new array with initializers
      */
     public NewArrayTree buildNewArray(TypeMirror componentType, List<ExpressionTree> elems) {
-        List<JCExpression> exprs = new ArrayList<>();
-        for (ExpressionTree elem : elems) {
-            exprs.add((JCExpression) elem);
-        }
+        List<JCExpression> exprs = CollectionsPlume.mapList(JCExpression.class::cast, elems);
 
         JCTree.JCNewArray newArray =
                 maker.NewArray(

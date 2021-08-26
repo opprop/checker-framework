@@ -8,7 +8,7 @@ import org.checkerframework.framework.qual.Covariant;
 
 import java.util.function.Supplier;
 
-class Issue1633 {
+public class Issue1633 {
 
     // supplyNullable is a supplier that may return null.
     // supplyNonNull is a supplier that does not return null.
@@ -54,7 +54,7 @@ class Issue1633 {
     }
 
     void foo6(Optional1633<String> o, Supplier<@NonNull String> supplyNonNull) {
-        // :: error: (argument.type.incompatible) :: error: (assignment.type.incompatible)
+        // :: error: (assignment.type.incompatible)
         @NonNull String str1 = o.orElseGetNullable(supplyNonNull);
     }
 

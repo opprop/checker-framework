@@ -4,10 +4,13 @@ import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 
+import org.checkerframework.dataflow.cfg.node.BooleanLiteralNode;
+import org.checkerframework.dataflow.cfg.node.ConditionalNotNode;
 import org.checkerframework.dataflow.cfg.node.ConditionalOrNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.TypeCastNode;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
@@ -31,8 +34,7 @@ public class NodeUtils {
             return true;
         }
 
-        // not all nodes have an associated tree, but those are all not of a
-        // boolean type.
+        // not all nodes have an associated tree, but those are all not of a boolean type.
         Tree tree = node.getTree();
         if (tree == null) {
             return false;
@@ -70,5 +72,36 @@ public class NodeUtils {
         }
         ExecutableElement invoked = ((MethodInvocationNode) node).getTarget().getMethod();
         return ElementUtils.isMethod(invoked, method, env);
+    }
+
+    /**
+     * Returns true if the given node statically evaluates to {@code value} and has no side effects.
+     *
+     * @param n a node
+     * @param value the boolean value that the node is tested against
+     * @return true if the node is equivalent to a literal with value {@code value}
+     */
+    public static boolean isConstantBoolean(Node n, boolean value) {
+        if (n instanceof BooleanLiteralNode) {
+            return ((BooleanLiteralNode) n).getValue() == value;
+        } else if (n instanceof ConditionalNotNode) {
+            return isConstantBoolean(((ConditionalNotNode) n).getOperand(), !value);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Remove any {@link TypeCastNode}s wrapping a node, returning the operand nested within the
+     * type casts.
+     *
+     * @param node a node
+     * @return node, but with any surrounding typecasts removed
+     */
+    public static Node removeCasts(Node node) {
+        while (node instanceof TypeCastNode) {
+            node = ((TypeCastNode) node).getOperand();
+        }
+        return node;
     }
 }

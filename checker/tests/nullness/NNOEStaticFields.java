@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import java.util.Collections;
 import java.util.Set;
 
-class NNOEStaticFields {
+public class NNOEStaticFields {
     static @Nullable String nullable = null;
     static @Nullable String otherNullable = null;
 

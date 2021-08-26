@@ -12,9 +12,9 @@ import org.checkerframework.checker.regex.qual.PolyRegex;
 import org.checkerframework.checker.regex.qual.Regex;
 import org.checkerframework.checker.regex.qual.RegexBottom;
 import org.checkerframework.checker.regex.qual.UnknownRegex;
+import org.checkerframework.checker.regex.util.RegexUtil;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAnalysis;
 import org.checkerframework.framework.flow.CFStore;
@@ -25,25 +25,28 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
+import org.checkerframework.framework.type.MostlyNoElementQualifierHierarchy;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.util.GraphQualifierHierarchy;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
+import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeSystemError;
 
 import java.lang.annotation.Annotation;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.Elements;
 
 /**
  * Adds {@link Regex} to the type of tree, in the following cases:
@@ -87,26 +90,22 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** The @{@link PolyRegex} annotation. */
     protected final AnnotationMirror POLYREGEX =
             AnnotationBuilder.fromClass(elements, PolyRegex.class);
+    /** The @{@link UnknownRegex} annotation. */
+    protected final AnnotationMirror UNKNOWNREGEX =
+            AnnotationBuilder.fromClass(elements, UnknownRegex.class);
 
     /** The method that returns the value element of a {@code @Regex} annotation. */
     protected final ExecutableElement regexValueElement =
             TreeUtils.getMethod(
-                    org.checkerframework.checker.regex.qual.Regex.class.getName(),
-                    "value",
-                    0,
-                    processingEnv);
+                    "org.checkerframework.checker.regex.qual.Regex", "value", 0, processingEnv);
 
     /**
      * The value method of the PartialRegex qualifier.
      *
      * @see org.checkerframework.checker.regex.qual.PartialRegex
      */
-    private final ExecutableElement partialRegexValue =
-            TreeUtils.getMethod(
-                    org.checkerframework.checker.regex.qual.PartialRegex.class.getName(),
-                    "value",
-                    0,
-                    processingEnv);
+    private final ExecutableElement partialRegexValueElement =
+            TreeUtils.getMethod(PartialRegex.class, "value", 0, processingEnv);
 
     /**
      * The Pattern.compile method.
@@ -114,21 +113,15 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @see java.util.regex.Pattern#compile(String)
      */
     private final ExecutableElement patternCompile =
-            TreeUtils.getMethod(
-                    java.util.regex.Pattern.class.getName(), "compile", 1, processingEnv);
+            TreeUtils.getMethod("java.util.regex.Pattern", "compile", 1, processingEnv);
 
-    // TODO use? private TypeMirror[] legalReferenceTypes;
-
+    /**
+     * Create a new RegexAnnotatedTypeFactory.
+     *
+     * @param checker the checker
+     */
     public RegexAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
-
-        /*
-        legalReferenceTypes = new TypeMirror[] {
-            getTypeMirror("java.lang.CharSequence"),
-            getTypeMirror("java.lang.Character"),
-            getTypeMirror("java.util.regex.Pattern"),
-            getTypeMirror("java.util.regex.MatchResult") };
-         */
 
         this.postInit();
     }
@@ -156,8 +149,8 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     @Override
-    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new RegexQualifierHierarchy(factory, REGEXBOTTOM);
+    protected QualifierHierarchy createQualifierHierarchy() {
+        return new RegexQualifierHierarchy(this.getSupportedTypeQualifiers(), elements);
     }
 
     /**
@@ -166,58 +159,122 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * subtype of {@code @Regex(1)}. All regex annotations are subtypes of {@code @Regex}, which has
      * a default value of 0.
      */
-    private final class RegexQualifierHierarchy extends GraphQualifierHierarchy {
+    private final class RegexQualifierHierarchy extends MostlyNoElementQualifierHierarchy {
 
-        public RegexQualifierHierarchy(MultiGraphFactory f, AnnotationMirror bottom) {
-            super(f, bottom);
+        /** Qualifier kind for the @{@link Regex} annotation. */
+        private final QualifierKind REGEX_KIND;
+        /** Qualifier kind for the @{@link PartialRegex} annotation. */
+        private final QualifierKind PARTIALREGEX_KIND;
+        /**
+         * Creates a RegexQualifierHierarchy from the given classes.
+         *
+         * @param qualifierClasses classes of annotations that are the qualifiers for this hierarchy
+         * @param elements element utils
+         */
+        private RegexQualifierHierarchy(
+                Collection<Class<? extends Annotation>> qualifierClasses, Elements elements) {
+            super(qualifierClasses, elements);
+            REGEX_KIND = getQualifierKind(REGEX);
+            PARTIALREGEX_KIND = getQualifierKind(PARTIALREGEX);
         }
 
         @Override
-        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
-            if (AnnotationUtils.areSameByName(subAnno, REGEX)
-                    && AnnotationUtils.areSameByName(superAnno, REGEX)) {
+        protected boolean isSubtypeWithElements(
+                AnnotationMirror subAnno,
+                QualifierKind subKind,
+                AnnotationMirror superAnno,
+                QualifierKind superKind) {
+            if (subKind == REGEX_KIND && superKind == REGEX_KIND) {
                 int rhsValue = getRegexValue(subAnno);
                 int lhsValue = getRegexValue(superAnno);
                 return lhsValue <= rhsValue;
+            } else if (subKind == PARTIALREGEX_KIND && superKind == PARTIALREGEX_KIND) {
+                return AnnotationUtils.areSame(subAnno, superAnno);
             }
-            // TODO: subtyping between PartialRegex?
-            // Ignore annotation values to ensure that annotation is in supertype map.
-            if (AnnotationUtils.areSameByName(superAnno, REGEX)) {
-                superAnno = REGEX;
-            }
-            if (AnnotationUtils.areSameByName(subAnno, REGEX)) {
-                subAnno = REGEX;
-            }
-            if (AnnotationUtils.areSameByName(superAnno, PARTIALREGEX)) {
-                superAnno = PARTIALREGEX;
-            }
-            if (AnnotationUtils.areSameByName(subAnno, PARTIALREGEX)) {
-                subAnno = PARTIALREGEX;
-            }
-            return super.isSubtype(subAnno, superAnno);
+            throw new TypeSystemError("Unexpected qualifiers: %s %s", subAnno, superAnno);
         }
 
-        /** Gets the value out of a regex annotation. */
+        @Override
+        protected AnnotationMirror leastUpperBoundWithElements(
+                AnnotationMirror a1,
+                QualifierKind qualifierKind1,
+                AnnotationMirror a2,
+                QualifierKind qualifierKind2,
+                QualifierKind lubKind) {
+            if (qualifierKind1 == REGEX_KIND && qualifierKind2 == REGEX_KIND) {
+                int value1 = getRegexValue(a1);
+                int value2 = getRegexValue(a2);
+                if (value1 < value2) {
+                    return a1;
+                } else {
+                    return a2;
+                }
+            } else if (qualifierKind1 == PARTIALREGEX_KIND && qualifierKind2 == PARTIALREGEX_KIND) {
+                if (AnnotationUtils.areSame(a1, a2)) {
+                    return a1;
+                } else {
+                    return UNKNOWNREGEX;
+                }
+            } else if (qualifierKind1 == PARTIALREGEX_KIND || qualifierKind1 == REGEX_KIND) {
+                return a1;
+            } else if (qualifierKind2 == PARTIALREGEX_KIND || qualifierKind2 == REGEX_KIND) {
+                return a2;
+            }
+            throw new TypeSystemError("Unexpected qualifiers: %s %s", a1, a2);
+        }
+
+        @Override
+        protected AnnotationMirror greatestLowerBoundWithElements(
+                AnnotationMirror a1,
+                QualifierKind qualifierKind1,
+                AnnotationMirror a2,
+                QualifierKind qualifierKind2,
+                QualifierKind glbKind) {
+            if (qualifierKind1 == REGEX_KIND && qualifierKind2 == REGEX_KIND) {
+                int value1 = getRegexValue(a1);
+                int value2 = getRegexValue(a2);
+                if (value1 > value2) {
+                    return a1;
+                } else {
+                    return a2;
+                }
+            } else if (qualifierKind1 == PARTIALREGEX_KIND && qualifierKind2 == PARTIALREGEX_KIND) {
+                if (AnnotationUtils.areSame(a1, a2)) {
+                    return a1;
+                } else {
+                    return REGEXBOTTOM;
+                }
+            } else if (qualifierKind1 == PARTIALREGEX_KIND || qualifierKind1 == REGEX_KIND) {
+                return a1;
+            } else if (qualifierKind2 == PARTIALREGEX_KIND || qualifierKind2 == REGEX_KIND) {
+                return a2;
+            }
+            throw new TypeSystemError("Unexpected qualifiers: %s %s", a1, a2);
+        }
+
+        /**
+         * Gets the value out of a regex annotation.
+         *
+         * @param anno a @Regex annotation
+         * @return the {@code value} element of the annotation
+         */
         private int getRegexValue(AnnotationMirror anno) {
-            return (Integer)
-                    AnnotationUtils.getElementValuesWithDefaults(anno)
-                            .get(regexValueElement)
-                            .getValue();
+            return AnnotationUtils.getElementValue(anno, regexValueElement, Integer.class, 0);
         }
     }
 
     /**
      * Returns the group count value of the given annotation or 0 if there's a problem getting the
      * group count value.
+     *
+     * @param anno a @Regex annotation
+     * @return the {@code value} element of the annotation
      */
     public int getGroupCount(AnnotationMirror anno) {
-        AnnotationValue groupCountValue =
-                AnnotationUtils.getElementValuesWithDefaults(anno).get(regexValueElement);
-        // If group count value is null then there's no Regex annotation
-        // on the parameter so set the group count to 0. This would happen
-        // if a non-regex string is passed to Pattern.compile but warnings
-        // are suppressed.
-        return (groupCountValue == null) ? 0 : (Integer) groupCountValue.getValue();
+        if (anno == null) {
+            return 0;
+        }
+        return AnnotationUtils.getElementValue(anno, regexValueElement, Integer.class, 0);
     }
 
     /** Returns the number of groups in the given regex String. */
@@ -225,19 +282,10 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         return Pattern.compile(regexp).matcher("").groupCount();
     }
 
-    /**
-     * This method is a copy of RegexUtil.isRegex. We cannot directly use RegexUtil, because it uses
-     * type annotations which cannot be used in IDEs (yet).
-     */
-    @SuppressWarnings("purity") // the checker cannot prove that the method is pure, but it is
-    @Pure
-    private static boolean isRegex(String s) {
-        try {
-            Pattern.compile(s);
-        } catch (PatternSyntaxException e) {
-            return false;
-        }
-        return true;
+    @Override
+    public Set<AnnotationMirror> getWidenedAnnotations(
+            Set<AnnotationMirror> annos, TypeKind typeKind, TypeKind widenedTypeKind) {
+        return Collections.singleton(UNKNOWNREGEX);
     }
 
     @Override
@@ -284,7 +332,7 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                     regex = Character.toString((Character) tree.getValue());
                 }
                 if (regex != null) {
-                    if (isRegex(regex)) {
+                    if (RegexUtil.isRegex(regex)) {
                         int groupCount = getGroupCount(regex);
                         type.addAnnotation(createRegexAnnotation(groupCount));
                     } else {
@@ -327,7 +375,7 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                     String lRegex = getPartialRegexValue(lExpr);
                     String rRegex = getPartialRegexValue(rExpr);
                     String concat = lRegex + rRegex;
-                    if (isRegex(concat)) {
+                    if (RegexUtil.isRegex(concat)) {
                         int groupCount = getGroupCount(concat);
                         type.addAnnotation(createRegexAnnotation(groupCount));
                     } else {
@@ -401,13 +449,20 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             return builder.build();
         }
 
-        /** Returns the value of a PartialRegex annotation. */
+        /**
+         * Returns the {@code value} element of a {@code @PartialRegex} annotation, if there is one
+         * in {@code type}.
+         *
+         * @param type a type
+         * @return the {@code value} element of a {@code @PartialRegex} annotation, or "" if none
+         */
         private String getPartialRegexValue(AnnotatedTypeMirror type) {
-            return (String)
-                    AnnotationUtils.getElementValuesWithDefaults(
-                                    type.getAnnotation(PartialRegex.class))
-                            .get(partialRegexValue)
-                            .getValue();
+            AnnotationMirror partialRegexAnno = type.getAnnotation(PartialRegex.class);
+            if (partialRegexAnno == null) {
+                return "";
+            }
+            return AnnotationUtils.getElementValue(
+                    partialRegexAnno, partialRegexValueElement, String.class, "");
         }
 
         /**
@@ -434,7 +489,7 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                     case INTERSECTION:
                         Integer maxBound = null;
                         for (final AnnotatedTypeMirror bound :
-                                ((AnnotatedIntersectionType) type).directSuperTypes()) {
+                                ((AnnotatedIntersectionType) type).getBounds()) {
                             Integer boundRegexNum = getMinimumRegexCount(bound);
                             if (boundRegexNum != null) {
                                 if (maxBound == null || boundRegexNum > maxBound) {
@@ -453,42 +508,42 @@ public class RegexAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             return getGroupCount(primaryRegexAnno);
         }
 
-        //         This won't work correctly until flow sensitivity is supported by the
-        //         the Regex Checker. For example:
+        // This won't work correctly until flow sensitivity is supported by the
+        // the Regex Checker. For example:
         //
-        //         char @Regex [] arr = {'r', 'e'};
-        //         arr[0] = '('; // type is still "char @Regex []", but this is no longer correct
+        //  char @Regex [] arr = {'r', 'e'};
+        //  arr[0] = '('; // type is still "char @Regex []", but this is no longer correct
         //
-        //         There are associated tests in tests/regex/Simple.java:testCharArrays
-        //         that can be uncommented when this is uncommented.
-        //        /**
-        //         * Case 4: a char array that as a String is a valid regular expression.
-        //         */
-        //        @Override
-        //        public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
-        //            boolean isCharArray = ((ArrayType) type.getUnderlyingType())
-        //                    .getComponentType().getKind() == TypeKind.CHAR;
-        //            if (isCharArray && tree.getInitializers() != null) {
-        //                List<? extends ExpressionTree> initializers = tree.getInitializers();
-        //                StringBuilder charArray = new StringBuilder();
-        //                boolean allLiterals = true;
-        //                for (int i = 0; allLiterals && i < initializers.size(); i++) {
-        //                    ExpressionTree e = initializers.get(i);
-        //                    if (e.getKind() == Tree.Kind.CHAR_LITERAL) {
-        //                        charArray.append(((LiteralTree) e).getValue());
-        //                    } else if (getAnnotatedType(e).hasAnnotation(Regex.class)) {
-        //                        // if there's an @Regex char in the array then substitute
-        //                        // it with a .
-        //                        charArray.append('.');
-        //                    } else {
-        //                        allLiterals = false;
-        //                    }
-        //                }
-        //                if (allLiterals && RegexUtil.isRegex(charArray.toString())) {
-        //                    type.addAnnotation(Regex.class);
-        //                }
-        //            }
-        //            return super.visitNewArray(tree, type);
-        //        }
+        // There are associated tests in tests/regex/Simple.java:testCharArrays
+        // that can be uncommented when this is uncommented.
+        // /**
+        //  * Case 4: a char array that as a String is a valid regular expression.
+        //  */
+        // @Override
+        // public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {
+        //     boolean isCharArray = ((ArrayType) type.getUnderlyingType())
+        //             .getComponentType().getKind() == TypeKind.CHAR;
+        //     if (isCharArray && tree.getInitializers() != null) {
+        //         List<? extends ExpressionTree> initializers = tree.getInitializers();
+        //         StringBuilder charArray = new StringBuilder();
+        //         boolean allLiterals = true;
+        //         for (int i = 0; allLiterals && i < initializers.size(); i++) {
+        //             ExpressionTree e = initializers.get(i);
+        //             if (e.getKind() == Tree.Kind.CHAR_LITERAL) {
+        //                 charArray.append(((LiteralTree) e).getValue());
+        //             } else if (getAnnotatedType(e).hasAnnotation(Regex.class)) {
+        //                 // if there's an @Regex char in the array then substitute
+        //                 // it with a .
+        //                 charArray.append('.');
+        //             } else {
+        //                 allLiterals = false;
+        //             }
+        //         }
+        //         if (allLiterals && RegexUtil.isRegex(charArray.toString())) {
+        //             type.addAnnotation(Regex.class);
+        //         }
+        //     }
+        //     return super.visitNewArray(tree, type);
+        // }
     }
 }

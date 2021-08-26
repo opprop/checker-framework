@@ -2,7 +2,7 @@ import org.checkerframework.common.value.qual.*;
 
 import java.util.BitSet;
 
-class Binaries {
+public class Binaries {
     private BitSet bitmap;
 
     public void test() {

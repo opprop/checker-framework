@@ -7,7 +7,7 @@ import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.List;
 
-class Issue2432 {
+public class Issue2432 {
 
     void jdkAnnotation(List<@PolyNull Object> nl, @Nullable Object no, @PolyNull Object po) {
         // :: error: (argument.type.incompatible)
@@ -89,8 +89,7 @@ class Issue2432 {
         pc.tripleAdd(no, nno, nno);
     }
 
-    // ensure poly annotations from declaration is handled separately from poly from other
-    // context
+    // ensure poly annotations from declaration is handled separately from poly from other context
     void declarationPolyInParameter(
             TypeArgClass<@PolyNull Object> pc, @Nullable Object no, @NonNull Object nno) {
         // No error

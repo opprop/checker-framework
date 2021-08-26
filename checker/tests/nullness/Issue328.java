@@ -2,7 +2,7 @@ import org.checkerframework.checker.nullness.qual.*;
 
 import java.util.Map;
 
-class Issue328 {
+public class Issue328 {
     public static void m(Map<Object, Object> a, Map<Object, Object> b, Object ka, Object kb) {
         if (a.containsKey(ka)) {
             @NonNull Object i = a.get(ka); // OK

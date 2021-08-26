@@ -12,7 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class Issue1027 {
+public class Issue1027 {
 
     // Stand-alone reproduction
 
@@ -20,7 +20,7 @@ class Issue1027 {
         void bar(Function<T, String> p) {}
     }
 
-    @SuppressWarnings("nullness")
+    @SuppressWarnings({"nullness", "keyfor"})
     Repr<@KeyFor("this") String> foo() {
         return null;
     }

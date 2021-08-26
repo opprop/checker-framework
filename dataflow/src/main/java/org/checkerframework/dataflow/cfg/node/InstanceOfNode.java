@@ -4,6 +4,7 @@ import com.sun.source.tree.InstanceOfTree;
 import com.sun.source.tree.Tree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.javacutil.TypesUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -63,7 +64,7 @@ public class InstanceOfNode extends Node {
 
     @Override
     public String toString() {
-        return "(" + getOperand() + " instanceof " + getRefType() + ")";
+        return "(" + getOperand() + " instanceof " + TypesUtils.simpleTypeName(getRefType()) + ")";
     }
 
     @Override

@@ -12,7 +12,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 
@@ -28,9 +27,8 @@ import org.checkerframework.checker.lock.qual.Holding;
 import org.checkerframework.checker.lock.qual.LockHeld;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.dataflow.analysis.FlowExpressions;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Unknown;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.framework.flow.CFAbstractValue;
@@ -40,15 +38,16 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.framework.util.FlowExpressionParseUtil;
-import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionContext;
-import org.checkerframework.framework.util.FlowExpressionParseUtil.FlowExpressionParseException;
+import org.checkerframework.framework.util.JavaExpressionParseUtil.JavaExpressionParseException;
+import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesError;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeSystemError;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.CollectionsPlume;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -82,6 +81,16 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
 
     public LockVisitor(BaseTypeChecker checker) {
         super(checker);
+        for (String checkerName : atypeFactory.getCheckerNames()) {
+            if (!(checkerName.equals("lock")
+                    || checkerName.equals("LockChecker")
+                    || checkerName.equals("org.checkerframework.checker.lock.LockChecker"))) {
+                // The Lock Checker redefines CFAbstractStore#isSideEffectFree in a way that is
+                // incompatible with (semantically different than) other checkers.
+                inferPurity = false;
+                break;
+            }
+        }
     }
 
     @Override
@@ -330,14 +339,15 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     @Override
     protected void checkConstructorResult(
             AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
-        // Newly created objects are guarded by nothing, so allow @GuardBy({}) on constructor
+        // Newly created objects are guarded by nothing, so allow @GuardedBy({}) on constructor
         // results.
         AnnotationMirror anno =
                 constructorType
                         .getReturnType()
                         .getAnnotationInHierarchy(atypeFactory.GUARDEDBYUNKNOWN);
-        if (!AnnotationUtils.areSame(anno, atypeFactory.GUARDEDBY)) {
-            super.checkConstructorResult(constructorType, constructorElement);
+        if (AnnotationUtils.areSame(anno, atypeFactory.GUARDEDBYUNKNOWN)
+                || AnnotationUtils.areSame(anno, atypeFactory.GUARDEDBYBOTTOM)) {
+            checker.reportWarning(constructorElement, "inconsistent.constructor.type", anno, null);
         }
     }
 
@@ -346,41 +356,15 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             AnnotatedTypeMirror varType,
             AnnotatedTypeMirror valueType,
             Tree valueTree,
-            @CompilerMessageKey String errorKey) {
-
-        Kind valueTreeKind = valueTree.getKind();
-
-        switch (valueTreeKind) {
-            case NEW_CLASS:
-            case NEW_ARRAY:
-                // Avoid issuing warnings for: @GuardedBy(<something>) Object o = new Object();
-                // Do NOT do this if the LHS is @GuardedByBottom.
-                if (!varType.hasAnnotation(GuardedByBottom.class)) {
-                    return;
-                }
-                break;
-            case INT_LITERAL:
-            case LONG_LITERAL:
-            case FLOAT_LITERAL:
-            case DOUBLE_LITERAL:
-            case BOOLEAN_LITERAL:
-            case CHAR_LITERAL:
-            case STRING_LITERAL:
-                // Avoid issuing warnings for: @GuardedBy(<something>) Object o; o = <some literal>;
-                // Do NOT do this if the LHS is @GuardedByBottom.
-                if (!varType.hasAnnotation(GuardedByBottom.class)) {
-                    return;
-                }
-                break;
-            default:
-        }
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
 
         // In cases where assigning a value with a @GuardedBy annotation to a variable with a
         // @GuardSatisfied annotation is legal, this is our last chance to check that the
-        // appropriate locks are held before the information in the @GuardedBy annotation is
-        // lost in the assignment to the variable annotated with @GuardSatisfied. See the
-        // discussion of @GuardSatisfied in the "Type-checking rules" section of the
-        // Lock Checker manual chapter for more details.
+        // appropriate locks are held before the information in the @GuardedBy annotation is lost in
+        // the assignment to the variable annotated with @GuardSatisfied. See the discussion of
+        // @GuardSatisfied in the "Type-checking rules" section of the Lock Checker manual chapter
+        // for more details.
 
         if (varType.hasAnnotation(GuardSatisfied.class)) {
             if (valueType.hasAnnotation(GuardedBy.class)) {
@@ -433,7 +417,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             }
         }
 
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
     }
 
     @Override
@@ -476,18 +460,18 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             checker.reportError(
                     overriderTree,
                     messageKey,
-                    overriderMeth,
                     overriderTyp,
-                    overriddenMeth,
-                    overriddenTyp);
+                    overriderMeth,
+                    overriddenTyp,
+                    overriddenMeth);
         } else {
             checker.reportError(
                     overriderTree,
                     messageKey,
-                    overriderMeth,
                     overriderTyp,
-                    overriddenMeth,
+                    overriderMeth,
                     overriddenTyp,
+                    overriddenMeth,
                     overriderLocks,
                     overriddenLocks);
         }
@@ -501,7 +485,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     protected boolean checkOverride(
             MethodTree overriderTree,
             AnnotatedDeclaredType enclosingType,
-            AnnotatedExecutableType overridden,
+            AnnotatedExecutableType overriddenMethodType,
             AnnotatedDeclaredType overriddenType) {
 
         boolean isValid = true;
@@ -510,7 +494,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
                 atypeFactory.methodSideEffectAnnotation(
                         TreeUtils.elementFromDeclaration(overriderTree), false);
         SideEffectAnnotation seaOfOverridenMethod =
-                atypeFactory.methodSideEffectAnnotation(overridden.getElement(), false);
+                atypeFactory.methodSideEffectAnnotation(overriddenMethodType.getElement(), false);
 
         if (seaOfOverriderMethod.isWeakerThan(seaOfOverridenMethod)) {
             isValid = false;
@@ -518,13 +502,14 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
                     "override.sideeffect.invalid",
                     overriderTree,
                     enclosingType,
-                    overridden,
+                    overriddenMethodType,
                     overriddenType,
                     null,
                     null);
         }
 
-        return super.checkOverride(overriderTree, enclosingType, overridden, overriddenType)
+        return super.checkOverride(
+                        overriderTree, enclosingType, overriddenMethodType, overriddenType)
                 && isValid;
     }
 
@@ -571,7 +556,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         SideEffectAnnotation seaOfInvokedMethod =
                 atypeFactory.methodSideEffectAnnotation(methodElement, false);
 
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(atypeFactory.getPath(node));
+        MethodTree enclosingMethod = TreePathUtil.enclosingMethod(atypeFactory.getPath(node));
 
         ExecutableElement enclosingMethodElement = null;
         if (enclosingMethod != null) {
@@ -587,8 +572,8 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
                         node,
                         "method.guarantee.violated",
                         seaOfContainingMethod.getNameOfSideEffectAnnotation(),
-                        enclosingMethodElement.toString(),
-                        methodElement.toString(),
+                        enclosingMethodElement.getSimpleName(),
+                        methodElement.getSimpleName(),
                         seaOfInvokedMethod.getNameOfSideEffectAnnotation());
             }
         }
@@ -596,9 +581,9 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         if (methodElement != null) {
             // Handle releasing of explicit locks. Verify that the lock expression is effectively
             // final.
-            ExpressionTree recvTree = TreeUtils.getReceiverTree(node);
+            ExpressionTree receiverTree = TreeUtils.getReceiverTree(node);
 
-            ensureReceiverOfExplicitUnlockCallIsEffectivelyFinal(methodElement, recvTree);
+            ensureReceiverOfExplicitUnlockCallIsEffectivelyFinal(methodElement, receiverTree);
 
             // Handle acquiring of explicit locks. Verify that the lock expression is effectively
             // final.
@@ -611,12 +596,14 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
 
             AnnotationMirror ensuresLockHeldAnno =
                     atypeFactory.getDeclAnnotation(methodElement, EnsuresLockHeld.class);
-            List<String> expressions = new ArrayList<>();
 
+            List<String> expressions = new ArrayList<>();
             if (ensuresLockHeldAnno != null) {
                 expressions.addAll(
                         AnnotationUtils.getElementValueArray(
-                                ensuresLockHeldAnno, "value", String.class, false));
+                                ensuresLockHeldAnno,
+                                atypeFactory.ensuresLockHeldValueElement,
+                                String.class));
             }
 
             AnnotationMirror ensuresLockHeldIfAnno =
@@ -625,15 +612,17 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             if (ensuresLockHeldIfAnno != null) {
                 expressions.addAll(
                         AnnotationUtils.getElementValueArray(
-                                ensuresLockHeldIfAnno, "expression", String.class, false));
+                                ensuresLockHeldIfAnno,
+                                atypeFactory.ensuresLockHeldIfExpressionElement,
+                                String.class));
             }
 
             for (String expr : expressions) {
                 if (expr.equals("this")) {
-                    // recvTree will be null for implicit this, or class name receivers. But they
-                    // are also final. So nothing to be checked for them.
-                    if (recvTree != null) {
-                        ensureExpressionIsEffectivelyFinal(recvTree);
+                    // receiverTree will be null for implicit this, or class name receivers. But
+                    // they are also final. So nothing to be checked for them.
+                    if (receiverTree != null) {
+                        ensureExpressionIsEffectivelyFinal(receiverTree);
                     }
                 } else if (expr.equals("#1")) {
                     ExpressionTree firstParameter = node.getArguments().get(0);
@@ -650,8 +639,9 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         ParameterizedExecutableType mType = atypeFactory.methodFromUse(node);
         AnnotatedExecutableType invokedMethod = mType.executableType;
 
-        List<AnnotatedTypeMirror> requiredArgs =
-                AnnotatedTypes.expandVarArgs(atypeFactory, invokedMethod, node.getArguments());
+        List<AnnotatedTypeMirror> paramTypes =
+                AnnotatedTypes.expandVarArgsParameters(
+                        atypeFactory, invokedMethod, node.getArguments());
 
         // Index on @GuardSatisfied at each location. -1 when no @GuardSatisfied annotation was
         // present.
@@ -660,7 +650,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         // encountered we leave its index as -1.
         // The first element of the array is reserved for the receiver.
         int guardSatisfiedIndex[] =
-                new int[requiredArgs.size() + 1]; // + 1 for the receiver parameter type
+                new int[paramTypes.size() + 1]; // + 1 for the receiver parameter type
 
         // Retrieve receiver types from method definition and method call
 
@@ -683,13 +673,13 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
 
         // Retrieve formal parameter types from the method definition
 
-        for (int i = 0; i < requiredArgs.size(); i++) {
+        for (int i = 0; i < paramTypes.size(); i++) {
             guardSatisfiedIndex[i + 1] = -1;
 
-            AnnotatedTypeMirror arg = requiredArgs.get(i);
+            AnnotatedTypeMirror paramType = paramTypes.get(i);
 
-            if (arg.hasAnnotation(checkerGuardSatisfiedClass)) {
-                guardSatisfiedIndex[i + 1] = atypeFactory.getGuardSatisfiedIndex(arg);
+            if (paramType.hasAnnotation(checkerGuardSatisfiedClass)) {
+                guardSatisfiedIndex[i + 1] = atypeFactory.getGuardSatisfiedIndex(paramType);
             }
         }
 
@@ -850,7 +840,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             checker.reportError(node, "explicit.lock.synchronized");
         }
 
-        MethodTree enclosingMethod = TreeUtils.enclosingMethod(atypeFactory.getPath(node));
+        MethodTree enclosingMethod = TreePathUtil.enclosingMethod(atypeFactory.getPath(node));
 
         ExecutableElement methodElement = null;
         if (enclosingMethod != null) {
@@ -881,9 +871,9 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
      * @param lockExpressionTree the expression tree of a synchronized block
      */
     private void ensureExpressionIsEffectivelyFinal(final ExpressionTree lockExpressionTree) {
-        // This functionality could be implemented using a visitor instead,
-        // however with this design, it is easier to be certain that an error
-        // will always be issued if a tree kind is not recognized.
+        // This functionality could be implemented using a visitor instead, however with this
+        // design, it is easier to be certain that an error will always be issued if a tree kind is
+        // not recognized.
         // Only the most common tree kinds for synchronized expressions are supported.
 
         // Traverse the expression using 'tree', as 'lockExpressionTree' is used for error
@@ -931,7 +921,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     }
 
     private void ensureExpressionIsEffectivelyFinal(
-            final Receiver lockExpr,
+            final JavaExpression lockExpr,
             String expressionForErrorReporting,
             Tree treeForErrorReporting) {
         if (!atypeFactory.isExpressionEffectivelyFinal(lockExpr)) {
@@ -1011,7 +1001,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     }
 
     /**
-     * The flow expression parser requires a path for retrieving the scope that will be used to
+     * The JavaExpression parser requires a path for retrieving the scope that will be used to
      * resolve local variables. One would expect that simply providing the path to an AnnotationTree
      * would work, since the compiler (as called by the org.checkerframework.javacutil.Resolver
      * class) could walk up the path from the AnnotationTree to determine the scope. Unfortunately
@@ -1090,15 +1080,17 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     }
 
     @Override
+    @SuppressWarnings("interning:not.interned") // AST node comparison
     public Void visitIdentifier(IdentifierTree tree, Void p) {
-        // If the identifier is a field accessed via an implicit this,
-        // then check the lock of this.  (All other field accessed are checked in visitMemberSelect.
+        // If the identifier is a field accessed via an implicit this, then check the lock of this.
+        // (All other field accesses are checked in visitMemberSelect.)
         if (TreeUtils.isFieldAccess(tree)) {
             Tree parent = getCurrentPath().getParentPath().getLeaf();
             // If the parent is not a member select, or if it is and the field is the expression,
             // then the field is accessed via an implicit this.
-            if (parent.getKind() != Kind.MEMBER_SELECT
-                    || ((MemberSelectTree) parent).getExpression() == tree) {
+            if ((parent.getKind() != Tree.Kind.MEMBER_SELECT
+                            || ((MemberSelectTree) parent).getExpression() == tree)
+                    && !ElementUtils.isStatic(TreeUtils.elementFromUse(tree))) {
                 AnnotationMirror guardedBy =
                         atypeFactory
                                 .getSelfType(tree)
@@ -1171,9 +1163,16 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         checkLockOfThisOrTree(tree, false, gbAnno);
     }
 
+    /**
+     * Helper method tat checks the lock of either the implicit {@code this} or the given tree.
+     *
+     * @param tree a tree whose lock to check
+     * @param implicitThis true if checking the lock of the implicit {@code this}
+     * @param gbAnno a @GuardedBy annotation
+     */
     private void checkLockOfThisOrTree(Tree tree, boolean implicitThis, AnnotationMirror gbAnno) {
         if (gbAnno == null) {
-            throw new BugInCF("LockVisitor.checkLock: gbAnno cannot be null");
+            throw new TypeSystemError("LockVisitor.checkLock: gbAnno cannot be null");
         }
         if (atypeFactory.areSameByClass(gbAnno, GuardedByUnknown.class)
                 || atypeFactory.areSameByClass(gbAnno, GuardedByBottom.class)) {
@@ -1207,11 +1206,11 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         }
     }
 
-    private boolean isLockHeld(Receiver lock, LockStore store) {
+    private boolean isLockHeld(JavaExpression lockExpr, LockStore store) {
         if (store == null) {
             return false;
         }
-        CFAbstractValue<?> value = store.getValue(lock);
+        CFAbstractValue<?> value = store.getValue(lockExpr);
         if (value == null) {
             return false;
         }
@@ -1226,42 +1225,45 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
             boolean implicitThis, AnnotationMirror gbAnno, Tree tree) {
 
         List<String> expressions =
-                AnnotationUtils.getElementValueArray(gbAnno, "value", String.class, true);
+                AnnotationUtils.getElementValueArray(
+                        gbAnno,
+                        atypeFactory.guardedByValueElement,
+                        String.class,
+                        Collections.emptyList());
 
         if (expressions.isEmpty()) {
             return Collections.emptyList();
         }
 
         TreePath currentPath = getCurrentPath();
-        List<Receiver> params =
-                FlowExpressions.getParametersOfEnclosingMethod(atypeFactory, currentPath);
 
-        TypeMirror enclosingType = TreeUtils.typeOf(TreeUtils.enclosingClass(currentPath));
-        Receiver pseudoReceiver =
-                FlowExpressions.internalReprOfPseudoReceiver(currentPath, enclosingType);
-        FlowExpressionContext exprContext =
-                new FlowExpressionContext(pseudoReceiver, params, atypeFactory.getContext());
-        Receiver self;
+        TypeMirror enclosingType = TreeUtils.typeOf(TreePathUtil.enclosingClass(currentPath));
+        JavaExpression pseudoReceiver =
+                JavaExpression.getPseudoReceiver(currentPath, enclosingType);
+
+        JavaExpression self;
         if (implicitThis) {
             self = pseudoReceiver;
         } else if (TreeUtils.isExpressionTree(tree)) {
-            self = FlowExpressions.internalReprOf(atypeFactory, (ExpressionTree) tree);
+            self = JavaExpression.fromTree((ExpressionTree) tree);
         } else {
-            self = new Unknown(TreeUtils.typeOf(tree));
+            self = new Unknown(tree);
         }
 
-        List<LockExpression> lockExpressions = new ArrayList<>();
-        for (String expression : expressions) {
-            lockExpressions.add(parseExpressionString(expression, exprContext, currentPath, self));
-        }
-        return lockExpressions;
+        return CollectionsPlume.mapList(
+                expression -> parseExpressionString(expression, currentPath, self), expressions);
     }
 
+    /**
+     * Parse a Java expression.
+     *
+     * @param expression the Java expression
+     * @param path the path to the expression
+     * @param itself the self expression
+     * @return the parsed expression
+     */
     private LockExpression parseExpressionString(
-            String expression,
-            FlowExpressionContext flowExprContext,
-            TreePath path,
-            Receiver itself) {
+            String expression, TreePath path, JavaExpression itself) {
 
         LockExpression lockExpression = new LockExpression(expression);
         if (DependentTypesError.isExpressionError(expression)) {
@@ -1283,23 +1285,9 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
                     }
                     return lockExpression;
                 } else {
-                    // TODO: The proper way to do this is to call
-                    // flowExprContext.copyChangeToParsingMemberOfReceiver to set the receiver to
-                    // the <self> expression, and then call FlowExpressionParseUtil.parse on the
-                    // remaining expression string with the new flow expression context. However,
-                    // this currently results in a FlowExpressions.Receiver that has a different
-                    // hash code than if the following flow expression is parsed directly, which
-                    // results in our inability to check that a lock expression is held as it does
-                    // not match anything in the store due to the hash code mismatch.  For now,
-                    // convert the "<self>" portion to the node's string representation, and parse
-                    // the entire string:
-
                     lockExpression.lockExpression =
-                            FlowExpressionParseUtil.parse(
-                                    itself.toString() + "." + remainingExpression,
-                                    flowExprContext,
-                                    path,
-                                    true);
+                            StringToJavaExpression.atPath(
+                                    itself.toString() + "." + remainingExpression, path, checker);
                     if (!atypeFactory.isExpressionEffectivelyFinal(lockExpression.lockExpression)) {
                         checker.reportError(
                                 path.getLeaf(),
@@ -1310,10 +1298,10 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
                 }
             } else {
                 lockExpression.lockExpression =
-                        FlowExpressionParseUtil.parse(expression, flowExprContext, path, true);
+                        StringToJavaExpression.atPath(expression, path, checker);
                 return lockExpression;
             }
-        } catch (FlowExpressionParseException ex) {
+        } catch (JavaExpressionParseException ex) {
             lockExpression.error = new DependentTypesError(expression, ex);
             return lockExpression;
         }
@@ -1321,7 +1309,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
 
     private static class LockExpression {
         final String expressionString;
-        Receiver lockExpression = null;
+        JavaExpression lockExpression = null;
         DependentTypesError error = null;
 
         LockExpression(String expression) {

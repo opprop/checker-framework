@@ -6,22 +6,16 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 
-/**
- * A regular basic block that contains a sequence of {@link Node}s.
- *
- * <p>The following invariant holds.
- *
- * <pre>
- * forall n in getContents() :: n.getBlock() == this
- * </pre>
- */
+/** A regular basic block that contains a sequence of {@link Node}s. */
 public interface RegularBlock extends SingleSuccessorBlock {
 
     /**
      * Returns the unmodifiable sequence of {@link Node}s.
      *
      * @return the unmodifiable sequence of {@link Node}s
+     * @deprecated use {@link #getNodes} instead
      */
+    @Deprecated // 2020-08-05
     @Pure
     List<Node> getContents();
 

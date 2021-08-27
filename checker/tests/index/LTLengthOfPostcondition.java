@@ -5,7 +5,7 @@ import org.checkerframework.checker.index.qual.NonNegative;
 
 import java.util.Arrays;
 
-class LTLengthOfPostcondition {
+public class LTLengthOfPostcondition {
 
     Object[] array;
 

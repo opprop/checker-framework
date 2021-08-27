@@ -10,7 +10,7 @@ import java.util.List;
  *     List<@Interned String> sl = new ArrayList<String>();
  * and then the assignment fails.
  */
-class Raw3 {
+public class Raw3 {
 
     // We would like behavior that is as similar as possible between the
     // versions with no raw types and those with raw types.
@@ -76,9 +76,9 @@ class Raw3 {
         class DuoList<S, T> extends ArrayList<S> {}
 
         List<String> bar4(List<String> sl) {
-            // This line was previously failing because we couldn't adequately infer the
-            // type of DuoList as a List; it works now, though the future checking of rawtypes
-            // may be more strict
+            // This line was previously failing because we couldn't adequately infer the type of
+            // DuoList as a List; it works now, though the future checking of rawtypes may be more
+            // strict.
             // :: warning: [unchecked] unchecked conversion
             return (DuoList) sl;
         }

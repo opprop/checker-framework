@@ -1,13 +1,10 @@
 import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
-import org.checkerframework.framework.test.*;
-
-import testlib.util.*;
 
 // various tests for the checker to automatically suggest pure methods (most methods have been
 // copied from Purity.java)
 
-class PuritySuggestionsClass {
+public class PuritySuggestionsClass {
 
     String f1, f2, f3;
     String[] a;
@@ -23,6 +20,7 @@ class PuritySuggestionsClass {
 
     // class with a pure constructor
     private static class PureClass {
+        // :: warning: (purity.more.sideeffectfree)
         public PureClass() {}
     }
 

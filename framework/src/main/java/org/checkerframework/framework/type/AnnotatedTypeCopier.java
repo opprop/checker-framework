@@ -11,8 +11,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVari
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedUnionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.framework.type.visitor.AnnotatedTypeVisitor;
+import org.plumelib.util.CollectionsPlume;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -111,8 +111,8 @@ public class AnnotatedTypeCopier
 
         final AnnotatedDeclaredType copy = makeOrReturnCopy(original, originalToCopy);
 
-        if (original.wasRaw()) {
-            copy.setWasRaw();
+        if (original.isUnderlyingTypeRaw()) {
+            copy.setIsUnderlyingTypeRaw();
         }
 
         if (original.enclosingType != null) {
@@ -121,10 +121,10 @@ public class AnnotatedTypeCopier
         }
 
         if (original.typeArgs != null) {
-            final List<AnnotatedTypeMirror> copyTypeArgs = new ArrayList<>();
-            for (final AnnotatedTypeMirror typeArg : original.getTypeArguments()) {
-                copyTypeArgs.add(visit(typeArg, originalToCopy));
-            }
+            final List<AnnotatedTypeMirror> copyTypeArgs =
+                    CollectionsPlume.mapList(
+                            (AnnotatedTypeMirror typeArg) -> visit(typeArg, originalToCopy),
+                            original.getTypeArguments());
             copy.setTypeArguments(copyTypeArgs);
         }
 
@@ -141,12 +141,12 @@ public class AnnotatedTypeCopier
 
         final AnnotatedIntersectionType copy = makeOrReturnCopy(original, originalToCopy);
 
-        if (original.supertypes != null) {
-            final List<AnnotatedDeclaredType> copySupertypes = new ArrayList<>();
-            for (final AnnotatedDeclaredType supertype : original.supertypes) {
-                copySupertypes.add((AnnotatedDeclaredType) visit(supertype, originalToCopy));
-            }
-            copy.supertypes = Collections.unmodifiableList(copySupertypes);
+        if (original.bounds != null) {
+            List<AnnotatedTypeMirror> copySupertypes =
+                    CollectionsPlume.mapList(
+                            (AnnotatedTypeMirror bound) -> visit(bound, originalToCopy),
+                            original.bounds);
+            copy.bounds = Collections.unmodifiableList(copySupertypes);
         }
 
         return copy;
@@ -163,10 +163,11 @@ public class AnnotatedTypeCopier
         final AnnotatedUnionType copy = makeOrReturnCopy(original, originalToCopy);
 
         if (original.alternatives != null) {
-            final List<AnnotatedDeclaredType> copyAlternatives = new ArrayList<>();
-            for (final AnnotatedDeclaredType supertype : original.alternatives) {
-                copyAlternatives.add((AnnotatedDeclaredType) visit(supertype, originalToCopy));
-            }
+            final List<AnnotatedDeclaredType> copyAlternatives =
+                    CollectionsPlume.mapList(
+                            (AnnotatedDeclaredType supertype) ->
+                                    (AnnotatedDeclaredType) visit(supertype, originalToCopy),
+                            original.alternatives);
             copy.alternatives = Collections.unmodifiableList(copyAlternatives);
         }
 
@@ -240,13 +241,11 @@ public class AnnotatedTypeCopier
         final AnnotatedTypeVariable copy = makeOrReturnCopy(original, originalToCopy);
 
         if (original.getUpperBoundField() != null) {
-            // TODO: figure out why asUse is needed here and remove it.
-            copy.setUpperBound(visit(original.getUpperBoundField(), originalToCopy).asUse());
+            copy.setUpperBound(visit(original.getUpperBoundField(), originalToCopy));
         }
 
         if (original.getLowerBoundField() != null) {
-            // TODO: figure out why asUse is needed here and remove it.
-            copy.setLowerBound(visit(original.getLowerBoundField(), originalToCopy).asUse());
+            copy.setLowerBound(visit(original.getLowerBoundField(), originalToCopy));
         }
 
         return copy;
@@ -263,7 +262,7 @@ public class AnnotatedTypeCopier
     public AnnotatedTypeMirror visitNoType(
             AnnotatedNoType original,
             IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> originalToCopy) {
-        return makeCopy(original);
+        return makeOrReturnCopy(original, originalToCopy);
     }
 
     @Override

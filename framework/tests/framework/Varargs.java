@@ -1,4 +1,4 @@
-import testlib.util.*;
+import org.checkerframework.framework.testchecker.util.*;
 
 public class Varargs {
     public void testVarargsInvocation() {
@@ -9,9 +9,8 @@ public class Varargs {
         aVarargsMethod(s, s);
 
         moreVarargs(new @Odd String[1]);
-        // The assignment context infers @Odd for the component type.
-        // With invariant array subtyping, this will fail, as the main
-        // type is a subtype.
+        // The assignment context infers @Odd for the component type.  With invariant array
+        // subtyping, this will fail, as the main type is a subtype.
         moreVarargs(new String @Odd [1]);
         // :: warning: (cast.unsafe.constructor.invocation)
         moreVarargs(new @Odd String(), new @Odd String());

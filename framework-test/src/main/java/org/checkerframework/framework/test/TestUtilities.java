@@ -1,7 +1,13 @@
 package org.checkerframework.framework.test;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.SystemUtil;
 import org.junit.Assert;
+import org.plumelib.util.CollectionsPlume;
+import org.plumelib.util.StringsPlume;
+import org.plumelib.util.SystemPlume;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +17,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -20,23 +29,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import javax.tools.Diagnostic;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 
+/** Utilities for testing. */
 public class TestUtilities {
 
-    public static final boolean IS_AT_LEAST_9_JVM;
-    public static final boolean IS_AT_LEAST_11_JVM;
+    /** True if the JVM is version 9 or above. */
+    public static final boolean IS_AT_LEAST_9_JVM = SystemUtil.getJreVersion() >= 9;
+    /** True if the JVM is version 11 or above. */
+    public static final boolean IS_AT_LEAST_11_JVM = SystemUtil.getJreVersion() >= 11;
+    /** True if the JVM is version 11 or lower. */
+    public static final boolean IS_AT_MOST_11_JVM = SystemUtil.getJreVersion() <= 11;
+    /** True if the JVM is version 16 or above. */
+    public static final boolean IS_AT_LEAST_16_JVM = SystemUtil.getJreVersion() >= 16;
+    /** True if the JVM is version 16 or lower. */
+    public static final boolean IS_AT_MOST_16_JVM = SystemUtil.getJreVersion() <= 16;
 
     static {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         OutputStream err = new ByteArrayOutputStream();
         compiler.run(null, null, err, "-version");
-        IS_AT_LEAST_9_JVM = SystemUtil.getJreVersion() >= 9;
-        IS_AT_LEAST_11_JVM = SystemUtil.getJreVersion() >= 11;
     }
 
     public static List<File> findNestedJavaTestFiles(String... dirNames) {
@@ -68,10 +85,30 @@ public class TestUtilities {
      * @return list where each item is a list of Java test files grouped by directory
      */
     public static List<List<File>> findJavaFilesPerDirectory(File parent, String... dirNames) {
+        if (!parent.exists()) {
+            throw new BugInCF(
+                    "test parent directory does not exist: %s %s",
+                    parent, parent.getAbsoluteFile());
+        }
+        if (!parent.isDirectory()) {
+            throw new BugInCF(
+                    "test parent directory is not a directory: %s %s",
+                    parent, parent.getAbsoluteFile());
+        }
+
         List<List<File>> filesPerDirectory = new ArrayList<>();
 
         for (String dirName : dirNames) {
-            File dir = new File(parent, dirName);
+            File dir = new File(parent, dirName).toPath().toAbsolutePath().normalize().toFile();
+            if (!dir.isDirectory()) {
+                // For "ainfer-*" tests, their sources do not necessarily
+                // exist yet but will be created by a test that runs earlier than they do.
+                if (!(dir.getName().equals("annotated")
+                        && dir.getParentFile() != null
+                        && dir.getParentFile().getName().startsWith("ainfer-"))) {
+                    throw new BugInCF("test directory does not exist: %s", dir);
+                }
+            }
             if (dir.isDirectory()) {
                 filesPerDirectory.addAll(findJavaTestFilesInDirectory(dir));
             }
@@ -88,12 +125,14 @@ public class TestUtilities {
      * @return a list of list of Java test files
      */
     private static List<List<File>> findJavaTestFilesInDirectory(File dir) {
-        assert dir.isDirectory();
         List<List<File>> fileGroupedByDirectory = new ArrayList<>();
         List<File> filesInDir = new ArrayList<>();
 
         fileGroupedByDirectory.add(filesInDir);
         String[] dirContents = dir.list();
+        if (dirContents == null) {
+            throw new Error("Not a directory: " + dir);
+        }
         Arrays.sort(dirContents);
         for (String fileName : dirContents) {
             File file = new File(dir, fileName);
@@ -109,12 +148,16 @@ public class TestUtilities {
         return fileGroupedByDirectory;
     }
 
+    /**
+     * Prepends a file to the beginning of each filename.
+     *
+     * @param parent a file to prepend to each filename
+     * @param fileNames file names
+     * @return the file names, each with {@code parent} prepended
+     */
     public static List<Object[]> findFilesInParent(File parent, String... fileNames) {
-        List<Object[]> files = new ArrayList<>();
-        for (String fileName : fileNames) {
-            files.add(new Object[] {new File(parent, fileName)});
-        }
-        return files;
+        return CollectionsPlume.mapList(
+                (String fileName) -> new Object[] {new File(parent, fileName)}, fileNames);
     }
 
     /**
@@ -126,16 +169,17 @@ public class TestUtilities {
     public static List<File> getJavaFilesAsArgumentList(File... dirs) {
         List<File> arguments = new ArrayList<>();
         for (File dir : dirs) {
-            List<File> javaFiles = deeplyEnclosedJavaTestFiles(dir);
-
-            for (File javaFile : javaFiles) {
-                arguments.add(javaFile);
-            }
+            arguments.addAll(deeplyEnclosedJavaTestFiles(dir));
         }
         return arguments;
     }
 
-    /** Returns all the java files that are descendants of the given directory. */
+    /**
+     * Returns all the Java files that are descendants of the given directory.
+     *
+     * @param directory a directory
+     * @return all the Java files that are descendants of the given directory
+     */
     public static List<File> deeplyEnclosedJavaTestFiles(File directory) {
         if (!directory.exists()) {
             throw new IllegalArgumentException(
@@ -147,7 +191,8 @@ public class TestUtilities {
 
         List<File> javaFiles = new ArrayList<>();
 
-        File[] in = directory.listFiles();
+        @SuppressWarnings("nullness") // checked above that it's a directory
+        File @NonNull [] in = directory.listFiles();
         Arrays.sort(
                 in,
                 new Comparator<File>() {
@@ -176,12 +221,6 @@ public class TestUtilities {
             return false;
         }
 
-        // We could implement special filtering based on directory names,
-        // but I prefer using @below-java9-jdk-skip-test
-        // if (!IS_AT_LEAST_9_JVM && file.getAbsolutePath().contains("java9")) {
-        //     return false;
-        // }
-
         Scanner in = null;
         try {
             in = new Scanner(file);
@@ -193,7 +232,10 @@ public class TestUtilities {
             String nextLine = in.nextLine();
             if (nextLine.contains("@skip-test")
                     || (!IS_AT_LEAST_9_JVM && nextLine.contains("@below-java9-jdk-skip-test"))
-                    || (!IS_AT_LEAST_11_JVM && nextLine.contains("@below-java11-jdk-skip-test"))) {
+                    || (!IS_AT_LEAST_11_JVM && nextLine.contains("@below-java11-jdk-skip-test"))
+                    || (!IS_AT_MOST_11_JVM && nextLine.contains("@above-java11-skip-test"))
+                    || (!IS_AT_LEAST_16_JVM && nextLine.contains("@below-java16-jdk-skip-test"))
+                    || (!IS_AT_MOST_16_JVM && nextLine.contains("@above-java16-skip-test"))) {
                 in.close();
                 return false;
             }
@@ -203,7 +245,7 @@ public class TestUtilities {
         return true;
     }
 
-    public static String diagnosticToString(
+    public static @Nullable String diagnosticToString(
             final Diagnostic<? extends JavaFileObject> diagnostic, boolean usingAnomsgtxt) {
 
         String result = diagnostic.toString().trim();
@@ -221,13 +263,15 @@ public class TestUtilities {
             // and should be printed in full.
             if (!result.contains("unexpected Throwable")) {
                 String firstLine;
-                if (result.contains(System.lineSeparator())) {
-                    firstLine = result.substring(0, result.indexOf(System.lineSeparator()));
+                int lineSepPos = result.indexOf(System.lineSeparator());
+                if (lineSepPos != -1) {
+                    firstLine = result.substring(0, lineSepPos);
                 } else {
                     firstLine = result;
                 }
-                if (firstLine.contains(".java:")) {
-                    firstLine = firstLine.substring(firstLine.indexOf(".java:") + 5).trim();
+                int javaPos = firstLine.indexOf(".java:");
+                if (javaPos != -1) {
+                    firstLine = firstLine.substring(javaPos + 5).trim();
                 }
                 result = firstLine;
             }
@@ -250,20 +294,18 @@ public class TestUtilities {
         return actualDiagnosticsStr;
     }
 
+    /**
+     * Return the file absolute pathnames, separated by commas.
+     *
+     * @param javaFiles a list of Java files
+     * @return the file absolute pathnames, separated by commas
+     */
     public static String summarizeSourceFiles(List<File> javaFiles) {
-        StringBuilder listStrBuilder = new StringBuilder();
-
-        boolean first = true;
+        StringJoiner sj = new StringJoiner(", ");
         for (File file : javaFiles) {
-            if (first) {
-                first = false;
-            } else {
-                listStrBuilder.append(", ");
-            }
-            listStrBuilder.append(file.getAbsolutePath());
+            sj.add(file.getAbsolutePath());
         }
-
-        return listStrBuilder.toString();
+        return sj.toString();
     }
 
     public static File getTestFile(String fileRelativeToTestsDir) {
@@ -276,10 +318,10 @@ public class TestUtilities {
         return comparisonFile;
     }
 
-    public static List<String> optionMapToList(Map<String, String> options) {
+    public static List<String> optionMapToList(Map<String, @Nullable String> options) {
         List<String> optionList = new ArrayList<>(options.size() * 2);
 
-        for (Map.Entry<String, String> opt : options.entrySet()) {
+        for (Map.Entry<String, @Nullable String> opt : options.entrySet()) {
             optionList.add(opt.getKey());
 
             if (opt.getValue() != null) {
@@ -327,19 +369,19 @@ public class TestUtilities {
             pw.println("#Missing: " + missing.size() + "      #Unexpected: " + unexpected.size());
 
             pw.println("Expected:");
-            pw.println(SystemUtil.joinLines(expected));
+            pw.println(StringsPlume.joinLines(expected));
             pw.println();
 
             pw.println("Actual:");
-            pw.println(SystemUtil.joinLines(actual));
+            pw.println(StringsPlume.joinLines(actual));
             pw.println();
 
             pw.println("Missing:");
-            pw.println(SystemUtil.joinLines(missing));
+            pw.println(StringsPlume.joinLines(missing));
             pw.println();
 
             pw.println("Unexpected:");
-            pw.println(SystemUtil.joinLines(unexpected));
+            pw.println(StringsPlume.joinLines(unexpected));
             pw.println();
 
             pw.println();
@@ -397,30 +439,37 @@ public class TestUtilities {
     }
 
     /**
-     * TODO: REDO COMMENT Compares the result of the compiler against an array of Strings.
-     *
-     * <p>In a checker, a more specific error message is subsumed by a general one. For example,
-     * "new.array.type.invalid" is subsumed by "type.invalid". This is not the case in the test
-     * framework, which must use the exact error message key.
+     * If the given TypecheckResult has unexpected or missing diagnostics, fail the running JUnit
+     * test.
      *
      * @param testResult the result of type-checking
      */
-    public static void assertResultsAreValid(TypecheckResult testResult) {
+    public static void assertTestDidNotFail(TypecheckResult testResult) {
         if (testResult.didTestFail()) {
             if (getShouldEmitDebugInfo()) {
                 System.out.println("---------------- start of javac ouput ----------------");
                 System.out.println(testResult.getCompilationResult().getJavacOutput());
                 System.out.println("---------------- end of javac ouput ----------------");
+            } else {
+                System.out.println(
+                        "To see the javac command line and output, run with: -Pemit.test.debug");
             }
             Assert.fail(testResult.summarize());
         }
     }
 
-    public static void ensureDirectoryExists(File path) {
-        if (!path.exists()) {
-            if (!path.mkdirs()) {
-                throw new RuntimeException("Could not make directory: " + path.getAbsolutePath());
-            }
+    /**
+     * Create the directory (and its parents) if it does not exist.
+     *
+     * @param dir the directory to create
+     */
+    public static void ensureDirectoryExists(String dir) {
+        try {
+            Files.createDirectories(Paths.get(dir));
+        } catch (FileAlreadyExistsException e) {
+            // directory already exists
+        } catch (IOException e) {
+            throw new RuntimeException("Could not make directory: " + dir + ": " + e.getMessage());
         }
     }
 
@@ -433,7 +482,7 @@ public class TestUtilities {
      *     not set or is set to "false". Otherwise, errs.
      * @deprecated Use {@link SystemUtil#getBooleanSystemProperty(String)} instead.
      */
-    @Deprecated
+    @Deprecated // 2020-04-30
     public static boolean testBooleanProperty(String key) {
         return testBooleanProperty(key, false);
     }
@@ -447,7 +496,7 @@ public class TestUtilities {
      * @return the boolean value of {@code key} or {@code defaultValue} if {@code key} is not set
      * @deprecated Use {@link SystemUtil#getBooleanSystemProperty(String, boolean)} instead.
      */
-    @Deprecated
+    @Deprecated // 2020-04-30
     public static boolean testBooleanProperty(String key, boolean defaultValue) {
         return SystemUtil.getBooleanSystemProperty(key, defaultValue);
     }
@@ -458,6 +507,6 @@ public class TestUtilities {
      * @return the value of system property "emit.test.debug"
      */
     public static boolean getShouldEmitDebugInfo() {
-        return SystemUtil.getBooleanSystemProperty("emit.test.debug");
+        return SystemPlume.getBooleanSystemProperty("emit.test.debug");
     }
 }

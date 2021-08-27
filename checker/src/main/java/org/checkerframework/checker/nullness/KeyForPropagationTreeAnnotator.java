@@ -55,11 +55,7 @@ public class KeyForPropagationTreeAnnotator extends TreeAnnotator {
         super(atypeFactory);
         this.keyForPropagator = propagationTreeAnnotator;
         keySetMethod =
-                TreeUtils.getMethod(
-                        java.util.Map.class.getName(),
-                        "keySet",
-                        0,
-                        atypeFactory.getProcessingEnv());
+                TreeUtils.getMethod("java.util.Map", "keySet", 0, atypeFactory.getProcessingEnv());
     }
 
     /**

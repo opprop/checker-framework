@@ -1,5 +1,6 @@
 package org.checkerframework.common.value.util;
 
+import org.checkerframework.checker.interning.qual.InternedDistinct;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigInteger;
@@ -60,8 +61,10 @@ public class Range {
     /** A range containing all possible 8-bit values. */
     public static final Range BYTE_EVERYTHING = create(Byte.MIN_VALUE, Byte.MAX_VALUE);
 
-    /** The empty range singleton. */
-    public static final Range NOTHING = new Range(Long.MAX_VALUE, Long.MIN_VALUE);
+    /** The empty range. This is the only Range object that contains nothing */
+    @SuppressWarnings(
+            "interning:assignment.type.incompatible") // no other constructor call makes this
+    public static final @InternedDistinct Range NOTHING = new Range(Long.MAX_VALUE, Long.MIN_VALUE);
 
     /** An alias to the range containing all possible 64-bit values. */
     public static final Range EVERYTHING = LONG_EVERYTHING;
@@ -284,7 +287,7 @@ public class Range {
         return this == NOTHING;
     }
 
-    /** The number of values representable in 32 bits: 2^32 or 1&lt;&lt;32. */
+    /** The number of values representable in 32 bits: 2^32 or {@code 1<<32}. */
     private static final long INT_WIDTH = INT_EVERYTHING.width();
 
     /**
@@ -714,7 +717,7 @@ public class Range {
                 } else { // (to > Long.MIN_VALUE)
                     // When this range contains Long.MIN_VALUE, which would have a remainder of 0 if
                     // divided by Long.MIN_VALUE, the result range is {0} unioned with [from + 1,
-                    // to]
+                    // to].
                     range = create(from + 1, to).union(create(0, 0));
                 }
             } else { // (from > Long.MIN_VALUE)

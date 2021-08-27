@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class Issue414 {
+public class Issue414 {
 
     void simple(String s) {
         Map<String, Integer> mymap = new HashMap<>();

@@ -9,14 +9,13 @@ import com.sun.tools.javac.code.TypeAnnotationPosition;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.ElementAnnotationApplier;
 import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
 import org.checkerframework.javacutil.BugInCF;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javax.lang.model.element.Element;
@@ -140,22 +139,7 @@ public class TypeVarUseApplier {
         }
 
         for (final Attribute.TypeCompound annotation : typeVarAnnotations) {
-            typeVariable.removeAnnotationInHierarchy(annotation);
-            typeVariable.addAnnotation(annotation);
-
-            final List<? extends AnnotatedTypeMirror> upperBounds;
-            if (typeVariable.getUpperBound() instanceof AnnotatedIntersectionType) {
-                upperBounds = typeVariable.getUpperBound().directSuperTypes();
-            } else {
-                upperBounds = Arrays.asList(typeVariable.getUpperBound());
-            }
-
-            // TODO: Should we just make primary annotations on annotated intersection types apply
-            // TODO: to all of them?  Que dealio?  What should we do?
-            for (final AnnotatedTypeMirror bound : upperBounds) {
-                bound.removeAnnotationInHierarchy(annotation);
-                bound.addAnnotation(annotation);
-            }
+            typeVariable.replaceAnnotation(annotation);
         }
     }
 
@@ -279,11 +263,10 @@ public class TypeVarUseApplier {
 
         final MethodSymbol enclosingMethod = (MethodSymbol) enclosingElement;
 
-        final List<Attribute.TypeCompound> result = new ArrayList<>();
         if (enclosingMethod.getKind() != ElementKind.CONSTRUCTOR
                 && enclosingMethod.getKind() != ElementKind.METHOD) {
             // Initializer blocks don't have parameters, so there is nothing to do.
-            return result;
+            return Collections.emptyList();
         }
 
         // TODO: for the parameter in a lambda expression, the enclosingMethod isn't
@@ -292,6 +275,7 @@ public class TypeVarUseApplier {
         final int paramIndex = enclosingMethod.getParameters().indexOf(paramElem);
         final List<Attribute.TypeCompound> annotations = enclosingMethod.getRawTypeAttributes();
 
+        final List<Attribute.TypeCompound> result = new ArrayList<>();
         for (final Attribute.TypeCompound typeAnno : annotations) {
             if (typeAnno.position.type == TargetType.METHOD_FORMAL_PARAMETER) {
                 if (typeAnno.position.parameter_index == paramIndex) {

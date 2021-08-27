@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 // @skip-test until we bring list support back
 
-class ListSupportLBC {
+public class ListSupportLBC {
 
     void testGet() {
 

@@ -2,11 +2,10 @@ import org.checkerframework.dataflow.qual.Deterministic;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.checkerframework.framework.test.*;
-
-import testlib.util.*;
+import org.checkerframework.framework.testchecker.util.*;
 
 // various tests for the @Pure annotation
-class Purity {
+public class Purity {
 
     String f1, f2, f3;
     String[] a;
@@ -18,14 +17,12 @@ class Purity {
     private static class PureClass {
         @Pure
         // :: warning: (purity.deterministic.constructor)
-        // :: error: (purity.not.deterministic.not.sideeffectfree.call.method)
         public PureClass() {}
     }
 
     // class with a side-effect-free constructor
     private static class SEClass {
         @SideEffectFree
-        // :: error: (purity.not.sideeffectfree.call.method)
         public SEClass() {}
     }
 
@@ -55,11 +52,11 @@ class Purity {
 
     @Pure
     String t3() {
-        // :: error: (purity.not.deterministic.not.sideeffectfree.call.method)
+        // :: error: (purity.not.deterministic.not.sideeffectfree.call)
         nonpure();
-        // :: error: (purity.not.deterministic.call.method)
+        // :: error: (purity.not.deterministic.call)
         t16b(); // Calling a @SideEffectFree method
-        // :: error: (purity.not.sideeffectfree.call.method)
+        // :: error: (purity.not.sideeffectfree.call)
         t16c(); // Calling a @Deterministic method
         return "";
     }
@@ -199,7 +196,7 @@ class Purity {
 
     @Pure
     String t12() {
-        // :: error: (purity.not.sideeffectfree.call.constructor)
+        // :: error: (purity.not.sideeffectfree.call)
         // :: error: (purity.not.deterministic.object.creation)
         NonPureClass p = new NonPureClass();
         return "";
@@ -211,9 +208,9 @@ class Purity {
         f1 = "";
         // :: error: (purity.not.deterministic.assign.array)
         l.a[0] = "";
-        // :: error: (purity.not.deterministic.call.method)
+        // :: error: (purity.not.deterministic.call)
         nonpure();
-        // :: error: (purity.not.deterministic.call.method)
+        // :: error: (purity.not.deterministic.call)
         return t16b(); // Calling a @SideEffectFree method
     }
 
@@ -221,11 +218,11 @@ class Purity {
     String t17b() {
         // :: error: (purity.not.sideeffectfree.assign.field)
         f1 = "";
-        // :: error: (purity.not.sideeffectfree.call.constructor)
+        // :: error: (purity.not.sideeffectfree.call)
         NonPureClass p = new NonPureClass();
-        // :: error: (purity.not.sideeffectfree.call.method)
+        // :: error: (purity.not.sideeffectfree.call)
         nonpure();
-        // :: error: (purity.not.sideeffectfree.call.method)
+        // :: error: (purity.not.sideeffectfree.call)
         return t16c(); // Calling a @Deterministic method
     }
 

@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.KeyFor;
 import java.util.HashMap;
 import java.util.Map;
 
-class KeyForPostcondition {
+public class KeyForPostcondition {
 
     public static Map<String, Integer> m = new HashMap<>();
 

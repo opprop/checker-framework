@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @SuppressWarnings("all")
-class Issue953bLambda {
+public class Issue953bLambda {
     private static List<List<?>> strs = new ArrayList<>();
 
     public static <R, T> List<@NonNull R> mapList(

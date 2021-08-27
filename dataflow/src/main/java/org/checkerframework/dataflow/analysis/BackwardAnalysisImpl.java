@@ -1,12 +1,12 @@
 package org.checkerframework.dataflow.analysis;
 
+import org.checkerframework.checker.interning.qual.FindDistinct;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.analysis.Store.FlowRule;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.block.Block;
-import org.checkerframework.dataflow.cfg.block.BlockImpl;
 import org.checkerframework.dataflow.cfg.block.ConditionalBlock;
 import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
 import org.checkerframework.dataflow.cfg.block.RegularBlock;
@@ -38,39 +38,36 @@ public class BackwardAnalysisImpl<
     // TODO: Add widening support like what the forward analysis does.
 
     /** Out stores after every basic block (assumed to be 'no information' if not present). */
-    protected final IdentityHashMap<Block, S> outStores;
+    protected final IdentityHashMap<Block, S> outStores = new IdentityHashMap<>();
 
     /**
      * Exception store of an exception block, propagated by exceptional successors of its exception
      * block, and merged with the normal {@link TransferResult}.
      */
-    protected final IdentityHashMap<ExceptionBlock, S> exceptionStores;
+    protected final IdentityHashMap<ExceptionBlock, S> exceptionStores = new IdentityHashMap<>();
 
     /** The store right before the entry block. */
-    protected @Nullable S storeAtEntry;
+    protected @Nullable S storeAtEntry = null;
 
     // `@code`, not `@link`, because dataflow module doesn't depend on framework module.
     /**
      * Construct an object that can perform a org.checkerframework.dataflow backward analysis over a
-     * control flow graph. The transfer function is set by the subclass, e.g., {@code
-     * org.checkerframework.framework.flow.CFAbstractAnalysis}, later.
+     * control flow graph. When using this constructor, the transfer function is set later by the
+     * subclass, e.g., {@code org.checkerframework.framework.flow.CFAbstractAnalysis}.
      */
     public BackwardAnalysisImpl() {
         super(Direction.BACKWARD);
-        this.outStores = new IdentityHashMap<>();
-        this.exceptionStores = new IdentityHashMap<>();
-        this.storeAtEntry = null;
     }
 
     /**
      * Construct an object that can perform a org.checkerframework.dataflow backward analysis over a
      * control flow graph given a transfer function.
      *
-     * @param transfer the transfer function
+     * @param transferFunction the transfer function
      */
-    public BackwardAnalysisImpl(@Nullable T transfer) {
+    public BackwardAnalysisImpl(@Nullable T transferFunction) {
         this();
-        this.transferFunction = transfer;
+        this.transferFunction = transferFunction;
     }
 
     @Override
@@ -104,7 +101,7 @@ public class BackwardAnalysisImpl<
                     currentInput = inputAfter.copy();
                     Node firstNode = null;
                     boolean addToWorklistAgain = false;
-                    List<Node> nodeList = rb.getContents();
+                    List<Node> nodeList = rb.getNodes();
                     ListIterator<Node> reverseIter = nodeList.listIterator(nodeList.size());
                     while (reverseIter.hasPrevious()) {
                         Node node = reverseIter.previous();
@@ -116,7 +113,7 @@ public class BackwardAnalysisImpl<
                         firstNode = node;
                     }
                     // Propagate store to predecessors
-                    for (BlockImpl pred : rb.getPredecessors()) {
+                    for (Block pred : rb.getPredecessors()) {
                         assert currentInput != null : "@AssumeAssertion(nullness): invariant";
                         propagateStoresTo(
                                 pred,
@@ -144,7 +141,7 @@ public class BackwardAnalysisImpl<
                                             .getRegularStore()
                                             .leastUpperBound(exceptionStore)
                                     : transferResult.getRegularStore();
-                    for (BlockImpl pred : eb.getPredecessors()) {
+                    for (Block pred : eb.getPredecessors()) {
                         addStoreAfter(pred, node, mergedStore, addToWorklistAgain);
                     }
                     break;
@@ -155,7 +152,7 @@ public class BackwardAnalysisImpl<
                     TransferInput<V, S> inputAfter = getInput(cb);
                     assert inputAfter != null : "@AssumeAssertion(nullness): invariant";
                     TransferInput<V, S> input = inputAfter.copy();
-                    for (BlockImpl pred : cb.getPredecessors()) {
+                    for (Block pred : cb.getPredecessors()) {
                         propagateStoresTo(pred, null, input, FlowRule.EACH_TO_EACH, false);
                     }
                     break;
@@ -174,7 +171,7 @@ public class BackwardAnalysisImpl<
                                 || sType == SpecialBlockType.EXCEPTIONAL_EXIT;
                         TransferInput<V, S> input = getInput(sb);
                         assert input != null : "@AssumeAssertion(nullness): invariant";
-                        for (BlockImpl pred : sb.getPredecessors()) {
+                        for (Block pred : sb.getPredecessors()) {
                             propagateStoresTo(pred, null, input, FlowRule.EACH_TO_EACH, false);
                         }
                     }
@@ -276,7 +273,7 @@ public class BackwardAnalysisImpl<
                 && node != null) {
             @Nullable Block succBlock = ((ExceptionBlock) pred).getSuccessor();
             @Nullable Block block = node.getBlock();
-            if (succBlock != null && block != null && succBlock.getId() == block.getId()) {
+            if (succBlock != null && block != null && succBlock.getUid() == block.getUid()) {
                 // If the block of passing node is an exceptional successor of Block pred, propagate
                 // store to the exceptionStores. Currently it doesn't track the label of an
                 // exceptional edge from exception block to its exceptional successors in backward
@@ -288,6 +285,7 @@ public class BackwardAnalysisImpl<
                         (exceptionStore != null) ? exceptionStore.leastUpperBound(s) : s;
                 if (!newExceptionStore.equals(exceptionStore)) {
                     exceptionStores.put(ebPred, newExceptionStore);
+                    inputs.put(ebPred, new TransferInput<V, S>(node, this, newExceptionStore));
                     addBlockToWorklist = true;
                 }
             }
@@ -317,9 +315,9 @@ public class BackwardAnalysisImpl<
 
     @Override
     public S runAnalysisFor(
-            Node node,
-            boolean before,
-            TransferInput<V, S> transferInput,
+            @FindDistinct Node node,
+            Analysis.BeforeOrAfter preOrPost,
+            TransferInput<V, S> blockTransferInput,
             IdentityHashMap<Node, V> nodeValues,
             Map<TransferInput<V, S>, IdentityHashMap<Node, TransferResult<V, S>>> analysisCaches) {
         Block block = node.getBlock();
@@ -337,16 +335,17 @@ public class BackwardAnalysisImpl<
                         RegularBlock rBlock = (RegularBlock) block;
                         // Apply transfer function to contents until we found the node we are
                         // looking for.
-                        TransferInput<V, S> store = transferInput;
-                        List<Node> nodeList = rBlock.getContents();
+                        TransferInput<V, S> store = blockTransferInput;
+                        List<Node> nodeList = rBlock.getNodes();
                         ListIterator<Node> reverseIter = nodeList.listIterator(nodeList.size());
                         while (reverseIter.hasPrevious()) {
                             Node n = reverseIter.previous();
-                            currentNode = n;
-                            if (n == node && !before) {
+                            setCurrentNode(n);
+                            if (n == node && preOrPost == Analysis.BeforeOrAfter.AFTER) {
                                 return store.getRegularStore();
                             }
-                            // Copy the store to preserve to change the state in {@link #inputs}
+                            // Copy the store to avoid changing other blocks' transfer inputs in
+                            // {@link #inputs}
                             TransferResult<V, S> transferResult =
                                     callTransferFunction(n, store.copy());
                             if (n == node) {
@@ -354,9 +353,7 @@ public class BackwardAnalysisImpl<
                             }
                             store = new TransferInput<>(n, this, transferResult);
                         }
-                        // This point should never be reached. If the block of 'node' is
-                        // 'block', then 'node' must be part of the contents of 'block'.
-                        throw new BugInCF("This point should never be reached.");
+                        throw new BugInCF("node %s is not in node.getBlock()=%s", node, block);
                     }
                 case EXCEPTION_BLOCK:
                     {
@@ -368,12 +365,14 @@ public class BackwardAnalysisImpl<
                                             + "\teb.getNode(): "
                                             + eb.getNode());
                         }
-                        if (!before) {
-                            return transferInput.getRegularStore();
+                        if (preOrPost == Analysis.BeforeOrAfter.AFTER) {
+                            return blockTransferInput.getRegularStore();
                         }
-                        currentNode = node;
+                        setCurrentNode(node);
+                        // Copy the store to avoid changing other blocks' transfer inputs in {@link
+                        // #inputs}
                         TransferResult<V, S> transferResult =
-                                callTransferFunction(node, transferInput);
+                                callTransferFunction(node, blockTransferInput.copy());
                         // Merge transfer result with the exception store of this exceptional block
                         S exceptionStore = exceptionStores.get(eb);
                         return exceptionStore == null
@@ -386,7 +385,7 @@ public class BackwardAnalysisImpl<
             }
 
         } finally {
-            currentNode = oldCurrentNode;
+            setCurrentNode(oldCurrentNode);
             isRunning = false;
         }
     }

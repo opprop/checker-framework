@@ -4,7 +4,7 @@ import org.checkerframework.checker.index.qual.*;
 
 import java.util.Arrays;
 
-class ObjectClone {
+public class ObjectClone {
 
     void test(int[] a, int @SameLen("#1") [] b) {
         int @SameLen("a") [] c = b.clone();

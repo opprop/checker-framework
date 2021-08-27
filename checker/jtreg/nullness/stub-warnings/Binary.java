@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import javax.annotation.Nullable;
 
-class Binary {
+public class Binary {
     @Nullable Object foo() {
         return null;
     }

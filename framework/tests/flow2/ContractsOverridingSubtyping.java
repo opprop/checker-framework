@@ -2,10 +2,9 @@ import org.checkerframework.common.subtyping.qual.Unqualified;
 import org.checkerframework.framework.qual.EnsuresQualifier;
 import org.checkerframework.framework.qual.EnsuresQualifierIf;
 import org.checkerframework.framework.qual.RequiresQualifier;
+import org.checkerframework.framework.testchecker.util.Odd;
 
-import testlib.util.Odd;
-
-class ContractsOverridingSubtyping {
+public class ContractsOverridingSubtyping {
     static class Base {
         String f;
         @Odd String g;

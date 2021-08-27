@@ -138,7 +138,7 @@ public abstract class AbstractTypeProcessor extends AbstractProcessor {
     public abstract void typeProcess(TypeElement element, TreePath tree);
 
     /**
-     * A method to be called once all the classes are processed and no error is reported.
+     * A method to be called once all the classes are processed.
      *
      * <p>Subclasses may override this method to do any aggregate analysis (e.g. generate report,
      * persistence) or resource deallocation.

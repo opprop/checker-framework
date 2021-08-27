@@ -3,8 +3,8 @@
 
 // @skip-test until the issue is resolved
 
-import org.checkerframework.checker.nullness.Opt;
 import org.checkerframework.checker.nullness.qual.*;
+import org.checkerframework.checker.nullness.util.Opt;
 
 import java.math.BigDecimal;
 import java.util.stream.Stream;

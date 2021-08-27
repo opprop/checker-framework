@@ -5,7 +5,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Optional;
 
-class Issue1000 {
+public class Issue1000 {
     void illegalInstantiation(Optional<@Nullable String> arg) {}
 
     String orElseAppliedToNonNull(Optional<String> opt) {

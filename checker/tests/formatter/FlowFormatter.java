@@ -1,6 +1,6 @@
-import org.checkerframework.checker.formatter.FormatUtil;
 import org.checkerframework.checker.formatter.qual.ConversionCategory;
 import org.checkerframework.checker.formatter.qual.Format;
+import org.checkerframework.checker.formatter.util.FormatUtil;
 import org.junit.Assert;
 
 import java.util.Date;

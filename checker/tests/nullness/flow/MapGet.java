@@ -9,7 +9,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
-class MapGet {
+public class MapGet {
     private final Map<String, String> labels = new HashMap<>();
 
     void foo1(String v) {

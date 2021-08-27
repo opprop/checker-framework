@@ -8,7 +8,7 @@ import java.util.Date;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-class LockInterfaceTest {
+public class LockInterfaceTest {
 
     static final Lock myStaticLock = new ReentrantLock(true);
 

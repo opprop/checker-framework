@@ -104,7 +104,7 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk8:latest
+  container: wmdietl/cf-ubuntu-jdk8:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -113,7 +113,7 @@ jobs:
 - job: inference_tests_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk11:latest
+  container: wmdietl/cf-ubuntu-jdk11:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -127,7 +127,7 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk16:latest
   steps:
   - checkout: self
     fetchDepth: 25

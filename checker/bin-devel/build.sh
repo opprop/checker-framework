@@ -39,7 +39,7 @@ fi
 # AT=$(dirname "${AFU}")
 
 # ## Build annotation-tools (Annotation File Utilities)
-# "$PLUME_SCRIPTS/git-clone-related" eisop annotation-tools "${AT}"
+# "$PLUME_SCRIPTS/git-clone-related" opprop annotation-tools "${AT}"
 # if [ ! -d ../annotation-tools ] ; then
 #   ln -s "${AT}" ../annotation-tools
 # fi

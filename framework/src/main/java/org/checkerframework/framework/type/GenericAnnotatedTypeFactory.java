@@ -18,9 +18,6 @@ import com.sun.source.util.TreePath;
 import org.checkerframework.checker.formatter.qual.FormatMethod;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.wholeprograminference.WholeProgramInferenceImplementation;
-import org.checkerframework.common.wholeprograminference.WholeProgramInferenceJavaParserStorage;
-import org.checkerframework.common.wholeprograminference.WholeProgramInferenceScenesStorage;
 import org.checkerframework.dataflow.analysis.Analysis;
 import org.checkerframework.dataflow.analysis.Analysis.BeforeOrAfter;
 import org.checkerframework.dataflow.analysis.AnalysisResult;
@@ -99,9 +96,6 @@ import org.plumelib.reflection.Signatures;
 import org.plumelib.util.CollectionsPlume;
 import org.plumelib.util.SystemPlume;
 
-import scenelib.annotations.el.AField;
-import scenelib.annotations.el.AMethod;
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -129,6 +123,14 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
+
+/* NO-AFU
+   import org.checkerframework.common.wholeprograminference.WholeProgramInferenceImplementation;
+   import org.checkerframework.common.wholeprograminference.WholeProgramInferenceJavaParserStorage;
+   import org.checkerframework.common.wholeprograminference.WholeProgramInferenceScenesStorage;
+   import scenelib.annotations.el.AField;
+   import scenelib.annotations.el.AMethod;
+*/
 
 /**
  * A factory that extends {@link AnnotatedTypeFactory} to optionally use flow-sensitive qualifier
@@ -1327,7 +1329,7 @@ public abstract class GenericAnnotatedTypeFactory<
                     members.sort(sortVariablesFirst);
                 }
                 for (Tree m : members) {
-                    switch (m.getKind()) {
+                    switch (TreeUtils.getKindRecordAsClass(m)) {
                         case METHOD:
                             MethodTree mt = (MethodTree) m;
 
@@ -1380,7 +1382,7 @@ public abstract class GenericAnnotatedTypeFactory<
                             fieldValues.add(
                                     new FieldInitialValue<>(fieldExpr, declaredValue, null));
                             break;
-                        case CLASS:
+                        case CLASS: // Including RECORD
                         case ANNOTATION_TYPE:
                         case INTERFACE:
                         case ENUM:
@@ -2390,7 +2392,7 @@ public abstract class GenericAnnotatedTypeFactory<
         return defaultValueATM;
     }
 
-    /**
+    /* NO-AFU
      * Return the contract annotations (that is, pre- and post-conditions) for the given AMethod.
      * Does not modify the AMethod. This method must only be called when using
      * WholeProgramInferenceScenes.
@@ -2398,6 +2400,7 @@ public abstract class GenericAnnotatedTypeFactory<
      * @param m AFU representation of a method
      * @return contract annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getContractAnnotations(AMethod m) {
         List<AnnotationMirror> preconds = getPreconditionAnnotations(m);
         List<AnnotationMirror> postconds = getPostconditionAnnotations(m, preconds);
@@ -2405,14 +2408,16 @@ public abstract class GenericAnnotatedTypeFactory<
         result.addAll(postconds);
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Return the precondition annotations for the given AMethod. Does not modify the AMethod. This
      * method must only be called when using WholeProgramInferenceScenes.
      *
      * @param m AFU representation of a method
      * @return precondition annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getPreconditionAnnotations(AMethod m) {
         List<AnnotationMirror> result = new ArrayList<>(m.getPreconditions().size());
         for (Map.Entry<String, AField> entry : m.getPreconditions().entrySet()) {
@@ -2436,8 +2441,9 @@ public abstract class GenericAnnotatedTypeFactory<
         Collections.sort(result, Ordering.usingToString());
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Return the postcondition annotations for the given AMethod. Does not modify the AMethod. This
      * method must only be called when using WholeProgramInferenceScenes.
      *
@@ -2446,6 +2452,7 @@ public abstract class GenericAnnotatedTypeFactory<
      *     postconditions
      * @return postcondition annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getPostconditionAnnotations(
             AMethod m, List<AnnotationMirror> preconds) {
         List<AnnotationMirror> result = new ArrayList<>(m.getPostconditions().size());
@@ -2473,14 +2480,16 @@ public abstract class GenericAnnotatedTypeFactory<
         Collections.sort(result, Ordering.usingToString());
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Return the contract annotations (that is, pre- and post-conditions) for the given
      * CallableDeclarationAnnos. Does not modify the CallableDeclarationAnnos.
      *
      * @param methodAnnos annotation data for a method
      * @return contract annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getContractAnnotations(
             WholeProgramInferenceJavaParserStorage.CallableDeclarationAnnos methodAnnos) {
         List<AnnotationMirror> preconds = getPreconditionAnnotations(methodAnnos);
@@ -2489,14 +2498,16 @@ public abstract class GenericAnnotatedTypeFactory<
         result.addAll(postconds);
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Return the precondition annotations for the given CallableDeclarationAnnos. Does not modify
      * the CallableDeclarationAnnos.
      *
      * @param methodAnnos annotation data for a method
      * @return precondition annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getPreconditionAnnotations(
             WholeProgramInferenceJavaParserStorage.CallableDeclarationAnnos methodAnnos) {
         List<AnnotationMirror> result = new ArrayList<>();
@@ -2509,8 +2520,9 @@ public abstract class GenericAnnotatedTypeFactory<
         Collections.sort(result, Ordering.usingToString());
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Return the postcondition annotations for the given CallableDeclarationAnnos. Does not modify
      * the CallableDeclarationAnnos.
      *
@@ -2519,6 +2531,7 @@ public abstract class GenericAnnotatedTypeFactory<
      *     postconditions
      * @return postcondition annotations for the method
      */
+    /* NO-AFU
     public List<AnnotationMirror> getPostconditionAnnotations(
             WholeProgramInferenceJavaParserStorage.CallableDeclarationAnnos methodAnnos,
             List<AnnotationMirror> preconds) {
@@ -2535,8 +2548,9 @@ public abstract class GenericAnnotatedTypeFactory<
         Collections.sort(result, Ordering.usingToString());
         return result;
     }
+    */
 
-    /**
+    /* NO-AFU
      * Returns a list of inferred {@code @RequiresQualifier} annotations for the given expression.
      * By default this list does not include any qualifier that has elements/arguments, which
      * {@code @RequiresQualifier} does not support. Subclasses may remove this restriction by
@@ -2552,13 +2566,15 @@ public abstract class GenericAnnotatedTypeFactory<
      * @param declaredType the declared type of the expression
      * @return precondition annotations for the element (possibly an empty list)
      */
+    /* NO-AFU
     public final List<AnnotationMirror> getPreconditionAnnotations(
             String expression, AnnotatedTypeMirror inferredType, AnnotatedTypeMirror declaredType) {
         return getPreOrPostconditionAnnotations(
                 expression, inferredType, declaredType, BeforeOrAfter.BEFORE, null);
     }
+    */
 
-    /**
+    /* NO-AFU
      * Returns a list of inferred {@code @EnsuresQualifier} annotations for the given expression. By
      * default this list does not include any qualifier that has elements/arguments, which
      * {@code @EnsuresQualifier} does not support; and, preconditions are not used to suppress
@@ -2577,6 +2593,7 @@ public abstract class GenericAnnotatedTypeFactory<
      *     postconditions
      * @return postcondition annotations for the element (possibly an empty list)
      */
+    /* NO-AFU
     public final List<AnnotationMirror> getPostconditionAnnotations(
             String expression,
             AnnotatedTypeMirror inferredType,
@@ -2585,8 +2602,9 @@ public abstract class GenericAnnotatedTypeFactory<
         return getPreOrPostconditionAnnotations(
                 expression, inferredType, declaredType, BeforeOrAfter.AFTER, preconds);
     }
+    */
 
-    /**
+    /* NO-AFU
      * Creates pre- and postcondition annotations. Helper method for {@link
      * #getPreconditionAnnotations} and {@link #getPostconditionAnnotations}.
      *
@@ -2608,6 +2626,7 @@ public abstract class GenericAnnotatedTypeFactory<
      *     postconditions; non-null exactly when {@code preOrPost} is {@code AFTER}
      * @return precondition or postcondition annotations for the element (possibly an empty list)
      */
+    /* NO-AFU
     protected List<AnnotationMirror> getPreOrPostconditionAnnotations(
             String expression,
             AnnotatedTypeMirror inferredType,
@@ -2640,6 +2659,7 @@ public abstract class GenericAnnotatedTypeFactory<
         }
         return result;
     }
+    */
 
     /**
      * Matches parameter expressions as they appear in {@link EnsuresQualifier} and {@link

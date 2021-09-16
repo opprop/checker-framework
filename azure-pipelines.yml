@@ -44,7 +44,7 @@ jobs:
       targetPath: ./checker/dist
       artifactName: cf_jdk11
       artifactType: pipeline
-- job: junit_tests_jdk16
+- job: junit_tests_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -52,13 +52,29 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk-latest:latest
   timeoutInMinutes: 70
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-junit.sh
     displayName: test-cftests-junit.sh
+- job: junit_tests_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next:latest
+  timeoutInMinutes: 70
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cftests-junit.sh
+    displayName: test-cftests-junit.sh
+
 - job: nonjunit_tests_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -82,7 +98,7 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-nonjunit.sh
     displayName: test-cftests-nonjunit.sh
-- job: nonjunit_tests_jdk16
+- job: nonjunit_tests_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -90,12 +106,27 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk-latest:latest
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-nonjunit.sh
     displayName: test-cftests-nonjunit.sh
+- job: nonjunit_tests_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cftests-nonjunit.sh
+    displayName: test-cftests-nonjunit.sh
+
 - job: inference_tests_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -104,7 +135,7 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk8:latest
+  container: wmdietl/cf-ubuntu-jdk8:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -113,13 +144,13 @@ jobs:
 - job: inference_tests_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk11:latest
+  container: wmdietl/cf-ubuntu-jdk11:latest
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-inference.sh
     displayName: test-cftests-inference.sh
-- job: inference_tests_jdk16
+- job: inference_tests_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - inference_tests_jdk11
@@ -127,12 +158,27 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk-latest:latest
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-inference.sh
     displayName: test-cftests-inference.sh
+- job: inference_tests_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - inference_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cftests-inference.sh
+    displayName: test-cftests-inference.sh
+
 - job: misc_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -156,7 +202,7 @@ jobs:
     fetchDepth: 1000
   - bash: ./checker/bin-devel/test-misc.sh
     displayName: test-misc.sh
-- job: misc_jdk16
+- job: misc_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -164,12 +210,27 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16-plus:latest
+  container: wmdietl/cf-ubuntu-jdk-latest-plus:latest
   steps:
   - checkout: self
     fetchDepth: 1000
   - bash: ./checker/bin-devel/test-misc.sh
     displayName: test-misc.sh
+- job: misc_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+   - misc_jdk11
+   - typecheck_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next-plus:latest
+  steps:
+  - checkout: self
+    fetchDepth: 1000
+  - bash: ./checker/bin-devel/test-misc.sh
+    displayName: test-misc.sh
+
 - job: typecheck_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -193,7 +254,7 @@ jobs:
     fetchDepth: 1000
   - bash: ./checker/bin-devel/test-typecheck.sh
     displayName: test-typecheck.sh
-- job: typecheck_jdk16
+- job: typecheck_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -201,12 +262,27 @@ jobs:
    - typecheck_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16-plus:latest
+  container: wmdietl/cf-ubuntu-jdk-latest-plus:latest
   steps:
   - checkout: self
     fetchDepth: 1000
   - bash: ./checker/bin-devel/test-typecheck.sh
     displayName: test-typecheck.sh
+- job: typecheck_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next-plus:latest
+  steps:
+  - checkout: self
+    fetchDepth: 1000
+  - bash: ./checker/bin-devel/test-typecheck.sh
+    displayName: test-typecheck.sh
+
 - job: daikon_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -252,6 +328,7 @@ jobs:
 #     fetchDepth: 25
 #   - bash: ./checker/bin-devel/test-daikon.sh
 #     displayName: test-daikon.sh
+
 - job: guava_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -276,7 +353,7 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-guava.sh
     displayName: test-guava.sh
-- job: guava_jdk16
+- job: guava_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -285,12 +362,28 @@ jobs:
    - guava_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk-latest:latest
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-guava.sh
     displayName: test-guava.sh
+- job: guava_jdk_next
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+   - guava_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-guava.sh
+    displayName: test-guava.sh
+
 - job: plume_lib_jdk8
   dependsOn:
    - junit_tests_jdk11
@@ -315,7 +408,7 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-plume-lib.sh
     displayName: test-plume-lib.sh
-- job: plume_lib_jdk16
+- job: plume_lib_jdk_latest
   dependsOn:
    - junit_tests_jdk11
    - nonjunit_tests_jdk11
@@ -324,12 +417,27 @@ jobs:
    - plume_lib_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk16:latest
+  container: wmdietl/cf-ubuntu-jdk-latest:latest
   steps:
   - checkout: self
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-plume-lib.sh
     displayName: test-plume-lib.sh
+- job: plume_lib_jdk_next
+  dependsOn:
+    - junit_tests_jdk11
+    - nonjunit_tests_jdk11
+    #   - misc_jdk11
+    - typecheck_jdk11
+    - plume_lib_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk-next:latest
+  steps:
+    - checkout: self
+      fetchDepth: 25
+    - bash: ./checker/bin-devel/test-plume-lib.sh
+      displayName: test-plume-lib.sh
 
 - job: cfinference_jdk8
   dependsOn:

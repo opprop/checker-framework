@@ -42,8 +42,7 @@ public class LockStore extends CFAbstractStore<CFValue, LockStore> {
     private final LockAnnotatedTypeFactory atypeFactory;
 
     public LockStore(LockAnalysis analysis, boolean sequentialSemantics) {
-        super(analysis, sequentialSemantics);
-        this.atypeFactory = (LockAnnotatedTypeFactory) analysis.getTypeFactory();
+        this(analysis, sequentialSemantics, false);
     }
 
     public LockStore(LockAnalysis analysis, boolean sequentialSemantics, boolean isBottom) {

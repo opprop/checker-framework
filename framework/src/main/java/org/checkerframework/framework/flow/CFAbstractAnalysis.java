@@ -184,6 +184,13 @@ public abstract class CFAbstractAnalysis<
      */
     public abstract S createBottomStore(boolean sequentialSemantics);
 
+    public S getBottomStore(boolean sequentialSemantics) {
+        if (bottomStore == null) {
+            bottomStore = createBottomStore(sequentialSemantics);
+        }
+        return bottomStore;
+    }
+
     /**
      * Returns an identical copy of the store {@code s}.
      *

@@ -30,9 +30,7 @@ public class NullnessStore extends InitializationStore<NullnessValue, NullnessSt
     public NullnessStore(
             CFAbstractAnalysis<NullnessValue, NullnessStore, ?> analysis,
             boolean sequentialSemantics) {
-        super(analysis, sequentialSemantics);
-        isPolyNullNonNull = false;
-        isPolyNullNull = false;
+        this(analysis, sequentialSemantics, false);
     }
 
     public NullnessStore(

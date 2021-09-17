@@ -4,7 +4,7 @@ package org.checkerframework.framework.flow;
 public class CFStore extends CFAbstractStore<CFValue, CFStore> {
 
     public CFStore(CFAbstractAnalysis<CFValue, CFStore, ?> analysis, boolean sequentialSemantics) {
-        super(analysis, sequentialSemantics);
+        this(analysis, sequentialSemantics, false);
     }
 
     public CFStore(

@@ -6,7 +6,7 @@ import org.checkerframework.framework.flow.CFAbstractStore;
 public class KeyForStore extends CFAbstractStore<KeyForValue, KeyForStore> {
     public KeyForStore(
             CFAbstractAnalysis<KeyForValue, KeyForStore, ?> analysis, boolean sequentialSemantics) {
-        super(analysis, sequentialSemantics);
+        this(analysis, sequentialSemantics, false);
     }
 
     public KeyForStore(

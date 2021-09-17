@@ -33,10 +33,7 @@ public class NullnessAnalysis
 
     @Override
     public NullnessStore createBottomStore(boolean sequentialSemantics) {
-        if (bottomStore == null) {
-            bottomStore = new NullnessStore(this, sequentialSemantics, true);
-        }
-        return bottomStore;
+        return new NullnessStore(this, sequentialSemantics, true);
     }
 
     @Override

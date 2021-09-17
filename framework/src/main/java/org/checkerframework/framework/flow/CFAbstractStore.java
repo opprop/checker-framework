@@ -32,10 +32,12 @@ import org.plumelib.util.ToStringComparator;
 import org.plumelib.util.UniqueId;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
@@ -116,6 +118,8 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
     /** Is the store for unreachable code branch? */
     protected final boolean isBottom;
 
+    protected final Set<AnnotationMirror> bottomAnnos;
+
     /** The unique ID for the next-created object. */
     private static final AtomicLong nextUid = new AtomicLong(0);
     /** The unique ID of this object. */
@@ -151,6 +155,9 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         classValues = new HashMap<>();
         this.sequentialSemantics = sequentialSemantics;
         this.isBottom = isBottom;
+        this.bottomAnnos = new HashSet<>();
+        this.bottomAnnos.addAll(
+                analysis.getTypeFactory().getQualifierHierarchy().getBottomAnnotations());
     }
 
     /** Copy constructor. */
@@ -164,6 +171,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         classValues = new HashMap<>(other.classValues);
         sequentialSemantics = other.sequentialSemantics;
         this.isBottom = other.isBottom;
+        this.bottomAnnos = other.bottomAnnos;
     }
 
     /**
@@ -753,6 +761,8 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(FieldAccessNode n) {
+        if (isBottom) return getBottomValue(n);
+
         JavaExpression je = JavaExpression.fromNodeFieldAccess(n);
         if (je instanceof FieldAccess) {
             return fieldValues.get((FieldAccess) je);
@@ -790,6 +800,8 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(MethodInvocationNode n) {
+        if (isBottom) return getBottomValue(n);
+
         JavaExpression method = JavaExpression.fromNode(n);
         if (method == null) {
             return null;
@@ -806,6 +818,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(ArrayAccessNode n) {
+        if (isBottom) return getBottomValue(n);
         ArrayAccess arrayAccess = JavaExpression.fromArrayAccess(n);
         return arrayValues.get(arrayAccess);
     }
@@ -1070,6 +1083,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(LocalVariableNode n) {
+        if (isBottom) return getBottomValue(n);
         Element el = n.getElement();
         return localVariableValues.get(new LocalVariable(el));
     }
@@ -1087,7 +1101,18 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     is available
      */
     public @Nullable V getValue(ThisNode n) {
+        if (isBottom) return getBottomValue(n);
         return thisValue;
+    }
+
+    /**
+     * Return the bottom value for the input node
+     *
+     * @param node the input {@link Node}
+     * @return the bottom value
+     */
+    private V getBottomValue(Node node) {
+        return analysis.createAbstractValue(bottomAnnos, node.getType());
     }
 
     /* --------------------------------------------------------- */
@@ -1279,7 +1304,9 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         @SuppressWarnings("unchecked")
         CFGVisualizer<V, S, ?> castedViz = (CFGVisualizer<V, S, ?>) viz;
         String internal = internalVisualize(castedViz);
-        if (internal.trim().isEmpty()) {
+        if (isBottom) {
+            return this.getClassAndUid() + " - Bottom";
+        } else if (internal.trim().isEmpty()) {
             return this.getClassAndUid() + "()";
         } else {
             return this.getClassAndUid() + "(" + viz.getSeparator() + internal + ")";

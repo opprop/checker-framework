@@ -30,10 +30,7 @@ public class CFAnalysis extends CFAbstractAnalysis<CFValue, CFStore, CFTransfer>
 
     @Override
     public CFStore createBottomStore(boolean sequentialSemantics) {
-        if (bottomStore == null) {
-            bottomStore = new CFStore(this, sequentialSemantics, true);
-        }
-        return bottomStore;
+        return new CFStore(this, sequentialSemantics, true);
     }
 
     @Override

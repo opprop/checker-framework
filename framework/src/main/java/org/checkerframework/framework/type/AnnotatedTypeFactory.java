@@ -2099,7 +2099,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
     /**
      * Returns the innermost enclosing method or class tree of {@code tree}. Since artificial trees
-     * are assigned to be the child node of the original tree, their enclosing trees are find the
+     * are assigned to be the child node of the original tree, their enclosing trees are found the
      * same way as normal trees.
      *
      * <p>If the tree is inside an annotation, then {@code null} is returned.
@@ -3787,11 +3787,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * <p>See {@code
      * org.checkerframework.framework.flow.CFCFGBuilder.CFCFGTranslationPhaseOne.handleArtificialTree(Tree)}.
      *
-     * @param node the artificial {@link Tree} to set the path to
+     * @param tree the artificial {@link Tree} to set the path for
      * @param path the {@link TreePath} for the artificial tree
      */
-    public final void setPathForArtificialTree(Tree node, TreePath path) {
-        treePathCache.addPath(node, path);
+    public final void setPathForArtificialTree(Tree tree, TreePath path) {
+        treePathCache.addPath(tree, path);
     }
 
     /**

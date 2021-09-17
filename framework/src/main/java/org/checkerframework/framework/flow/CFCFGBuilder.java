@@ -154,7 +154,8 @@ public class CFCFGBuilder extends CFGBuilder {
         /**
          * {@inheritDoc}
          *
-         * <p>Assign path to artificial trees
+         * <p>
+         * Assigns a path to the artificial tree.
          *
          * @param tree the newly created Tree
          */

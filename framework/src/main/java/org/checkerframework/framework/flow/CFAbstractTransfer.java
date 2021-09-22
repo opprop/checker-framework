@@ -1371,6 +1371,7 @@ public abstract class CFAbstractTransfer<
      * @param tree input tree
      * @return ture if the given tree is a condition
      */
+    @SuppressWarnings("interning:not.interned")
     boolean isCondition(ExpressionTree tree) {
         TreePath path = analysis.getTypeFactory().getPath(tree);
         do {

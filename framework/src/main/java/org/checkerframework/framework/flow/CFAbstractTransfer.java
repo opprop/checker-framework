@@ -1,6 +1,7 @@
 package org.checkerframework.framework.flow;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ConditionalExpressionTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
@@ -1364,12 +1365,41 @@ public abstract class CFAbstractTransfer<
         return result;
     }
 
+    /**
+     * Check if the given tree is a condition (in if/while/...)
+     *
+     * @param tree input tree
+     * @return ture if the given tree is a condition
+     */
+    boolean isCondition(ExpressionTree tree) {
+        TreePath path = analysis.getTypeFactory().getPath(tree);
+        do {
+            path = path.getParentPath();
+        } while (path != null && path.getLeaf().getKind() == Tree.Kind.PARENTHESIZED);
+
+        Tree parentTree = path.getLeaf();
+
+        // Is it necessary to consider `x = true ? y : z`
+        if (parentTree.getKind() == Tree.Kind.CONDITIONAL_EXPRESSION) {
+            return ((ConditionalExpressionTree) parentTree).getCondition() == tree;
+        }
+
+        return parentTree.getKind() == Tree.Kind.IF
+                || parentTree.getKind() == Tree.Kind.WHILE_LOOP
+                || parentTree.getKind() == Tree.Kind.DO_WHILE_LOOP
+                || parentTree.getKind() == Tree.Kind.FOR_LOOP;
+    }
+
     @Override
     public TransferResult<V, S> visitBooleanLiteral(
             BooleanLiteralNode n, TransferInput<V, S> vsTransferInput) {
-        S thenStore, elseStore;
-
         TransferResult<V, S> result = super.visitBooleanLiteral(n, vsTransferInput);
+
+        if (!isCondition(n.getTree())) {
+            return result;
+        }
+
+        S thenStore, elseStore;
         if (n.getValue()) {
             thenStore = result.getThenStore();
             elseStore = analysis.getBottomStore(sequentialSemantics);

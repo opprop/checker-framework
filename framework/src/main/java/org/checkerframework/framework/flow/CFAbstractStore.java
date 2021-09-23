@@ -730,6 +730,8 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(JavaExpression expr) {
+        if (isBottom) return getBottomValue(expr.getType());
+
         if (expr instanceof LocalVariable) {
             LocalVariable localVar = (LocalVariable) expr;
             return localVariableValues.get(localVar);
@@ -761,7 +763,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(FieldAccessNode n) {
-        if (isBottom) return getBottomValue(n);
+        if (isBottom) return getBottomValue(n.getType());
 
         JavaExpression je = JavaExpression.fromNodeFieldAccess(n);
         if (je instanceof FieldAccess) {
@@ -800,7 +802,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(MethodInvocationNode n) {
-        if (isBottom) return getBottomValue(n);
+        if (isBottom) return getBottomValue(n.getType());
 
         JavaExpression method = JavaExpression.fromNode(n);
         if (method == null) {
@@ -818,7 +820,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(ArrayAccessNode n) {
-        if (isBottom) return getBottomValue(n);
+        if (isBottom) return getBottomValue(n.getType());
         ArrayAccess arrayAccess = JavaExpression.fromArrayAccess(n);
         return arrayValues.get(arrayAccess);
     }
@@ -1083,7 +1085,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     available
      */
     public @Nullable V getValue(LocalVariableNode n) {
-        if (isBottom) return getBottomValue(n);
+        if (isBottom) return getBottomValue(n.getType());
         Element el = n.getElement();
         return localVariableValues.get(new LocalVariable(el));
     }
@@ -1101,18 +1103,18 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      *     is available
      */
     public @Nullable V getValue(ThisNode n) {
-        if (isBottom) return getBottomValue(n);
+        if (isBottom) return getBottomValue(n.getType());
         return thisValue;
     }
 
     /**
-     * Return the bottom value for the input node
+     * Return the bottom value for the input {@link TypeMirror}
      *
-     * @param node the input {@link Node}
+     * @param type the input {@link TypeMirror}
      * @return the bottom value
      */
-    protected V getBottomValue(Node node) {
-        return analysis.createAbstractValue(bottomAnnos, node.getType());
+    protected V getBottomValue(TypeMirror type) {
+        return analysis.createAbstractValue(bottomAnnos, type);
     }
 
     /* --------------------------------------------------------- */

@@ -19,7 +19,8 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -171,9 +172,10 @@ public class LockStore extends CFAbstractStore<CFValue, LockStore> {
 
     @Override
     protected CFValue getBottomValue(TypeMirror type) {
-        AnnotationMirror guardSatisfied =
-                ((LockAnnotatedTypeFactory) analysis.getTypeFactory()).GUARDSATISFIED;
-        return analysis.createAbstractValue(Collections.singleton(guardSatisfied), type);
+        AnnotationMirror guardBy = ((LockAnnotatedTypeFactory) analysis.getTypeFactory()).GUARDEDBY;
+        AnnotationMirror lockHeld = ((LockAnnotatedTypeFactory) analysis.getTypeFactory()).LOCKHELD;
+
+        return analysis.createAbstractValue(new HashSet<>(Arrays.asList(lockHeld, guardBy)), type);
     }
 
     @Override

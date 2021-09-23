@@ -3,6 +3,7 @@ package org.checkerframework.checker.lock;
 import org.checkerframework.checker.lock.LockAnnotatedTypeFactory.SideEffectAnnotation;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.ArrayAccess;
 import org.checkerframework.dataflow.expression.ClassName;
@@ -19,6 +20,7 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -165,6 +167,13 @@ public class LockStore extends CFAbstractStore<CFValue, LockStore> {
         }
 
         return super.getValue(expr);
+    }
+
+    @Override
+    protected CFValue getBottomValue(Node node) {
+        AnnotationMirror guardSatisfied =
+                ((LockAnnotatedTypeFactory) analysis.getTypeFactory()).GUARDSATISFIED;
+        return analysis.createAbstractValue(Collections.singleton(guardSatisfied), node.getType());
     }
 
     @Override

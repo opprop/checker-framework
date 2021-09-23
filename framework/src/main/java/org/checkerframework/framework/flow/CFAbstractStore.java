@@ -1111,7 +1111,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      * @param node the input {@link Node}
      * @return the bottom value
      */
-    private V getBottomValue(Node node) {
+    protected V getBottomValue(Node node) {
         return analysis.createAbstractValue(bottomAnnos, node.getType());
     }
 

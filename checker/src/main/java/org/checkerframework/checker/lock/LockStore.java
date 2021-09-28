@@ -48,6 +48,13 @@ public class LockStore extends CFAbstractStore<CFValue, LockStore> {
         this(analysis, sequentialSemantics, false);
     }
 
+    /**
+     * Constructor for LockStore.
+     *
+     * @param analysis the analysis class this store belongs to
+     * @param sequentialSemantics should the analysis use sequential Java semantics?
+     * @param isBottom is the store a bottom store?
+     */
     public LockStore(LockAnalysis analysis, boolean sequentialSemantics, boolean isBottom) {
         super(analysis, sequentialSemantics, isBottom);
         this.atypeFactory = (LockAnnotatedTypeFactory) analysis.getTypeFactory();

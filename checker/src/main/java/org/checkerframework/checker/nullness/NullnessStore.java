@@ -33,6 +33,13 @@ public class NullnessStore extends InitializationStore<NullnessValue, NullnessSt
         this(analysis, sequentialSemantics, false);
     }
 
+    /**
+     * Constructor for NullnessStore.
+     *
+     * @param analysis the analysis class this store belongs to
+     * @param sequentialSemantics should the analysis use sequential Java semantics?
+     * @param isBottom is the store a bottom store?
+     */
     public NullnessStore(
             CFAbstractAnalysis<NullnessValue, NullnessStore, ?> analysis,
             boolean sequentialSemantics,

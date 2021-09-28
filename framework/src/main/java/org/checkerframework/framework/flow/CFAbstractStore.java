@@ -115,9 +115,13 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      */
     protected final boolean sequentialSemantics;
 
-    /** Is the store for unreachable code branch? */
+    /**
+     * Is the store a bottom store (a special store that only exists in dead branches and yields
+     * bottom types to avoid false positive)?
+     */
     protected final boolean isBottom;
 
+    /** The bottom annotations for the current type system. */
     protected final Set<AnnotationMirror> bottomAnnos;
 
     /** The unique ID for the next-created object. */
@@ -144,6 +148,13 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
         this(analysis, sequentialSemantics, false);
     }
 
+    /**
+     * Creates a new CFAbstractStore.
+     *
+     * @param analysis the analysis class this store belongs to
+     * @param sequentialSemantics should the analysis use sequential Java semantics?
+     * @param isBottom is the store a bottom store?
+     */
     protected CFAbstractStore(
             CFAbstractAnalysis<V, S, ?> analysis, boolean sequentialSemantics, boolean isBottom) {
         this.analysis = analysis;
@@ -696,6 +707,8 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
     /**
      * Remove any knowledge about the expression {@code expr} (correctly deciding where to remove
      * the information depending on the type of the expression {@code expr}).
+     *
+     * @param expr the expression of which the value is to be cleared
      */
     public void clearValue(JavaExpression expr) {
         if (expr.containsUnknown()) {
@@ -1081,6 +1094,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      * Returns the current abstract value of a local variable, or {@code null} if no information is
      * available.
      *
+     * @param n the local variable to look up in this store
      * @return the current abstract value of a local variable, or {@code null} if no information is
      *     available
      */

@@ -359,10 +359,6 @@ public abstract class CFAbstractValue<V extends CFAbstractValue<V>> implements A
                 AnnotationMirror top,
                 boolean canCombinedSetBeMissingAnnos) {
 
-            if (typeVar == null) {
-                return getBackUpAnnoIn(top);
-            }
-
             QualifierHierarchy hierarchy = analysis.getTypeFactory().getQualifierHierarchy();
             AnnotationMirror upperBound = typeVar.getEffectiveAnnotationInHierarchy(top);
 

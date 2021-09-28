@@ -410,7 +410,7 @@ public abstract class CFAbstractStore<V extends CFAbstractValue<V>, S extends CF
      */
     protected void insertOrRefine(
             JavaExpression expr, AnnotationMirror newAnno, boolean permitNondeterministic) {
-        if (!canInsertJavaExpression(expr)) {
+        if (!canInsertJavaExpression(expr) || isBottom) {
             return;
         }
         if (!(permitNondeterministic || expr.isDeterministic(analysis.getTypeFactory()))) {

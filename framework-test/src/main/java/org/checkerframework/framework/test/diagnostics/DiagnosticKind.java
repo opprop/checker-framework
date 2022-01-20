@@ -1,15 +1,22 @@
 package org.checkerframework.framework.test.diagnostics;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Indicates what type of Error was, or expected to be, encountered during typechecking. */
+/** The kinds of errors that can be encountered during typechecking. */
 public enum DiagnosticKind {
+    /** A warning. */
     Warning("warning"),
+    /** An error. */
     Error("error"),
+    /** A JSpecify diagnostic. */
+    JSpecify("jspecify"),
+    /** Something else. */
     Other("other");
 
-    /** How the diagnostic identifier actually appears in error messages or source code. */
+    /** How this DiagnosticKind appears in error messages or source code. */
     public final String parseString;
 
     DiagnosticKind(String parseString) {
@@ -25,9 +32,9 @@ public enum DiagnosticKind {
     }
 
     /**
-     * Convert a string as it would appear in error messages or source code into a DiagnosticKind
+     * Convert a string as it would appear in error messages or source code into a DiagnosticKind.
      */
-    public static DiagnosticKind fromParseString(String parseStr) {
+    public static @Nullable DiagnosticKind fromParseString(String parseStr) {
         return stringToCategory.get(parseStr);
     }
 }

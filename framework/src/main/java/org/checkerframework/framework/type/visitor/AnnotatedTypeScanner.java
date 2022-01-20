@@ -1,7 +1,5 @@
 package org.checkerframework.framework.type.visitor;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -15,13 +13,16 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVari
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedUnionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 
+import java.util.IdentityHashMap;
+
 /**
  * An {@code AnnotatedTypeScanner} visits an {@link AnnotatedTypeMirror} and all of its child {@link
- * AnnotatedTypeMirror} and preforms some function depending on the kind of type. A {@link
- * SimpleAnnotatedTypeScanner} scans an {@link AnnotatedTypeMirror} and preforms the same function
- * regardless of the kind of type. The function returns some value with type {@code R} and takes an
- * argument of type {@code P}. If the function does not return any value, then {@code R} should be
- * {@link Void}. If the function takes not arguments, then {@code P} should be {@link Void}.
+ * AnnotatedTypeMirror} and preforms some function depending on the kind of type. (By contrast, a
+ * {@link SimpleAnnotatedTypeScanner} scans an {@link AnnotatedTypeMirror} and performs the
+ * <em>same</em> function regardless of the kind of type.) The function returns some value with type
+ * {@code R} and takes an argument of type {@code P}. If the function does not return any value,
+ * then {@code R} should be {@link Void}. If the function takes no additional argument, then {@code
+ * P} should be {@link Void}.
  *
  * <p>The default implementation of the visitAnnotatedTypeMirror methods will determine a result as
  * follows:
@@ -35,8 +36,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
  * </ul>
  *
  * The {@link #reduce} method combines the results of visiting child types. It can be specified by
- * passing an {@link Reduce} object to one of the constructors or by overriding the method directly.
- * If it is not otherwise specified, the reduce returns the first result if it is not null;
+ * passing a {@link Reduce} object to one of the constructors or by overriding the method directly.
+ * If it is not otherwise specified, then reduce returns the first result if it is not null;
  * otherwise, the second result is returned. If the default result is nonnull and reduce never
  * returns null, then both parameters passed to reduce will be nonnull.
  *
@@ -44,8 +45,8 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
  * reduce(super.visitAnnotatedTypeMirror(type, parameter), result)} so that the whole type is
  * scanned.
  *
- * <p>To begin scanning a type call {@link #visit(AnnotatedTypeMirror, Object)} or to pass {@code
- * null} as the last parameter, call {@link #visit(AnnotatedTypeMirror)}. Both methods call {@link
+ * <p>To begin scanning a type call {@link #visit(AnnotatedTypeMirror, Object)} or (to pass {@code
+ * null} as the last parameter) call {@link #visit(AnnotatedTypeMirror)}. Both methods call {@link
  * #reset()}.
  *
  * <p>Here is an example of a scanner that counts the number of {@link AnnotatedTypeVariable} in an
@@ -64,11 +65,19 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
  * }
  * </pre>
  *
- * Below is an example of how to use {@code CountTypeVariable}
+ * An {@code AnnotatedTypeScanner} keeps a map of visited types, in order to prevent infinite
+ * recursion on recursive types. Because of this map, you should not create a new {@code
+ * AnnotatedTypeScanner} for each use. Instead, store an {@code AnnotatedTypeScanner} as a field in
+ * the {@link org.checkerframework.framework.type.AnnotatedTypeFactory} or {@link
+ * org.checkerframework.common.basetype.BaseTypeVisitor} of the checker.
+ *
+ * <p>Below is an example of how to use {@code CountTypeVariable}.
  *
  * <pre>{@code
+ * private final CountTypeVariable countTypeVariable = new CountTypeVariable();
+ *
  * void method(AnnotatedTypeMirror type) {
- *     int count = new CountTypeVariable().visit(type);
+ *     int count = countTypeVariable.visit(type);
  * }
  * }</pre>
  *
@@ -152,7 +161,7 @@ public abstract class AnnotatedTypeScanner<R, P> implements AnnotatedTypeVisitor
     }
 
     // To prevent infinite loops
-    protected final Map<AnnotatedTypeMirror, R> visitedNodes = new IdentityHashMap<>();
+    protected final IdentityHashMap<AnnotatedTypeMirror, R> visitedNodes = new IdentityHashMap<>();
 
     /**
      * Reset the scanner to allow reuse of the same instance. Subclasses should override this method
@@ -250,8 +259,7 @@ public abstract class AnnotatedTypeScanner<R, P> implements AnnotatedTypeVisitor
 
     @Override
     public R visitDeclared(AnnotatedDeclaredType type, P p) {
-        // Only declared types with type arguments might be recursive,
-        // so only store those.
+        // Only declared types with type arguments might be recursive, so only store those.
         boolean shouldStoreType = !type.getTypeArguments().isEmpty();
         if (shouldStoreType && visitedNodes.containsKey(type)) {
             return visitedNodes.get(type);
@@ -279,7 +287,7 @@ public abstract class AnnotatedTypeScanner<R, P> implements AnnotatedTypeVisitor
             return visitedNodes.get(type);
         }
         visitedNodes.put(type, defaultResult);
-        R r = scan(type.directSuperTypes(), p);
+        R r = scan(type.getBounds(), p);
         visitedNodes.put(type, r);
         return r;
     }

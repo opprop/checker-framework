@@ -1,8 +1,5 @@
 package org.checkerframework.framework.util.typeinference.constraint;
 
-import java.util.List;
-import java.util.Set;
-import javax.lang.model.type.TypeKind;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
@@ -17,8 +14,13 @@ import org.checkerframework.framework.type.visitor.AbstractAtmComboVisitor;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.typeinference.TypeArgInferenceUtil;
 import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.StringsPlume;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.lang.model.type.TypeKind;
 
 /**
  * Takes a single step in reducing a AFConstraint.
@@ -93,12 +95,12 @@ abstract class AFReducingVisitor extends AbstractAtmComboVisitor<Void, Set<AFCon
             AnnotatedTypeMirror subtype,
             AnnotatedTypeMirror supertype,
             Set<AFConstraint> constraints) {
-        return SystemUtil.joinLines(
+        return StringsPlume.joinLines(
                 "Unexpected " + reducerType.getSimpleName() + " + Combination:",
                 "subtype=" + subtype,
                 "supertype=" + supertype,
                 "constraints=[",
-                SystemUtil.join(", ", constraints),
+                StringsPlume.join(", ", constraints),
                 "]");
     }
 
@@ -179,7 +181,7 @@ abstract class AFReducingVisitor extends AbstractAtmComboVisitor<Void, Set<AFCon
             AnnotatedDeclaredType subtype,
             AnnotatedDeclaredType supertype,
             Set<AFConstraint> constraints) {
-        if (subtype.wasRaw() || supertype.wasRaw()) {
+        if (subtype.isUnderlyingTypeRaw() || supertype.isUnderlyingTypeRaw()) {
             // The error will be caught in {@link DefaultTypeArgumentInference#infer} and
             // inference will be aborted, but type-checking will continue.
             throw new BugInCF("Can't infer type arguments when raw types are involved.");
@@ -188,7 +190,7 @@ abstract class AFReducingVisitor extends AbstractAtmComboVisitor<Void, Set<AFCon
         if (!TypesUtils.isErasedSubtype(
                 subtype.getUnderlyingType(),
                 supertype.getUnderlyingType(),
-                typeFactory.getContext().getTypeUtils())) {
+                typeFactory.getChecker().getTypeUtils())) {
             return null;
         }
         AnnotatedDeclaredType subAsSuper =
@@ -236,7 +238,7 @@ abstract class AFReducingVisitor extends AbstractAtmComboVisitor<Void, Set<AFCon
         // Note: AnnotatedIntersectionTypes cannot have a type variable as one of the direct
         // parameters but a type variable may be the type subtype to an intersection bound <e.g.  <T
         // extends Serializable & Iterable<T>>
-        for (final AnnotatedTypeMirror intersectionBound : supertype.directSuperTypes()) {
+        for (final AnnotatedTypeMirror intersectionBound : supertype.getBounds()) {
             if (intersectionBound instanceof AnnotatedDeclaredType
                     && !((AnnotatedDeclaredType) intersectionBound).getTypeArguments().isEmpty()) {
                 addConstraint(subtype, supertype, constraints);

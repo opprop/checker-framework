@@ -11,6 +11,9 @@
 % Not supported by Hevea, so don't bother: \usepackage{minitoc}
 \usepackage{proof}
 
+% Hevea seems to need this:
+\usepackage[utf8]{inputenc}
+
 \usepackage{relsize}
 % \def\codesize{\smaller}
 \def\codesize{\relax}           % for "pslatex"
@@ -175,10 +178,12 @@
 \newcommand{\javaeejavadocanno}[2]{\href{https://docs.oracle.com/javaee/7/api/#1}{\<@#2>}}
 
 
+% These commands are for long-range references:  those not in the same chapter.
 \newcommand{\refwithpage}[1]{\ref{#1}, page~\pageref{#1}}
 %HEVEA \renewcommand{\refwithpage}[1]{\ref{#1}}
 \newcommand{\refwithpageparen}[1]{\ref{#1} (page~\pageref{#1})}
 %HEVEA \renewcommand{\refwithpageparen}[1]{\ref{#1}}
+% Use \chapterpageref to reference only chapters, not sections.
 \newcommand{\chapterpageref}[1]{Chapter~\refwithpage{#1}}
 
 

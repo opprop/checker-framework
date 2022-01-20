@@ -1,12 +1,12 @@
 import org.checkerframework.framework.qual.EnsuresQualifier;
 import org.checkerframework.framework.qual.EnsuresQualifierIf;
 import org.checkerframework.framework.qual.RequiresQualifier;
-import testlib.util.EnsuresOdd;
-import testlib.util.EnsuresOddIf;
-import testlib.util.Odd;
-import testlib.util.RequiresOdd;
+import org.checkerframework.framework.testchecker.util.EnsuresOdd;
+import org.checkerframework.framework.testchecker.util.EnsuresOddIf;
+import org.checkerframework.framework.testchecker.util.Odd;
+import org.checkerframework.framework.testchecker.util.RequiresOdd;
 
-class ContractsOverriding {
+public class ContractsOverriding {
     static class Super {
         String f, g;
 
@@ -48,8 +48,7 @@ class ContractsOverriding {
         void m3b() {}
 
         @Override
-        // use different string to refer to 'f' and RequiresQualifier instead
-        // of RequiresOdd
+        // use different string to refer to 'f' and RequiresQualifier instead of RequiresOdd
         @RequiresQualifier(expression = "this.f", qualifier = Odd.class)
         void m4() {}
     }

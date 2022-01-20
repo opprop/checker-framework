@@ -1,10 +1,11 @@
 // Test case for Issue 1522
 // https://github.com/typetools/checker-framework/issues/1522
 
-import java.util.Vector;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-class Issue1522 {
+import java.util.Vector;
+
+public class Issue1522 {
     void copyInto(String p) {}
 
     void bar() {

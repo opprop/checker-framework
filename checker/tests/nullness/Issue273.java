@@ -1,11 +1,12 @@
 // Test case for issue #273:
 // https://github.com/typetools/checker-framework/issues/273
 
-import java.util.HashMap;
-import java.util.Map;
 import org.checkerframework.checker.nullness.qual.*;
 
-class Issue273 {
+import java.util.HashMap;
+import java.util.Map;
+
+public class Issue273 {
     public static void main(String... p) {
         Map<String, Integer> m0 = new HashMap<>();
         Map<String, Integer> m1 = new HashMap<>();

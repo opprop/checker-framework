@@ -1,9 +1,10 @@
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.checkerframework.framework.qual.TypeUseLocation;
 
-class MethodTypeVars4 {
+import java.util.List;
+
+public class MethodTypeVars4 {
     @DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.IMPLICIT_UPPER_BOUND)
     interface I {
         <T> T doit();

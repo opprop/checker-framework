@@ -1,8 +1,9 @@
+import org.checkerframework.framework.testchecker.util.*;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
-import testlib.util.*;
 
-class Arrays {
+public class Arrays {
     Object[] @Odd [] objB1 = new Object[] @Odd [] {};
     Object[][] @Odd [] objB1a = new Object[][] @Odd [] {};
     Object @Odd [][][] objB1b = new Object @Odd [][][] {};

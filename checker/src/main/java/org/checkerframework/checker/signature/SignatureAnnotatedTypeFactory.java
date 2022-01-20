@@ -4,16 +4,17 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.CompoundAssignmentTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.LiteralTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.Tree;
-import java.lang.annotation.Annotation;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ExecutableElement;
+
 import org.checkerframework.checker.signature.qual.ArrayWithoutPackage;
 import org.checkerframework.checker.signature.qual.BinaryName;
 import org.checkerframework.checker.signature.qual.BinaryNameOrPrimitiveType;
 import org.checkerframework.checker.signature.qual.BinaryNameWithoutPackage;
+import org.checkerframework.checker.signature.qual.CanonicalName;
+import org.checkerframework.checker.signature.qual.CanonicalNameAndBinaryName;
 import org.checkerframework.checker.signature.qual.ClassGetName;
 import org.checkerframework.checker.signature.qual.ClassGetSimpleName;
 import org.checkerframework.checker.signature.qual.DotSeparatedIdentifiers;
@@ -38,6 +39,19 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.reflection.SignatureRegexes;
+
+import java.lang.annotation.Annotation;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 // TODO: Does not yet handle method signature annotations, such as
 // @MethodDescriptor.
@@ -57,22 +71,42 @@ public class SignatureAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** The {@literal @}{@link DotSeparatedIdentifiers} annotation. */
     protected final AnnotationMirror DOT_SEPARATED_IDENTIFIERS =
             AnnotationBuilder.fromClass(elements, DotSeparatedIdentifiers.class);
+    /** The {@literal @}{@link CanonicalName} annotation. */
+    protected final AnnotationMirror CANONICAL_NAME =
+            AnnotationBuilder.fromClass(elements, CanonicalName.class);
+    /** The {@literal @}{@link CanonicalNameAndBinaryName} annotation. */
+    protected final AnnotationMirror CANONICAL_NAME_AND_BINARY_NAME =
+            AnnotationBuilder.fromClass(elements, CanonicalNameAndBinaryName.class);
+    /** The {@literal @}{@link PrimitiveType} annotation. */
+    protected final AnnotationMirror PRIMITIVE_TYPE =
+            AnnotationBuilder.fromClass(elements, PrimitiveType.class);
 
     /** The {@link String#replace(char, char)} method. */
     private final ExecutableElement replaceCharChar =
-            TreeUtils.getMethod(
-                    java.lang.String.class.getName(), "replace", processingEnv, "char", "char");
+            TreeUtils.getMethod("java.lang.String", "replace", processingEnv, "char", "char");
 
     /** The {@link String#replace(CharSequence, CharSequence)} method. */
     private final ExecutableElement replaceCharSequenceCharSequence =
             TreeUtils.getMethod(
-                    java.lang.String.class.getName(),
+                    "java.lang.String",
                     "replace",
                     processingEnv,
                     "java.lang.CharSequence",
                     "java.lang.CharSequence");
 
-    /** Creates a SignatureAnnotatedTypeFactory. */
+    /** The {@link Class#getName()} method. */
+    private final ExecutableElement classGetName =
+            TreeUtils.getMethod("java.lang.Class", "getName", processingEnv);
+
+    /** The {@link Class#getCanonicalName()} method. */
+    private final ExecutableElement classGetCanonicalName =
+            TreeUtils.getMethod(java.lang.Class.class, "getCanonicalName", processingEnv);
+
+    /**
+     * Creates a SignatureAnnotatedTypeFactory.
+     *
+     * @param checker the type-checker assocated with this type factory
+     */
     public SignatureAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
 
@@ -111,56 +145,56 @@ public class SignatureAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         // constants such as effectively-final fields.  So every `stringPatterns = "..."` would have
         // to be a literal string, which would be verbose ard hard to maintain.
         result.addStringPattern(
-                SignatureRegexes.ArrayWithoutPackage,
+                SignatureRegexes.ArrayWithoutPackageRegex,
                 AnnotationBuilder.fromClass(elements, ArrayWithoutPackage.class));
         result.addStringPattern(
-                SignatureRegexes.BinaryName,
+                SignatureRegexes.BinaryNameRegex,
                 AnnotationBuilder.fromClass(elements, BinaryName.class));
         result.addStringPattern(
-                SignatureRegexes.BinaryNameOrPrimitiveType,
+                SignatureRegexes.BinaryNameOrPrimitiveTypeRegex,
                 AnnotationBuilder.fromClass(elements, BinaryNameOrPrimitiveType.class));
         result.addStringPattern(
-                SignatureRegexes.BinaryNameWithoutPackage,
+                SignatureRegexes.BinaryNameWithoutPackageRegex,
                 AnnotationBuilder.fromClass(elements, BinaryNameWithoutPackage.class));
         result.addStringPattern(
-                SignatureRegexes.ClassGetName,
+                SignatureRegexes.ClassGetNameRegex,
                 AnnotationBuilder.fromClass(elements, ClassGetName.class));
         result.addStringPattern(
-                SignatureRegexes.ClassGetSimpleName,
+                SignatureRegexes.ClassGetSimpleNameRegex,
                 AnnotationBuilder.fromClass(elements, ClassGetSimpleName.class));
         result.addStringPattern(
-                SignatureRegexes.DotSeparatedIdentifiers,
+                SignatureRegexes.DotSeparatedIdentifiersRegex,
                 AnnotationBuilder.fromClass(elements, DotSeparatedIdentifiers.class));
         result.addStringPattern(
-                SignatureRegexes.DotSeparatedIdentifiersOrPrimitiveType,
+                SignatureRegexes.DotSeparatedIdentifiersOrPrimitiveTypeRegex,
                 AnnotationBuilder.fromClass(
                         elements, DotSeparatedIdentifiersOrPrimitiveType.class));
         result.addStringPattern(
-                SignatureRegexes.FieldDescriptor,
+                SignatureRegexes.FieldDescriptorRegex,
                 AnnotationBuilder.fromClass(elements, FieldDescriptor.class));
         result.addStringPattern(
-                SignatureRegexes.FieldDescriptorForPrimitive,
+                SignatureRegexes.FieldDescriptorForPrimitiveRegex,
                 AnnotationBuilder.fromClass(elements, FieldDescriptorForPrimitive.class));
         result.addStringPattern(
-                SignatureRegexes.FieldDescriptorWithoutPackage,
+                SignatureRegexes.FieldDescriptorWithoutPackageRegex,
                 AnnotationBuilder.fromClass(elements, FieldDescriptorWithoutPackage.class));
         result.addStringPattern(
-                SignatureRegexes.FqBinaryName,
+                SignatureRegexes.FqBinaryNameRegex,
                 AnnotationBuilder.fromClass(elements, FqBinaryName.class));
         result.addStringPattern(
-                SignatureRegexes.FullyQualifiedName,
+                SignatureRegexes.FullyQualifiedNameRegex,
                 AnnotationBuilder.fromClass(elements, FullyQualifiedName.class));
         result.addStringPattern(
-                SignatureRegexes.Identifier,
+                SignatureRegexes.IdentifierRegex,
                 AnnotationBuilder.fromClass(elements, Identifier.class));
         result.addStringPattern(
-                SignatureRegexes.IdentifierOrPrimitiveType,
+                SignatureRegexes.IdentifierOrPrimitiveTypeRegex,
                 AnnotationBuilder.fromClass(elements, IdentifierOrPrimitiveType.class));
         result.addStringPattern(
-                SignatureRegexes.InternalForm,
+                SignatureRegexes.InternalFormRegex,
                 AnnotationBuilder.fromClass(elements, InternalForm.class));
         result.addStringPattern(
-                SignatureRegexes.PrimitiveType,
+                SignatureRegexes.PrimitiveTypeRegex,
                 AnnotationBuilder.fromClass(elements, PrimitiveType.class));
         return result;
     }
@@ -193,11 +227,19 @@ public class SignatureAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
         /**
          * String.replace, when called with specific constant arguments, converts between internal
-         * form and binary name.
+         * form and binary name:
          *
          * <pre><code>
          * {@literal @}InternalForm String internalForm = binaryName.replace('.', '/');
          * {@literal @}BinaryName String binaryName = internalForm.replace('/', '.');
+         * </code></pre>
+         *
+         * Class.getName and Class.getCanonicalName(): Cwhen called on a primitive type ,the return
+         * a {@link PrimitiveType}. When called on a non-array, non-nested, non-primitive type, they
+         * return a {@link BinaryName}:
+         *
+         * <pre><code>
+         * {@literal @}BinaryName String binaryName = MyClass.class.getName();
          * </code></pre>
          */
         @Override
@@ -237,7 +279,41 @@ public class SignatureAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                         && receiverType.getAnnotation(InternalForm.class) != null) {
                     type.replaceAnnotation(BINARY_NAME);
                 }
+            } else {
+                boolean isClassGetName =
+                        TreeUtils.isMethodInvocation(tree, classGetName, processingEnv);
+                boolean isClassGetCanonicalName =
+                        TreeUtils.isMethodInvocation(tree, classGetCanonicalName, processingEnv);
+                if (isClassGetName || isClassGetCanonicalName) {
+                    ExpressionTree receiver = TreeUtils.getReceiverTree(tree);
+                    if (TreeUtils.isClassLiteral(receiver)) {
+                        ExpressionTree classExpr = ((MemberSelectTree) receiver).getExpression();
+                        if (classExpr.getKind() == Tree.Kind.PRIMITIVE_TYPE) {
+                            if (((PrimitiveTypeTree) classExpr).getPrimitiveTypeKind()
+                                    == TypeKind.VOID) {
+                                // do nothing
+                            } else {
+                                type.replaceAnnotation(PRIMITIVE_TYPE);
+                            }
+                        } else {
+                            // Binary name if non-array, non-primitive, non-nested.
+                            TypeMirror literalType = TreeUtils.typeOf(classExpr);
+                            if (literalType.getKind() == TypeKind.DECLARED) {
+                                TypeElement typeElt = TypesUtils.getTypeElement(literalType);
+                                Element enclosing = typeElt.getEnclosingElement();
+                                if (enclosing == null
+                                        || enclosing.getKind() == ElementKind.PACKAGE) {
+                                    type.replaceAnnotation(
+                                            isClassGetName
+                                                    ? DOT_SEPARATED_IDENTIFIERS
+                                                    : CANONICAL_NAME_AND_BINARY_NAME);
+                                }
+                            }
+                        }
+                    }
+                }
             }
+
             return super.visitMethodInvocation(tree, type);
         }
     }

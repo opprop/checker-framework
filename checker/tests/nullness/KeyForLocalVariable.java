@@ -1,11 +1,12 @@
 // Test for Checker Framework issue 795
 // https://github.com/typetools/checker-framework/issues/795
 
-import java.util.HashMap;
-import java.util.Map;
 import org.checkerframework.checker.nullness.qual.*;
 
-class KeyForLocalVariable {
+import java.util.HashMap;
+import java.util.Map;
+
+public class KeyForLocalVariable {
 
     public static void localVariableShadowing() {
         // :: error: (expression.unparsable.type.invalid)

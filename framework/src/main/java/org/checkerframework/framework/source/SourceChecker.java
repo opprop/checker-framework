@@ -15,14 +15,44 @@ import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.DiagnosticSource;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.Log;
+
+import io.github.classgraph.ClassGraph;
+
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
+import org.checkerframework.checker.formatter.qual.FormatMethod;
+import org.checkerframework.checker.interning.qual.InternedDistinct;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.signature.qual.CanonicalName;
+import org.checkerframework.checker.signature.qual.FullyQualifiedName;
+import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.qual.AnnotatedFor;
+import org.checkerframework.framework.type.AnnotatedTypeFactory;
+import org.checkerframework.framework.util.CheckerMain;
+import org.checkerframework.framework.util.OptionConfiguration;
+import org.checkerframework.javacutil.AbstractTypeProcessor;
+import org.checkerframework.javacutil.AnnotationProvider;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.SystemUtil;
+import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeSystemError;
+import org.checkerframework.javacutil.UserError;
+import org.plumelib.util.CollectionsPlume;
+import org.plumelib.util.SystemPlume;
+import org.plumelib.util.UtilPlume;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -41,6 +71,8 @@ import java.util.SortedSet;
 import java.util.StringJoiner;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -52,24 +84,8 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
-import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.qual.AnnotatedFor;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
-import org.checkerframework.framework.util.CFContext;
-import org.checkerframework.framework.util.CheckerMain;
-import org.checkerframework.framework.util.OptionConfiguration;
-import org.checkerframework.javacutil.AbstractTypeProcessor;
-import org.checkerframework.javacutil.AnnotationProvider;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.SystemUtil;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.UserError;
-import org.plumelib.util.UtilPlume;
 
 /**
  * An abstract annotation processor designed for implementing a source-file checker as an annotation
@@ -124,9 +140,8 @@ import org.plumelib.util.UtilPlume;
     /// More sound (strict checking): enable errors that are disabled by default
     ///
 
-    // The next ones *increase* rather than *decrease* soundness.
-    // They will eventually be replaced by their complements
-    // (except -AconcurrentSemantics) and moved into the above section.
+    // The next ones *increase* rather than *decrease* soundness.  They will eventually be replaced
+    // by their complements (except -AconcurrentSemantics) and moved into the above section.
 
     // TODO: Checking of bodies of @SideEffectFree, @Deterministic, and
     // @Pure methods is temporarily disabled unless -AcheckPurityAnnotations is
@@ -204,6 +219,9 @@ import org.plumelib.util.UtilPlume;
     // org.checkerframework.framework.source.SourceVisitor.checkForSuppressWarningsAnno
     "warnUnneededSuppressions",
 
+    // Exceptions to -AwarnUnneededSuppressions.
+    "warnUnneededSuppressionsExceptions",
+
     // Require that warning suppression annotations contain a checker key as a prefix in order for
     // the warning to be suppressed.
     // org.checkerframework.framework.source.SourceChecker.checkSuppressWarnings(java.lang.String[],
@@ -222,21 +240,24 @@ import org.plumelib.util.UtilPlume;
     // Additional stub files to use
     // org.checkerframework.framework.type.AnnotatedTypeFactory.parseStubFiles()
     "stubs",
+    // Additional ajava files to use
+    // org.checkerframework.framework.type.AnnotatedTypeFactory.parserAjavaFiles()
+    "ajava",
     // Whether to print warnings about types/members in a stub file
     // that were not found on the class path
-    // org.checkerframework.framework.stub.StubParser.warnIfNotFound
+    // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFound
     "stubWarnIfNotFound",
-    // Whether to ignore missing classes even when warnIfNotFound is set to true and
-    // other classes from the same package are present (useful if a package spans more than one
-    // jar).
-    // org.checkerframework.framework.stub.StubParser.warnIfNotFoundIgnoresClasses
+    // Whether to ignore missing classes even when warnIfNotFound is set to true and other classes
+    // from the same package are present (useful if a package spans more than one jar).
+    // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFoundIgnoresClasses
     "stubWarnIfNotFoundIgnoresClasses",
-    // Whether to print warnings about stub files that overwrite annotations
-    // from bytecode.
+    // Whether to print warnings about stub files that overwrite annotations from bytecode.
     "stubWarnIfOverwritesBytecode",
     // Whether to print warnings about stub files that are redundant with the annotations from
     // bytecode.
     "stubWarnIfRedundantWithBytecode",
+    // Whether to issue a NOTE rather than a WARNING for -AstubWarn* command-line options
+    "stubWarnNote",
     // With this option, annotations in stub files are used EVEN IF THE SOURCE FILE IS
     // PRESENT. Only use this option when you intend to store types in stub files rather than
     // directly in source code, such as during whole-program inference. The annotations in the
@@ -251,6 +272,8 @@ import org.plumelib.util.UtilPlume;
 
     /// Amount of detail in messages
 
+    // Print the version of the Checker Framework
+    "version",
     // Print info about git repository from which the Checker Framework was compiled
     "printGitProperties",
 
@@ -261,7 +284,8 @@ import org.plumelib.util.UtilPlume;
     // Whether to print [] around a set of type parameters in order to clearly see where they end
     // e.g.  <E extends F, F extends Object>
     // without this option the E is printed: E extends F extends Object
-    // with this option:                    E [ extends F [ extends Object super Void ] super Void ]
+    // with this option:                     E [ extends F [ extends Object super Void ] super Void
+    // ]
     // when multiple type variables are used this becomes useful very quickly
     "printVerboseGenerics",
 
@@ -272,6 +296,9 @@ import org.plumelib.util.UtilPlume;
     // Only output error code, useful for testing framework
     // org.checkerframework.framework.source.SourceChecker.message(Kind, Object, String, Object...)
     "nomsgtext",
+
+    // Do not perform a JRE version check.
+    "noJreVersionCheck",
 
     /// Format of messages
 
@@ -292,11 +319,11 @@ import org.plumelib.util.UtilPlume;
     "nocheckjdk", // temporary, for backward compatibility
 
     // Parse all JDK files at startup rather than as needed.
-    // org.checkerframework.framework.stub.StubTypes.StubTypes
+    // org.checkerframework.framework.stub.AnnotationFileElementTypes.AnnotationFileElementTypes
     "parseAllJdk",
 
     // Whether to print debugging messages while processing the stub files
-    // org.checkerframework.framework.stub.StubParser.debugStubParser
+    // org.checkerframework.framework.stub.AnnotationFileParser.debugAnnotationFileParser
     "stubDebug",
 
     /// Progress tracing
@@ -313,6 +340,10 @@ import org.plumelib.util.UtilPlume;
     // org.checkerframework.framework.util.typeinference.DefaultTypeArgumentInference
     "showInferenceSteps",
 
+    // Output a stack trace when reporting errors or warnings
+    // org.checkerframework.common.basetype.SourceChecker.printStackTrace()
+    "dumpOnErrors",
+
     /// Visualizing the CFG
 
     // Implemented in the wrapper rather than this file, but worth noting here.
@@ -321,9 +352,8 @@ import org.plumelib.util.UtilPlume;
     // Mechanism to visualize the control flow graph (CFG).
     // The argument is a sequence of values or key-value pairs.
     // The first argument has to be the fully-qualified name of the
-    // org.checkerframework.dataflow.cfg.CFGVisualizer implementation
-    // that should be used. The remaining values or key-value pairs are
-    // passed to CFGVisualizer.init.
+    // org.checkerframework.dataflow.cfg.CFGVisualizer implementation that should be used. The
+    // remaining values or key-value pairs are passed to CFGVisualizer.init.
     // For example:
     //    -Acfgviz=MyViz,a,b=c,d
     // instantiates class MyViz and calls CFGVisualizer.init
@@ -359,15 +389,19 @@ import org.plumelib.util.UtilPlume;
     // org.checkerframework.framework.source.SourceChecker.shutdownHook()
     "resourceStats",
 
-    // Parse all JDK files at startup rather than as needed.
-    "parseAllJdk"
+    // Run checks that test ajava files.
+    //
+    // Whenever processing a source file, parse it with JavaParser and check that the AST can be
+    // matched with javac's tree. Crash if not. For testing the class JointJavacJavaParserVisitor.
+    //
+    // Also checks that annotations can be inserted. For each Java file, clears all annotations and
+    // reinserts them, then checks if the original and modified ASTs are equivalent.
+    "ajavaChecks",
 })
-public abstract class SourceChecker extends AbstractTypeProcessor
-        implements CFContext, OptionConfiguration {
+public abstract class SourceChecker extends AbstractTypeProcessor implements OptionConfiguration {
 
-    // TODO A checker should export itself through a separate interface,
-    // and maybe have an interface for all the methods for which it's safe
-    // to override.
+    // TODO A checker should export itself through a separate interface, and maybe have an interface
+    // for all the methods for which it's safe to override.
 
     /** The line separator. */
     private static final String LINE_SEPARATOR = System.lineSeparator().intern();
@@ -398,22 +432,31 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     protected Trees trees;
 
     /** The source tree that is being scanned. */
-    protected CompilationUnitTree currentRoot;
-
-    /**
-     * If an error is detected in a CompilationUnitTree, skip all future calls of {@link
-     * #typeProcess} with that same CompilationUnitTree.
-     */
-    private CompilationUnitTree previousErrorCompilationUnit;
+    protected @InternedDistinct CompilationUnitTree currentRoot;
 
     /** The visitor to use. */
     protected SourceVisitor<?, ?> visitor;
+
+    /**
+     * Exceptions to -AwarnUnneededSuppressions processing. No warning about unneeded suppressions
+     * is issued if the SuppressWarnings string matches this pattern.
+     */
+    private @Nullable Pattern warnUnneededSuppressionsExceptions;
 
     /**
      * SuppressWarnings strings supplied via the -AsuppressWarnings option. Do not use directly,
      * call {@link #getSuppressWarningsStringsFromOption()}.
      */
     private String @Nullable [] suppressWarningsStringsFromOption;
+
+    /**
+     * If true, use the "allcheckers:" warning string prefix.
+     *
+     * <p>Checkers that never issue any error messages should set this to false. That prevents
+     * {@code -AwarnUnneededSuppressions} from issuing warnings about
+     * {@code @SuppressWarnings("allcheckers:...")}.
+     */
+    protected boolean useAllcheckersPrefix = true;
 
     /**
      * Regular expression pattern to specify Java classes that are not annotated, so warnings about
@@ -481,35 +524,50 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      * in the case of a compound checker, the compound checker is the parent, not the checker that
      * was run prior to this one by the compound checker.
      */
-    protected SourceChecker parentChecker;
+    protected @Nullable SourceChecker parentChecker;
 
     /** List of upstream checker names. Includes the current checker. */
-    protected List<String> upstreamCheckerNames;
+    protected List<@FullyQualifiedName String> upstreamCheckerNames;
 
     @Override
     public final synchronized void init(ProcessingEnvironment env) {
-        super.init(env);
-        // The processingEnvironment field will also be set by the superclass' init method.
+        ProcessingEnvironment unwrappedEnv = unwrapProcessingEnvironment(env);
+        super.init(unwrappedEnv);
+        // The processingEnvironment field will be set by the superclass's init method.
         // This is used to trigger AggregateChecker's setProcessingEnvironment.
-        setProcessingEnvironment(env);
+        setProcessingEnvironment(unwrappedEnv);
 
         // Keep in sync with check in checker-framework/build.gradle and text in installation
         // section of manual.
         int jreVersion = SystemUtil.getJreVersion();
-        if (jreVersion < 8) {
-            throw new UserError(
-                    "The Checker Framework must be run under at least JDK 8.  You are using version %d.  Please use JDK 8 or JDK 11.",
-                    jreVersion);
-        } else if (jreVersion > 12) {
-            throw new UserError(
-                    String.format(
-                            "The Checker Framework cannot be run with JDK 13+.  You are using version %d. Please use JDK 8 or JDK 11.",
-                            jreVersion));
-        } else if (jreVersion != 8 && jreVersion != 11) {
+        if (!hasOption("noJreVersionCheck")
+                && jreVersion != 8
+                && jreVersion != 11
+                && jreVersion != 16) {
             message(
                     Kind.WARNING,
-                    "The Checker Framework is only tested with JDK 8 and JDK 11. You are using version %d. Please use JDK 8 or JDK 11.",
+                    "Use JDK 8, 11, or 16 to run the Checker Framework.  You are using version %d.",
                     jreVersion);
+        }
+
+        if (!hasOption("warnUnneededSuppressionsExceptions")) {
+            warnUnneededSuppressionsExceptions = null;
+        } else {
+            String warnUnneededSuppressionsExceptionsString =
+                    getOption("warnUnneededSuppressionsExceptions");
+            if (warnUnneededSuppressionsExceptionsString == null) {
+                throw new UserError(
+                        "Must supply an argument to -AwarnUnneededSuppressionsExceptions");
+            }
+            try {
+                warnUnneededSuppressionsExceptions =
+                        Pattern.compile(warnUnneededSuppressionsExceptionsString);
+            } catch (PatternSyntaxException e) {
+                throw new UserError(
+                        "Argument to -AwarnUnneededSuppressionsExceptions is not a regular"
+                                + " expression: "
+                                + e.getMessage());
+            }
         }
 
         if (hasOption("printGitProperties")) {
@@ -526,7 +584,6 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *
      * @return the {@link ProcessingEnvironment} that was supplied to this checker
      */
-    @Override
     public ProcessingEnvironment getProcessingEnvironment() {
         return this.processingEnv;
     }
@@ -543,11 +600,11 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
-     * Returns the parent checker of the current checker.
+     * Returns the immediate parent checker of the current checker.
      *
-     * @return the parent checker of the current checker
+     * @return the immediate parent checker of the current checker, or null if there is none
      */
-    public SourceChecker getParentChecker() {
+    public @Nullable SourceChecker getParentChecker() {
         return this.parentChecker;
     }
 
@@ -556,23 +613,27 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *
      * @param newRoot the new compilation unit root
      */
+    @SuppressWarnings("interning:assignment.type.incompatible") // used in == tests
     protected void setRoot(CompilationUnitTree newRoot) {
         this.currentRoot = newRoot;
         visitor.setRoot(currentRoot);
     }
 
     /**
-     * Return a list containing this checker name and all checkers it is a part of (that is,
+     * Returns a list containing this checker name and all checkers it is a part of (that is,
      * checkers that called it).
+     *
+     * @return a list containing this checker name and all checkers it is a part of (that is,
+     *     checkers that called it)
      */
-    public List<String> getUpstreamCheckerNames() {
+    public List<@FullyQualifiedName String> getUpstreamCheckerNames() {
         if (upstreamCheckerNames == null) {
             upstreamCheckerNames = new ArrayList<>();
 
             SourceChecker checker = this;
 
             while (checker != null) {
-                upstreamCheckerNames.add(checker.getClass().getName());
+                upstreamCheckerNames.add(checker.getClass().getCanonicalName());
                 checker = checker.parentChecker;
             }
         }
@@ -581,40 +642,46 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
-     * Returns the {@link CFContext} used by this checker.
+     * Returns the OptionConfiguration associated with this.
      *
-     * @return the {@link CFContext} used by this checker
+     * @return the OptionConfiguration associated with this
      */
-    public CFContext getContext() {
-        return this;
-    }
-
-    @Override
-    public SourceChecker getChecker() {
-        return this;
-    }
-
-    @Override
     public OptionConfiguration getOptionConfiguration() {
         return this;
     }
 
-    @Override
+    /**
+     * Returns the element utilities associated with this.
+     *
+     * @return the element utilities associated with this
+     */
     public Elements getElementUtils() {
         return getProcessingEnvironment().getElementUtils();
     }
 
-    @Override
+    /**
+     * Returns the type utilities associated with this.
+     *
+     * @return the type utilities associated with this
+     */
     public Types getTypeUtils() {
         return getProcessingEnvironment().getTypeUtils();
     }
 
-    @Override
+    /**
+     * Returns the tree utilities associated with this.
+     *
+     * @return the tree utilities associated with this
+     */
     public Trees getTreeUtils() {
         return Trees.instance(getProcessingEnvironment());
     }
 
-    @Override
+    /**
+     * Returns the SourceVisitor associated with this.
+     *
+     * @return the SourceVisitor associated with this
+     */
     public SourceVisitor<?, ?> getVisitor() {
         return this.visitor;
     }
@@ -626,7 +693,11 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      */
     protected abstract SourceVisitor<?, ?> createSourceVisitor();
 
-    @Override
+    /**
+     * Returns the AnnotationProvider (the type factory) associated with this.
+     *
+     * @return the AnnotationProvider (the type factory) associated with this
+     */
     public AnnotationProvider getAnnotationProvider() {
         throw new UnsupportedOperationException(
                 "getAnnotationProvider is not implemented for this class.");
@@ -657,7 +728,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         }
 
         for (Class<?> checker : checkers) {
-            messagesProperties.putAll(getProperties(checker, MSGS_FILE));
+            messagesProperties.putAll(getProperties(checker, MSGS_FILE, true));
         }
         return messagesProperties;
     }
@@ -747,9 +818,9 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     /**
      * {@inheritDoc}
      *
-     * <p>Type-checkers are not supposed to override this. Instead use initChecker. This allows us
-     * to handle BugInCF only here and doesn't require all overriding implementations to be aware of
-     * BugInCF.
+     * <p>Type-checkers are not supposed to override this. Instead override initChecker. This allows
+     * us to handle BugInCF only here and doesn't require all overriding implementations to be aware
+     * of BugInCF.
      *
      * @see AbstractProcessor#init(ProcessingEnvironment)
      * @see SourceChecker#initChecker()
@@ -778,8 +849,13 @@ public abstract class SourceChecker extends AbstractTypeProcessor
                                     }
                                 });
             }
+            if (hasOption("version")) {
+                messager.printMessage(Kind.NOTE, "Checker Framework " + getCheckerVersion());
+            }
         } catch (UserError ce) {
             logUserError(ce);
+        } catch (TypeSystemError ce) {
+            logTypeSystemError(ce);
         } catch (BugInCF ce) {
             logBugInCF(ce);
         } catch (Throwable t) {
@@ -796,7 +872,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         // Grab the Trees and Messager instances now; other utilities
         // (like Types and Elements) can be retrieved by subclasses.
         @Nullable Trees trees = Trees.instance(processingEnv);
-        assert trees != null; /*nninvariant*/
+        assert trees != null;
         this.trees = trees;
 
         this.messager = processingEnv.getMessager();
@@ -814,6 +890,15 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     private boolean warnedAboutSourceLevel = false;
 
     /**
+     * If true, javac failed to compile the code or a previously-run annotation processor issued an
+     * error.
+     */
+    protected boolean javacErrored = false;
+
+    /** Output the warning about memory at most once. */
+    private boolean warnedAboutGarbageCollection = false;
+
+    /**
      * The number of errors at the last exit of the type processor. At entry to the type processor
      * we check whether the current error count is higher and then don't process the file, as it
      * contains some Java errors. Needs to be protected to allow access from AggregateChecker and
@@ -822,13 +907,31 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     protected int errsOnLastExit = 0;
 
     /**
+     * Report "type.checking.not.run" error.
+     *
+     * @param p error is reported at the leaf of the path
+     */
+    @SuppressWarnings("interning:assignment.type.incompatible") // used in == tests
+    protected void reportJavacError(TreePath p) {
+        // If javac issued any errors, do not type check any file, so that the Checker Framework
+        // does not have to deal with error types.
+        currentRoot = p.getCompilationUnit();
+        reportError(p.getLeaf(), "type.checking.not.run", getClass().getSimpleName());
+    }
+
+    /**
      * Type-check the code using this checker's visitor.
      *
      * @see Processor#process(Set, RoundEnvironment)
      */
     @Override
     public void typeProcess(TypeElement e, TreePath p) {
-        // Cannot use BugInCF here because it is outside of the try/catch for BugInCf
+        if (javacErrored) {
+            reportJavacError(p);
+            return;
+        }
+
+        // Cannot use BugInCF here because it is outside of the try/catch for BugInCF.
         if (e == null) {
             messager.printMessage(Kind.ERROR, "Refusing to process empty TypeElement");
             return;
@@ -837,6 +940,14 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             messager.printMessage(
                     Kind.ERROR, "Refusing to process empty TreePath in TypeElement: " + e);
             return;
+        }
+
+        if (!warnedAboutGarbageCollection) {
+            String gcUsageMessage = SystemPlume.gcUsageMessage(.25, 60);
+            if (gcUsageMessage != null) {
+                messager.printMessage(Kind.WARNING, gcUsageMessage);
+                warnedAboutGarbageCollection = true;
+            }
         }
 
         Context context = ((JavacProcessingEnvironment) processingEnv).getContext();
@@ -852,22 +963,14 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         Log log = Log.instance(context);
         if (log.nerrors > this.errsOnLastExit) {
             this.errsOnLastExit = log.nerrors;
-            previousErrorCompilationUnit = p.getCompilationUnit();
+            javacErrored = true;
+            reportJavacError(p);
             return;
         }
-        if (p.getCompilationUnit() == previousErrorCompilationUnit) {
-            // If the same compilation unit was seen with an error before,
-            // skip it. This is in particular necessary for Java errors, which
-            // show up once, but further calls to typeProcess will happen.
-            // See Issue 346.
-            return;
-        } else {
-            previousErrorCompilationUnit = null;
-        }
+
         if (visitor == null) {
-            // typeProcessingStart invokes initChecker, which should
-            // have set the visitor. If the field is still null, an
-            // exception occurred during initialization, which was already
+            // typeProcessingStart invokes initChecker, which should have set the visitor. If the
+            // field is still null, an exception occurred during initialization, which was already
             // logged there. Don't also cause a NPE here.
             return;
         }
@@ -895,6 +998,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             warnUnneededSuppressions();
         } catch (UserError ce) {
             logUserError(ce);
+        } catch (TypeSystemError ce) {
+            logTypeSystemError(ce);
         } catch (BugInCF ce) {
             logBugInCF(ce);
         } catch (Throwable t) {
@@ -955,6 +1060,10 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      * @param messageKey the message key
      * @param args arguments for interpolation in the string corresponding to the given message key
      */
+    // Not a format method.  However, messageKey should be either a format string for `args`, or  a
+    // property key that maps to a format string for `args`.
+    // @FormatMethod
+    @SuppressWarnings("formatter:format.string.invalid") // arg is a format string or a property key
     private void report(
             Object source,
             javax.tools.Diagnostic.Kind kind,
@@ -1029,13 +1138,27 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      * @param args optional arguments to substitute in the message
      * @see SourceChecker#report(Object, DiagMessage)
      */
+    @FormatMethod
     public void message(javax.tools.Diagnostic.Kind kind, String msg, Object... args) {
-        String ftdmsg = String.format(msg, args);
+        message(kind, String.format(msg, args));
+    }
+
+    /**
+     * Print a non-localized message using the javac messager. This is preferable to using
+     * System.out or System.err, but should only be used for exceptional cases that don't happen in
+     * correct usage. Localized messages should be raised using {@link #reportError}, {@link
+     * #reportWarning}, etc.
+     *
+     * @param kind the kind of message to print
+     * @param msg the message text
+     * @see SourceChecker#report(Object, DiagMessage)
+     */
+    public void message(javax.tools.Diagnostic.Kind kind, String msg) {
         if (messager == null) {
             // If this method is called before initChecker() sets the field
             messager = processingEnv.getMessager();
         }
-        messager.printMessage(kind, ftdmsg);
+        messager.printMessage(kind, msg);
     }
 
     /**
@@ -1059,7 +1182,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *
      * @param kind the kind of message to print
      * @param message the message text
-     * @param source the souce code position of the diagnostic message
+     * @param source the source code position of the diagnostic message
      * @param root the compilation unit
      */
     protected void printOrStoreMessage(
@@ -1067,7 +1190,46 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             String message,
             Tree source,
             CompilationUnitTree root) {
+        StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+        printOrStoreMessage(kind, message, source, root, trace);
+    }
+
+    /**
+     * Do not call this method. Call {@link #reportError} or {@link #reportWarning} instead.
+     *
+     * <p>This method exists so that the BaseTypeChecker can override it. For compound checkers, it
+     * stores all messages and sorts them by location before outputting them.
+     *
+     * @param kind the kind of message to print
+     * @param message the message text
+     * @param source the source code position of the diagnostic message
+     * @param root the compilation unit
+     * @param trace the stack trace where the checker encountered an error. It is printed when the
+     *     dumpOnErrors option is enabled.
+     */
+    protected void printOrStoreMessage(
+            javax.tools.Diagnostic.Kind kind,
+            String message,
+            Tree source,
+            CompilationUnitTree root,
+            StackTraceElement[] trace) {
         Trees.instance(processingEnv).printMessage(kind, message, source, root);
+        printStackTrace(trace);
+    }
+
+    /**
+     * Output the given stack trace if the "dumpOnErrors" option is enabled.
+     *
+     * @param trace stack trace when the checker encountered a warning/error
+     */
+    private void printStackTrace(StackTraceElement[] trace) {
+        if (hasOption("dumpOnErrors")) {
+            StringBuilder msg = new StringBuilder();
+            for (StackTraceElement elem : trace) {
+                msg.append("\tat " + elem + "\n");
+            }
+            message(Diagnostic.Kind.NOTE, msg.toString());
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1140,9 +1302,9 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         // (1) error key
         sj.add(defaultFormat);
 
-        // (2) number of additional tokens, and those tokens; this
-        // depends on the error message, and an example is the found
-        // and expected types
+        // (2) number of additional tokens, and those tokens; this depends on the error message, and
+        // an
+        // example is the found and expected types
         if (args != null) {
             sj.add(Integer.toString(args.length));
             for (Object arg : args) {
@@ -1174,7 +1336,9 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         if (hasOption("showSuppressWarningsStrings")) {
             List<String> list = new ArrayList<>(prefixes);
             // Make sure "allcheckers" is at the end of the list.
-            list.add(SUPPRESS_ALL_PREFIX);
+            if (useAllcheckersPrefix) {
+                list.add(SUPPRESS_ALL_PREFIX);
+            }
             return list + ":" + messageKey;
         } else if (hasOption("requirePrefixInWarningSuppressions")) {
             // If the warning key must be prefixed with a prefix (a checker name), then add that to
@@ -1389,7 +1553,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
-     * Helper method to find the parent of a lint key. The lint hierarchy level is donated by a
+     * Helper method to find the parent of a lint key. The lint hierarchy level is denoted by a
      * colon ':'. 'all' is the root for all hierarchy.
      *
      * <pre>
@@ -1405,8 +1569,10 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     private String parentOfOption(String name) {
         if (name.equals("all")) {
             return null;
-        } else if (name.contains(":")) {
-            return name.substring(0, name.lastIndexOf(':'));
+        }
+        int colonIndex = name.lastIndexOf(':');
+        if (colonIndex != -1) {
+            return name.substring(0, colonIndex);
         } else {
             return "all";
         }
@@ -1434,7 +1600,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         }
 
         @Nullable String @Nullable [] slValue = sl.value();
-        assert slValue != null; /*nninvariant*/
+        assert slValue != null;
 
         @Nullable String[] lintArray = slValue;
         Set<String> lintSet = new HashSet<>(lintArray.length);
@@ -1470,7 +1636,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             return Collections.emptyMap();
         }
 
-        Map<String, String> activeOpts = new HashMap<>();
+        Map<String, String> activeOpts = new HashMap<>(CollectionsPlume.mapCapacity(options));
 
         for (Map.Entry<String, String> opt : options.entrySet()) {
             String key = opt.getKey();
@@ -1478,35 +1644,35 @@ public abstract class SourceChecker extends AbstractTypeProcessor
 
             String[] split = key.split(OPTION_SEPARATOR);
 
+            splitlengthswitch:
             switch (split.length) {
                 case 1:
-                    // No separator, option always active
+                    // No separator, option always active.
                     activeOpts.put(key, value);
                     break;
                 case 2:
-                    // Valid class-option pair
                     Class<?> clazz = this.getClass();
 
                     do {
                         if (clazz.getCanonicalName().equals(split[0])
                                 || clazz.getSimpleName().equals(split[0])) {
+                            // Valid class-option pair.
                             activeOpts.put(split[1], value);
+                            break splitlengthswitch;
                         }
 
                         clazz = clazz.getSuperclass();
                     } while (clazz != null
                             && !clazz.getName()
                                     .equals(AbstractTypeProcessor.class.getCanonicalName()));
+                    // Didn't find a matching class. Option might be for another processor. Add
+                    // option anyways. javac will warn if no processor supports the option.
+                    activeOpts.put(key, value);
                     break;
                 default:
-                    throw new UserError(
-                            "Invalid option name: "
-                                    + key
-                                    + " At most one separator "
-                                    + OPTION_SEPARATOR
-                                    + " expected, but found "
-                                    + split.length
-                                    + ".");
+                    // Too many separators. Option might be for another processor. Add option
+                    // anyways. javac will warn if no processor supports the option.
+                    activeOpts.put(key, value);
             }
         }
         return Collections.unmodifiableMap(activeOpts);
@@ -1638,9 +1804,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     public Set<String> getSupportedOptions() {
         Set<String> options = new HashSet<>();
 
-        // Support all options provided with the standard
-        // {@link javax.annotation.processing.SupportedOptions}
-        // annotation.
+        // Support all options provided with the standard {@link
+        // javax.annotation.processing.SupportedOptions} annotation.
         options.addAll(super.getSupportedOptions());
 
         // For the Checker Framework annotation
@@ -1736,17 +1901,14 @@ public abstract class SourceChecker extends AbstractTypeProcessor
                 return null;
             }
             this.suppressWarningsStringsFromOption = swStrings.split(",");
-            Arrays.setAll(
-                    suppressWarningsStringsFromOption,
-                    i -> suppressWarningsStringsFromOption[i].toLowerCase());
         }
 
         return this.suppressWarningsStringsFromOption;
     }
 
     /**
-     * Issues a warning about any {@code @SuppressWarnings} that isn't used by this checker, but
-     * contains a string that would suppress a warning from this checker.
+     * Issues a warning about any {@code @SuppressWarnings} that didn't suppress a warning, but
+     * starts with this checker name or "allcheckers".
      */
     protected void warnUnneededSuppressions() {
         if (!hasOption("warnUnneededSuppressions")) {
@@ -1762,8 +1924,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
-     * Issues a warning about any {@code @SuppressWarnings} that isn't used by this checker, but
-     * contains a string that would suppress a warning from this checker.
+     * Issues a warning about any {@code @SuppressWarnings} string that didn't suppress a warning,
+     * but starts with one of the given prefixes (checker names).
      *
      * @param elementsSuppress elements with a {@code @SuppressWarnings} that actually suppressed a
      *     warning
@@ -1772,9 +1934,6 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      */
     protected void warnUnneededSuppressions(
             Set<Element> elementsSuppress, Set<String> prefixes, Set<String> allErrorKeys) {
-        // It's not clear for which checker "all" is intended, so never report it as unused.
-        prefixes.remove(SourceChecker.SUPPRESS_ALL_PREFIX);
-
         for (Tree tree : getVisitor().treesWithSuppressWarnings) {
             Element elt = TreeUtils.elementFromTree(tree);
             // TODO: This test is too coarse.  The fact that this @SuppressWarnings suppressed
@@ -1782,12 +1941,19 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             if (elementsSuppress.contains(elt)) {
                 continue;
             }
+            // tree has a @SuppressWarnings annotation that didn't suppress any warnings.
             SuppressWarnings suppressAnno = elt.getAnnotation(SuppressWarnings.class);
             String[] suppressWarningsStrings = suppressAnno.value();
-            Arrays.setAll(suppressWarningsStrings, i -> suppressWarningsStrings[i].toLowerCase());
             for (String suppressWarningsString : suppressWarningsStrings) {
-                for (String errorKey : allErrorKeys) {
-                    if (shouldSuppress(prefixes, new String[] {suppressWarningsString}, errorKey)) {
+                if (warnUnneededSuppressionsExceptions != null
+                        && warnUnneededSuppressionsExceptions
+                                .matcher(suppressWarningsString)
+                                .find(0)) {
+                    continue;
+                }
+                for (String prefix : prefixes) {
+                    if (suppressWarningsString.equals(prefix)
+                            || suppressWarningsString.startsWith(prefix + ":")) {
                         reportUnneededSuppression(tree, suppressWarningsString);
                         break; // Don't report the same warning string more than once.
                     }
@@ -1813,7 +1979,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /** The name of the @SuppressWarnings annotation. */
-    private final String suppressWarningsClassName = SuppressWarnings.class.getCanonicalName();
+    private final @CanonicalName String suppressWarningsClassName =
+            SuppressWarnings.class.getCanonicalName();
     /**
      * Finds the tree that is a {@code @SuppressWarnings} annotation.
      *
@@ -1866,7 +2033,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     /**
      * Determines whether all the warnings pertaining to a given tree should be suppressed. Returns
      * true if the tree is within the scope of a @SuppressWarnings annotation, one of whose values
-     * suppresses the checker's warnings.
+     * suppresses the checker's warnings. Also, returns true if the {@code errKey} matches a string
+     * in {@code -AsuppressWarnings}.
      *
      * @param tree the tree that might be a source of a warning
      * @param errKey the error key the checker is emitting
@@ -1880,18 +2048,26 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         if (prefixes.isEmpty()
                 || (prefixes.contains(SUPPRESS_ALL_PREFIX) && prefixes.size() == 1)) {
             throw new BugInCF(
-                    "Checker must provide a SuppressWarnings prefix. SourceChecker#getSuppressWarningsPrefixes was not overridden correctly.");
+                    "Checker must provide a SuppressWarnings prefix."
+                            + " SourceChecker#getSuppressWarningsPrefixes was not overridden"
+                            + " correctly.");
+        }
+
+        if (shouldSuppress(getSuppressWarningsStringsFromOption(), errKey)) {
+            // If the error key matches a warning string in the -AsuppressWarnings, then suppress
+            // the warning.
+            return true;
         }
 
         // trees.getPath might be slow, but this is only used in error reporting
         @Nullable TreePath path = trees.getPath(this.currentRoot, tree);
 
-        @Nullable VariableTree var = TreeUtils.enclosingVariable(path);
+        @Nullable VariableTree var = TreePathUtil.enclosingVariable(path);
         if (var != null && shouldSuppressWarnings(TreeUtils.elementFromTree(var), errKey)) {
             return true;
         }
 
-        @Nullable MethodTree method = TreeUtils.enclosingMethod(path);
+        @Nullable MethodTree method = TreePathUtil.enclosingMethod(path);
         if (method != null) {
             @Nullable Element elt = TreeUtils.elementFromTree(method);
 
@@ -1900,14 +2076,13 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             }
 
             if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
-                // Return false immediately. Do NOT check for AnnotatedFor in
-                // the enclosing elements, because they may not have an
-                // @AnnotatedFor.
+                // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
+                // elements, because they may not have an @AnnotatedFor.
                 return false;
             }
         }
 
-        @Nullable ClassTree cls = TreeUtils.enclosingClass(path);
+        @Nullable ClassTree cls = TreePathUtil.enclosingClass(path);
         if (cls != null) {
             @Nullable Element elt = TreeUtils.elementFromTree(cls);
 
@@ -1916,9 +2091,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             }
 
             if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
-                // Return false immediately. Do NOT check for AnnotatedFor in
-                // the enclosing elements, because they may not have an
-                // @AnnotatedFor.
+                // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
+                // elements, because they may not have an @AnnotatedFor.
                 return false;
             }
         }
@@ -2002,8 +2176,6 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             SuppressWarnings suppressWarningsAnno = elt.getAnnotation(SuppressWarnings.class);
             if (suppressWarningsAnno != null) {
                 String[] suppressWarningsStrings = suppressWarningsAnno.value();
-                Arrays.setAll(
-                        suppressWarningsStrings, i -> suppressWarningsStrings[i].toLowerCase());
                 if (shouldSuppress(suppressWarningsStrings, errKey)) {
                     if (hasOption("warnUnneededSuppressions")) {
                         elementsWithSuppressedWarnings.add(elt);
@@ -2058,7 +2230,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
-     * See {@link #shouldSuppress(String[], String)}
+     * Helper method for {@link #shouldSuppress(String[], String)}.
      *
      * @param prefixes the SuppressWarnings prefixes used by this checker
      * @param suppressWarningsStrings the SuppressWarnings strings that are in effect. May be null,
@@ -2108,16 +2280,29 @@ public abstract class SourceChecker extends AbstractTypeProcessor
             }
             // Check if the message key in the warning suppression is part of the message key that
             // the checker is emiting.
-            if (messageKey.equals(messageKeyInSuppressWarningsString)
-                    || messageKey.startsWith(messageKeyInSuppressWarningsString + ".")
-                    || messageKey.endsWith("." + messageKeyInSuppressWarningsString)
-                    || messageKey.contains("." + messageKeyInSuppressWarningsString + ".")) {
+            if (messageKeyMatches(messageKey, messageKeyInSuppressWarningsString)) {
                 return true;
             }
         }
 
         // None of the SuppressWarnings strings suppress this error.
         return false;
+    }
+
+    /**
+     * Does the given messageKey match a messageKey that appears in a SuppressWarnings? Subclasses
+     * should override this method if they need additional logic to compare message keys.
+     *
+     * @param messageKey the message key
+     * @param messageKeyInSuppressWarningsString the message key in a SuppressWarnings
+     * @return true if the arguments match
+     */
+    protected boolean messageKeyMatches(
+            String messageKey, String messageKeyInSuppressWarningsString) {
+        return messageKey.equals(messageKeyInSuppressWarningsString)
+                || messageKey.startsWith(messageKeyInSuppressWarningsString + ".")
+                || messageKey.endsWith("." + messageKeyInSuppressWarningsString)
+                || messageKey.contains("." + messageKeyInSuppressWarningsString + ".");
     }
 
     /**
@@ -2138,7 +2323,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         String[] userAnnotatedFors = (anno == null ? null : anno.value());
 
         if (userAnnotatedFors != null) {
-            List<String> upstreamCheckerNames = getUpstreamCheckerNames();
+            List<@FullyQualifiedName String> upstreamCheckerNames = getUpstreamCheckerNames();
 
             for (String userAnnotatedFor : userAnnotatedFors) {
                 if (CheckerMain.matchesCheckerOrSubcheckerFromList(
@@ -2167,18 +2352,20 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      * Returns a sorted set of SuppressWarnings prefixes read from the {@link
      * SuppressWarningsPrefix} meta-annotation on the checker class. Or if no {@link
      * SuppressWarningsPrefix} is used, the checker name is used. {@link #SUPPRESS_ALL_PREFIX} is
-     * also added, at the end.
+     * also added, at the end, unless {@link #useAllcheckersPrefix} is false.
      *
      * @return a sorted set of SuppressWarnings prefixes
      */
     protected final NavigableSet<String> getStandardSuppressWarningsPrefixes() {
         NavigableSet<String> prefixes = new TreeSet<>();
-        prefixes.add(SUPPRESS_ALL_PREFIX);
+        if (useAllcheckersPrefix) {
+            prefixes.add(SUPPRESS_ALL_PREFIX);
+        }
         SuppressWarningsPrefix prefixMetaAnno =
                 this.getClass().getAnnotation(SuppressWarningsPrefix.class);
         if (prefixMetaAnno != null) {
             for (String prefix : prefixMetaAnno.value()) {
-                prefixes.add(prefix.toLowerCase());
+                prefixes.add(prefix);
             }
             return prefixes;
         }
@@ -2188,7 +2375,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         SuppressWarningsKeys annotation = this.getClass().getAnnotation(SuppressWarningsKeys.class);
         if (annotation != null) {
             for (String prefix : annotation.value()) {
-                prefixes.add(prefix.toLowerCase());
+                prefixes.add(prefix);
             }
             return prefixes;
         }
@@ -2229,8 +2416,15 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         if (element == null) {
             return false;
         }
-        TypeElement typeElement = ElementUtils.enclosingClass(element);
-        String name = typeElement.toString();
+        TypeElement typeElement = ElementUtils.enclosingTypeElement(element);
+        if (typeElement == null) {
+            throw new BugInCF(
+                    "enclosingTypeElement(%s [%s]) => null%n", element, element.getClass());
+        }
+        @SuppressWarnings("signature:assignment.type.incompatible" // TypeElement.toString():
+        // @FullyQualifiedName
+        )
+        @FullyQualifiedName String name = typeElement.toString();
         return shouldSkipUses(name);
     }
 
@@ -2246,7 +2440,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      * @param typeName the fully-qualified name of a type
      * @return true iff the enclosing class of element should be skipped
      */
-    public boolean shouldSkipUses(String typeName) {
+    public boolean shouldSkipUses(@FullyQualifiedName String typeName) {
         // System.out.printf("shouldSkipUses(%s) %s%nskipUses %s%nonlyUses %s%nresult %s%n",
         //                   element,
         //                   name,
@@ -2325,72 +2519,76 @@ public abstract class SourceChecker extends AbstractTypeProcessor
     }
 
     /**
+     * Log (that is, print) a type system error.
+     *
+     * @param ce the type system error to output
+     */
+    private void logTypeSystemError(TypeSystemError ce) {
+        String msg = ce.getMessage();
+        printMessage(msg);
+    }
+
+    /**
      * Log (that is, print) an internal error in the framework or a checker.
      *
      * @param ce the internal error to output
      */
     private void logBugInCF(BugInCF ce) {
         StringJoiner msg = new StringJoiner(LINE_SEPARATOR);
-        msg.add(ce.getMessage());
-        boolean noPrintErrorStack =
-                (processingEnv != null
-                        && processingEnv.getOptions() != null
-                        && processingEnv.getOptions().containsKey("noPrintErrorStack"));
-
-        msg.add("; The Checker Framework crashed.  Please report the crash.");
-        if (noPrintErrorStack) {
+        if (ce.getCause() != null && ce.getCause() instanceof OutOfMemoryError) {
             msg.add(
-                    " To see the full stack trace, don't invoke the compiler with -AnoPrintErrorStack");
+                    String.format(
+                            "OutOfMemoryError (max memory = %d, total memory = %d, free memory ="
+                                    + " %d)",
+                            Runtime.getRuntime().maxMemory(),
+                            Runtime.getRuntime().totalMemory(),
+                            Runtime.getRuntime().freeMemory()));
         } else {
-            if (this.currentRoot != null && this.currentRoot.getSourceFile() != null) {
-                msg.add("Compilation unit: " + this.currentRoot.getSourceFile().getName());
-            }
+            msg.add(ce.getMessage());
+            boolean noPrintErrorStack =
+                    (processingEnv != null
+                            && processingEnv.getOptions() != null
+                            && processingEnv.getOptions().containsKey("noPrintErrorStack"));
 
-            if (this.visitor != null) {
-                DiagnosticPosition pos = (DiagnosticPosition) this.visitor.lastVisited;
-                if (pos != null) {
-                    DiagnosticSource source =
-                            new DiagnosticSource(this.currentRoot.getSourceFile(), null);
-                    int linenr = source.getLineNumber(pos.getStartPosition());
-                    int col = source.getColumnNumber(pos.getStartPosition(), true);
-                    String line = source.getLine(pos.getStartPosition());
-
-                    msg.add("Last visited tree at line " + linenr + " column " + col + ":");
-                    msg.add(line);
-                }
-            }
-
-            msg.add(
-                    "Exception: "
-                            + ce.getCause()
-                            + "; "
-                            + UtilPlume.stackTraceToString(ce.getCause()));
-            boolean printClasspath = ce.getCause() instanceof NoClassDefFoundError;
-            Throwable cause = ce.getCause().getCause();
-            while (cause != null) {
+            msg.add("; The Checker Framework crashed.  Please report the crash.");
+            if (noPrintErrorStack) {
                 msg.add(
-                        "Underlying Exception: "
-                                + cause
-                                + "; "
-                                + UtilPlume.stackTraceToString(cause));
-                printClasspath |= cause instanceof NoClassDefFoundError;
-                cause = cause.getCause();
-            }
-
-            if (printClasspath) {
-                ClassLoader cl = ClassLoader.getSystemClassLoader();
-
-                if (cl instanceof URLClassLoader) {
-                    msg.add("Classpath:");
-                    URL[] urls = ((URLClassLoader) cl).getURLs();
-                    for (URL url : urls) {
-                        msg.add(url.getFile());
-                    }
-                } else {
-                    // TODO: Java 9+ use an internal classloader that doesn't support getting URLs,
-                    // so we will need an alternative approach to retrieve the classpath on Java 9+.
-                    msg.add("Cannot print classpath on Java 9+. To see the classpath, use Java 8.");
+                        " To see the full stack trace, don't invoke the compiler with"
+                                + " -AnoPrintErrorStack");
+            } else {
+                if (this.currentRoot != null && this.currentRoot.getSourceFile() != null) {
+                    msg.add("Compilation unit: " + this.currentRoot.getSourceFile().getName());
                 }
+
+                if (this.visitor != null) {
+                    DiagnosticPosition pos = (DiagnosticPosition) this.visitor.lastVisited;
+                    if (pos != null) {
+                        DiagnosticSource source =
+                                new DiagnosticSource(this.currentRoot.getSourceFile(), null);
+                        int linenr = source.getLineNumber(pos.getStartPosition());
+                        int col = source.getColumnNumber(pos.getStartPosition(), true);
+                        String line = source.getLine(pos.getStartPosition());
+
+                        msg.add("Last visited tree at line " + linenr + " column " + col + ":");
+                        msg.add(line);
+                    }
+                }
+            }
+        }
+
+        msg.add("Exception: " + ce.getCause() + "; " + UtilPlume.stackTraceToString(ce.getCause()));
+        boolean printClasspath = ce.getCause() instanceof NoClassDefFoundError;
+        Throwable cause = ce.getCause().getCause();
+        while (cause != null) {
+            msg.add("Underlying Exception: " + cause + "; " + UtilPlume.stackTraceToString(cause));
+            printClasspath |= cause instanceof NoClassDefFoundError;
+            cause = cause.getCause();
+        }
+
+        if (printClasspath) {
+            msg.add("Classpath:");
+            for (URI uri : new ClassGraph().getClasspathURIs()) {
+                msg.add(uri.toString());
             }
         }
 
@@ -2465,23 +2663,27 @@ public abstract class SourceChecker extends AbstractTypeProcessor
      *
      * @param cls the class whose location is the base of the file path
      * @param filePath the name/path of the file to be read
+     * @param permitNonExisting if true, return an empty Properties if the file does not exist or
+     *     cannot be parsed; if false, issue an error
      * @return the properties
      */
-    protected Properties getProperties(Class<?> cls, String filePath) {
+    protected Properties getProperties(Class<?> cls, String filePath, boolean permitNonExisting) {
         Properties prop = new Properties();
         try {
             InputStream base = cls.getResourceAsStream(filePath);
 
             if (base == null) {
-                // No message customization file was given
-                return prop;
+                // The property file was not found.
+                if (permitNonExisting) {
+                    return prop;
+                } else {
+                    throw new BugInCF("Couldn't locate properties file " + filePath);
+                }
             }
 
             prop.load(base);
         } catch (IOException e) {
-            message(Kind.WARNING, "Couldn't parse properties file: " + filePath);
-            // e.printStackTrace();
-            // ignore the possible customization file
+            throw new BugInCF("Couldn't parse properties file: " + filePath, e);
         }
         return prop;
     }
@@ -2510,5 +2712,110 @@ public abstract class SourceChecker extends AbstractTypeProcessor
         } catch (IOException e) {
             System.out.println("IOException while reading git.properties: " + e.getMessage());
         }
+    }
+
+    /**
+     * Returns the version of the Checker Framework.
+     *
+     * @return the Checker Framework version
+     */
+    private String getCheckerVersion() {
+        Properties gitProperties = getProperties(getClass(), "/git.properties", false);
+        String version = gitProperties.getProperty("git.build.version");
+        if (version != null) {
+            return version;
+        }
+        throw new BugInCF("Could not find the version in git.properties");
+    }
+
+    /**
+     * Gradle and IntelliJ wrap the processing environment to gather information about modifications
+     * done by annotation processor during incremental compilation. But the Checker Framework calls
+     * methods from javac that require the processing environment to be {@code
+     * com.sun.tools.javac.processing.JavacProcessingEnvironment}. They fail if given a proxy. This
+     * method unwraps a proxy if one is used.
+     *
+     * @param env a processing environment
+     * @return unwrapped environment if the argument is a proxy created by IntelliJ or Gradle;
+     *     original value (the argument) if the argument is a javac processing environment
+     * @throws BugInCF if method fails to retrieve {@code
+     *     com.sun.tools.javac.processing.JavacProcessingEnvironment}
+     */
+    private static ProcessingEnvironment unwrapProcessingEnvironment(ProcessingEnvironment env) {
+        if (env.getClass().getName()
+                == "com.sun.tools.javac.processing.JavacProcessingEnvironment") { // interned
+            return env;
+        }
+        // IntelliJ >2020.3 wraps the processing environment in a dynamic proxy.
+        ProcessingEnvironment unwrappedIntelliJ = unwrapIntelliJ(env);
+        if (unwrappedIntelliJ != null) {
+            return unwrapProcessingEnvironment(unwrappedIntelliJ);
+        }
+        // Gradle incremental build also wraps the processing environment.
+        for (Class<?> envClass = env.getClass();
+                envClass != null;
+                envClass = envClass.getSuperclass()) {
+            ProcessingEnvironment unwrappedGradle = unwrapGradle(envClass, env);
+            if (unwrappedGradle != null) {
+                return unwrapProcessingEnvironment(unwrappedGradle);
+            }
+        }
+        throw new BugInCF("Unexpected processing environment: %s %s", env, env.getClass());
+    }
+
+    /**
+     * Tries to unwrap ProcessingEnvironment from proxy in IntelliJ 2020.3 or later.
+     *
+     * @param env possibly a dynamic proxy wrapping processing environment
+     * @return unwrapped processing environment, null if not successful
+     */
+    private static @Nullable ProcessingEnvironment unwrapIntelliJ(ProcessingEnvironment env) {
+        if (!Proxy.isProxyClass(env.getClass())) {
+            return null;
+        }
+        InvocationHandler handler = Proxy.getInvocationHandler(env);
+        try {
+            Field field = handler.getClass().getDeclaredField("val$delegateTo");
+            field.setAccessible(true);
+            Object o = field.get(handler);
+            if (o instanceof ProcessingEnvironment) {
+                return (ProcessingEnvironment) o;
+            }
+            return null;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Tries to unwrap processing environment in Gradle incremental processing. Inspired by project
+     * Lombok.
+     *
+     * @param delegateClass a class in which to find a {@code delegate} field
+     * @param env a processing environment wrapper
+     * @return unwrapped processing environment, null if not successful
+     */
+    private static @Nullable ProcessingEnvironment unwrapGradle(
+            Class<?> delegateClass, ProcessingEnvironment env) {
+        try {
+            Field field = delegateClass.getDeclaredField("delegate");
+            field.setAccessible(true);
+            Object o = field.get(env);
+            if (o instanceof ProcessingEnvironment) {
+                return (ProcessingEnvironment) o;
+            }
+            return null;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Return the path to the current compilation unit.
+     *
+     * @return path to the current compilation unit
+     */
+    public TreePath getPathToCompilationUnit() {
+        return TreePath.getPath(currentRoot, currentRoot);
     }
 }

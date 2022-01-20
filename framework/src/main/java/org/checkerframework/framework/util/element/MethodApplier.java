@@ -5,11 +5,7 @@ import com.sun.tools.javac.code.Attribute.TypeCompound;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.TypeAnnotationPosition;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import javax.lang.model.element.Element;
+
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -17,7 +13,14 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVari
 import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.SystemUtil;
+import org.plumelib.util.StringsPlume;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.lang.model.element.Element;
 
 /**
  * Adds annotations from element to the return type, formal parameter types, type parameters, and
@@ -167,7 +170,7 @@ public class MethodApplier extends TargetedElementAnnotationApplier {
         if (!unmatched.isEmpty()) {
             throw new BugInCF(
                     "Unexpected annotations ( "
-                            + SystemUtil.join(",", unmatched)
+                            + StringsPlume.join(",", unmatched)
                             + " ) for"
                             + "type ( "
                             + type
@@ -204,7 +207,7 @@ public class MethodApplier extends TargetedElementAnnotationApplier {
                                 + " for annotation: "
                                 + anno
                                 + " for element: "
-                                + ElementUtils.getVerboseName(element));
+                                + ElementUtils.getQualifiedName(element));
             }
         }
 

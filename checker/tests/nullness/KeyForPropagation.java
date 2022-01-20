@@ -1,8 +1,9 @@
+import org.checkerframework.checker.nullness.qual.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.*;
 
 // interface Dest<DA,DB,DC,DD,DE> {
 // }
@@ -13,7 +14,7 @@ import org.checkerframework.checker.nullness.qual.*;
 //
 // class Source<SA,SB,SC,SD,SE> extends HashMap<SA,SB> implements Inter2<SA,SB,SB,SD,SE> {}
 
-class KeyForPropagation {
+public class KeyForPropagation {
 
     {
         List<@KeyFor("a") String> a = new ArrayList<String>();

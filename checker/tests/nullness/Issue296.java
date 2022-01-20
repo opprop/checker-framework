@@ -1,12 +1,13 @@
 // Test case for Issue 296:
 // https://github.com/typetools/checker-framework/issues/296
 
-import java.util.Arrays;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Arrays;
+
 // Note that with -AinvariantArrays we would get additional errors.
-class Issue296 {
+public class Issue296 {
     public static <T> void f1(T[] a) {
         @Nullable T[] r1 = Arrays.copyOf(a, a.length + 1);
         // :: error: (argument.type.incompatible)

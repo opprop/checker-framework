@@ -4,6 +4,7 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
+
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.javacutil.Pair;
@@ -24,7 +25,7 @@ public class VisitorState {
     private MethodTree mt;
 
     /** The assignment context is a tree as well as its type. */
-    private Pair<Tree, AnnotatedTypeMirror> assignmentcontext;
+    private Pair<Tree, AnnotatedTypeMirror> assignmentContext;
 
     /** The visitor's current tree path. */
     private TreePath path;
@@ -49,8 +50,13 @@ public class VisitorState {
         this.mt = mt;
     }
 
-    public void setAssignmentContext(Pair<Tree, AnnotatedTypeMirror> assCtxt) {
-        this.assignmentcontext = assCtxt;
+    /**
+     * Updates the assignment context.
+     *
+     * @param assignmentContext the new assignment context to use
+     */
+    public void setAssignmentContext(Pair<Tree, AnnotatedTypeMirror> assignmentContext) {
+        this.assignmentContext = assignmentContext;
     }
 
     /** Sets the current path for the visitor. */
@@ -100,8 +106,15 @@ public class VisitorState {
         return this.mt;
     }
 
+    /**
+     * Returns the assignment context.
+     *
+     * <p>NOTE: This method is known to be buggy.
+     *
+     * @return the assignment context
+     */
     public Pair<Tree, AnnotatedTypeMirror> getAssignmentContext() {
-        return assignmentcontext;
+        return assignmentContext;
     }
 
     /**
@@ -124,8 +137,8 @@ public class VisitorState {
                 mrt,
                 (ct != null ? ct.getSimpleName() : "null"),
                 act,
-                (assignmentcontext != null ? assignmentcontext.first : "null"),
-                (assignmentcontext != null ? assignmentcontext.second : "null"),
+                (assignmentContext != null ? assignmentContext.first : "null"),
+                (assignmentContext != null ? assignmentContext.second : "null"),
                 path != null);
     }
 }

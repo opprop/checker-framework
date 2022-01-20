@@ -1,7 +1,8 @@
-import java.util.regex.Pattern;
-import org.checkerframework.checker.regex.RegexUtil;
+import org.checkerframework.checker.regex.util.RegexUtil;
 
-class Continue {
+import java.util.regex.Pattern;
+
+public class Continue {
 
     void test1(String[] a) {
         for (String s : a) {

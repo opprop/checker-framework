@@ -1,7 +1,8 @@
-import java.util.LinkedList;
-import java.util.prefs.*;
 import org.checkerframework.checker.interning.qual.Interned;
 import org.checkerframework.checker.interning.qual.UsesObjectEquals;
+
+import java.util.LinkedList;
+import java.util.prefs.*;
 
 public class UsesObjectEqualsTest {
 
@@ -17,6 +18,22 @@ public class UsesObjectEqualsTest {
         @Override
         public boolean equals(Object o) {
             return super.equals(o);
+        }
+    }
+
+    @UsesObjectEquals
+    class B3 extends A {
+        @Override
+        public boolean equals(Object o3) {
+            return this == o3;
+        }
+    }
+
+    @UsesObjectEquals
+    class B4 extends A {
+        @Override
+        public boolean equals(Object o4) {
+            return o4 == this;
         }
     }
 
@@ -60,4 +77,19 @@ public class UsesObjectEqualsTest {
     class ExtendsInner2 extends UsesObjectEqualsTest.A {}
 
     class MyList extends LinkedList {}
+
+    class DoesNotUseObjectEquals {
+        @Override
+        public boolean equals(Object o) {
+            return super.equals(o);
+        }
+    }
+
+    @UsesObjectEquals
+    class SubclassUsesObjectEquals extends DoesNotUseObjectEquals {
+        @Override
+        public boolean equals(Object o) {
+            return this == o;
+        }
+    }
 }

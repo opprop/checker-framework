@@ -2,11 +2,12 @@
 // https://github.com/typetools/checker-framework/issues/1046
 // Additonal test case: checker/tests/nullness/Issue1046.java
 
-import java.util.List;
-import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
 
-class Issue1046Java8 {
+import java.util.List;
+import java.util.function.Function;
+
+public class Issue1046Java8 {
     interface EnumMarker {}
 
     enum MyEnum implements EnumMarker {

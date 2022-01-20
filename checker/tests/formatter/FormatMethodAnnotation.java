@@ -1,9 +1,10 @@
 // Test case for Issue 1507:
 // https://github.com/typetools/checker-framework/issues/1507
 
+import org.checkerframework.checker.formatter.qual.FormatMethod;
+
 import java.io.PrintStream;
 import java.util.Locale;
-import org.checkerframework.checker.formatter.qual.FormatMethod;
 
 public class FormatMethodAnnotation {
 
@@ -32,6 +33,14 @@ public class FormatMethodAnnotation {
 
     @FormatMethod
     void log3(String format, Object... args) {
+        if (enabled) {
+            logfile.print(indent_str);
+            logfile.printf(format, args);
+        }
+    }
+
+    @com.google.errorprone.annotations.FormatMethod
+    void log4(String format, Object... args) {
         if (enabled) {
             logfile.print(indent_str);
             logfile.printf(format, args);

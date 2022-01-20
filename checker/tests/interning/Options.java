@@ -1,9 +1,10 @@
-import java.util.ArrayList;
-import java.util.List;
 import org.checkerframework.checker.interning.qual.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // Test case lifted from plume.Options
-class Options {
+public class Options {
 
     public void minimal(String s) {
         String arg = ""; // interned here
@@ -23,8 +24,7 @@ class Options {
 
     public String[] otherparse(String args) {
 
-        // Split the args string on whitespace boundaries accounting for quoted
-        // strings.
+        // Split the args string on whitespace boundaries accounting for quoted strings.
         args = args.trim();
         List<String> arg_list = new ArrayList<>();
         String arg = "";
@@ -50,8 +50,7 @@ class Options {
 
     public String[] parse(String args) {
 
-        // Split the args string on whitespace boundaries accounting for quoted
-        // strings.
+        // Split the args string on whitespace boundaries accounting for quoted strings.
         args = args.trim();
         List<String> arg_list = new ArrayList<>();
         String arg = "";

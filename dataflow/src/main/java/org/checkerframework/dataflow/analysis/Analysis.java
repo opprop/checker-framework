@@ -1,11 +1,14 @@
 package org.checkerframework.dataflow.analysis;
 
-import java.util.IdentityHashMap;
-import java.util.Map;
+import com.sun.source.tree.Tree;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.ControlFlowGraph;
 import org.checkerframework.dataflow.cfg.block.Block;
 import org.checkerframework.dataflow.cfg.node.Node;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /**
  * This interface defines a dataflow analysis, given a control flow graph and a transfer function. A
@@ -26,6 +29,17 @@ public interface Analysis<
         FORWARD,
         /** The backward direction. */
         BACKWARD
+    }
+
+    /**
+     * In calls to {@code Analysis#runAnalysisFor}, whether to return the store before or after the
+     * given node.
+     */
+    public static enum BeforeOrAfter {
+        /** Return the pre-store. */
+        BEFORE,
+        /** Return the post-store. */
+        AFTER
     }
 
     /**
@@ -67,10 +81,9 @@ public interface Analysis<
      * the nodes.
      *
      * @param node the node to analyze
-     * @param before the boolean value to indicate which store to return (if it is true, return the
-     *     store immediately before {@code node}; otherwise, the store after {@code node} is
-     *     returned)
-     * @param transferInput the transfer input of the block of this node
+     * @param preOrPost which store to return: the store immediately before {@code node} or the
+     *     store after {@code node}
+     * @param blockTransferInput the transfer input of the block of this node
      * @param nodeValues abstract values of nodes
      * @param analysisCaches caches of analysis results
      * @return the store before or after {@code node} (depends on the value of {@code before}) after
@@ -78,8 +91,8 @@ public interface Analysis<
      */
     S runAnalysisFor(
             Node node,
-            boolean before,
-            TransferInput<V, S> transferInput,
+            Analysis.BeforeOrAfter preOrPost,
+            TransferInput<V, S> blockTransferInput,
             IdentityHashMap<Node, V> nodeValues,
             Map<TransferInput<V, S>, IdentityHashMap<Node, TransferResult<V, S>>> analysisCaches);
 
@@ -115,6 +128,16 @@ public interface Analysis<
      * @return the abstract value for node {@code n}, or {@code null} if no information is available
      */
     @Nullable V getValue(Node n);
+
+    /**
+     * Return the abstract value for {@link Tree} {@code t}, or {@code null} if no information is
+     * available. Note that if the analysis has not finished yet, this value might not represent the
+     * final value for this node.
+     *
+     * @param t the given tree
+     * @return the abstract value for the given tree
+     */
+    @Nullable V getValue(Tree t);
 
     /**
      * Returns the regular exit store, or {@code null}, if there is no such store (because the

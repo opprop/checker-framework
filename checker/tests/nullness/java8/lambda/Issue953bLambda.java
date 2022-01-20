@@ -1,13 +1,14 @@
 // Test case for #953
 // https://github.com/typetools/checker-framework/issues/953
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 @SuppressWarnings("all")
-class Issue953bLambda {
+public class Issue953bLambda {
     private static List<List<?>> strs = new ArrayList<>();
 
     public static <R, T> List<@NonNull R> mapList(

@@ -1,19 +1,25 @@
 package org.checkerframework.framework.util;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
 
 /**
  * Represents the type qualifier hierarchy of a type system.
  *
  * <p>This class is immutable and can be only created through {@link
  * MultiGraphQualifierHierarchy.MultiGraphFactory}.
+ *
+ * @deprecated See notes in {@link MultiGraphQualifierHierarchy} about how to convert existing
+ *     subclasses to the new classes.
  */
+@Deprecated // 2020-09-10
 public class GraphQualifierHierarchy extends MultiGraphQualifierHierarchy {
 
     public GraphQualifierHierarchy(MultiGraphFactory f, AnnotationMirror bottom) {

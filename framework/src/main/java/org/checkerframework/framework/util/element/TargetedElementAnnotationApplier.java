@@ -3,17 +3,20 @@ package org.checkerframework.framework.util.element;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Attribute.TypeCompound;
 import com.sun.tools.javac.code.TargetType;
+
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
+import org.checkerframework.javacutil.BugInCF;
+import org.plumelib.util.StringsPlume;
+
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.util.element.ElementAnnotationUtil.UnexpectedAnnotationLocationException;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.SystemUtil;
 
 /**
  * TargetedElementAnnotationApplier filters annotations for an element into 3 groups. TARGETED
@@ -141,8 +144,8 @@ abstract class TargetedElementAnnotationApplier {
                 remainingInfo.add(r.toString() + " (" + r.position + ")");
             }
             msg.add(remainingInfo.toString());
-            msg.add("Targeted annotations: " + SystemUtil.join(", ", annotatedTargets()));
-            msg.add("Valid annotations: " + SystemUtil.join(", ", validTargets()));
+            msg.add("Targeted annotations: " + StringsPlume.join(", ", annotatedTargets()));
+            msg.add("Valid annotations: " + StringsPlume.join(", ", validTargets()));
 
             throw new BugInCF(msg.toString());
         }

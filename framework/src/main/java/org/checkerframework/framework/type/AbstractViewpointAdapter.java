@@ -1,18 +1,5 @@
 package org.checkerframework.framework.type;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -24,6 +11,19 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
+
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 
 /**
  * Abstract utility class for performing viewpoint adaptation.
@@ -99,14 +99,16 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             ExecutableElement constructorElt,
             AnnotatedExecutableType constructorType) {
 
-        AnnotatedExecutableType declConstructorType = atypeFactory.getAnnotatedType(constructorElt);
+        // constructorType's typevar are not substituted when calling viewpointAdaptConstructor
+        AnnotatedExecutableType unsubstitutedConstructorType = constructorType.deepCopy();
 
         // For constructors, we adapt parameter types, return type and type parameters
-        List<AnnotatedTypeMirror> parameterTypes = declConstructorType.getParameterTypes();
-        List<AnnotatedTypeVariable> typeVariables = declConstructorType.getTypeVariables();
-        AnnotatedTypeMirror constructorReturn = declConstructorType.getReturnType();
+        List<AnnotatedTypeMirror> parameterTypes = unsubstitutedConstructorType.getParameterTypes();
+        List<AnnotatedTypeVariable> typeVariables = unsubstitutedConstructorType.getTypeVariables();
+        AnnotatedTypeMirror constructorReturn = unsubstitutedConstructorType.getReturnType();
 
-        Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new IdentityHashMap<>();
+        IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                new IdentityHashMap<>();
         for (AnnotatedTypeMirror parameterType : parameterTypes) {
             AnnotatedTypeMirror p = combineTypeWithType(receiverType, parameterType);
             mappings.put(parameterType, p);
@@ -118,13 +120,14 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         AnnotatedTypeMirror cr = combineTypeWithType(receiverType, constructorReturn);
         mappings.put(constructorReturn, cr);
 
-        declConstructorType =
+        unsubstitutedConstructorType =
                 (AnnotatedExecutableType)
-                        AnnotatedTypeCopierWithReplacement.replace(declConstructorType, mappings);
+                        AnnotatedTypeCopierWithReplacement.replace(
+                                unsubstitutedConstructorType, mappings);
 
-        constructorType.setParameterTypes(declConstructorType.getParameterTypes());
-        constructorType.setTypeVariables(declConstructorType.getTypeVariables());
-        constructorType.setReturnType(declConstructorType.getReturnType());
+        constructorType.setParameterTypes(unsubstitutedConstructorType.getParameterTypes());
+        constructorType.setTypeVariables(unsubstitutedConstructorType.getTypeVariables());
+        constructorType.setReturnType(unsubstitutedConstructorType.getReturnType());
     }
 
     @Override
@@ -136,15 +139,17 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             return;
         }
 
-        AnnotatedExecutableType declMethodType = atypeFactory.getAnnotatedType(methodElt);
+        // methodType's typevar are not substituted when calling viewpointAdaptMethod
+        AnnotatedExecutableType unsubstitutedMethodType = methodType.deepCopy();
 
         // For methods, we additionally adapt method receiver compared to constructors
-        List<AnnotatedTypeMirror> parameterTypes = declMethodType.getParameterTypes();
-        List<AnnotatedTypeVariable> typeVariables = declMethodType.getTypeVariables();
-        AnnotatedTypeMirror returnType = declMethodType.getReturnType();
-        AnnotatedTypeMirror methodReceiver = declMethodType.getReceiverType();
+        List<AnnotatedTypeMirror> parameterTypes = unsubstitutedMethodType.getParameterTypes();
+        List<AnnotatedTypeVariable> typeVariables = unsubstitutedMethodType.getTypeVariables();
+        AnnotatedTypeMirror returnType = unsubstitutedMethodType.getReturnType();
+        AnnotatedTypeMirror methodReceiver = unsubstitutedMethodType.getReceiverType();
 
-        Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings = new IdentityHashMap<>();
+        IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                new IdentityHashMap<>();
 
         for (AnnotatedTypeMirror parameterType : parameterTypes) {
             AnnotatedTypeMirror p = combineTypeWithType(receiverType, parameterType);
@@ -166,16 +171,17 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             mappings.put(methodReceiver, mr);
         }
 
-        declMethodType =
+        unsubstitutedMethodType =
                 (AnnotatedExecutableType)
-                        AnnotatedTypeCopierWithReplacement.replace(declMethodType, mappings);
+                        AnnotatedTypeCopierWithReplacement.replace(
+                                unsubstitutedMethodType, mappings);
 
         // Because we can't viewpoint adapt asMemberOf result, we adapt the declared method first,
         // and sets the corresponding parts to asMemberOf result
-        methodType.setReturnType(declMethodType.getReturnType());
-        methodType.setReceiverType(declMethodType.getReceiverType());
-        methodType.setParameterTypes(declMethodType.getParameterTypes());
-        methodType.setTypeVariables(declMethodType.getTypeVariables());
+        methodType.setReturnType(unsubstitutedMethodType.getReturnType());
+        methodType.setReceiverType(unsubstitutedMethodType.getReceiverType());
+        methodType.setParameterTypes(unsubstitutedMethodType.getParameterTypes());
+        methodType.setTypeVariables(unsubstitutedMethodType.getTypeVariables());
     }
 
     /** Check if the method invocation should be adapted. */
@@ -257,19 +263,20 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             if (!isTypeVarExtends) {
                 isTypeVarExtends = true;
                 AnnotatedTypeVariable atv = (AnnotatedTypeVariable) declared.shallowCopy();
-                Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+                IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                        new IdentityHashMap<>();
 
                 // For type variables, we recursively adapt upper and lower bounds
                 AnnotatedTypeMirror resUpper =
                         combineAnnotationWithType(receiverAnnotation, atv.getUpperBound());
-                mapping.put(atv.getUpperBound(), resUpper);
+                mappings.put(atv.getUpperBound(), resUpper);
 
                 AnnotatedTypeMirror resLower =
                         combineAnnotationWithType(receiverAnnotation, atv.getLowerBound());
-                mapping.put(atv.getLowerBound(), resLower);
+                mappings.put(atv.getLowerBound(), resLower);
 
                 AnnotatedTypeMirror result =
-                        AnnotatedTypeCopierWithReplacement.replace(atv, mapping);
+                        AnnotatedTypeCopierWithReplacement.replace(atv, mappings);
 
                 isTypeVarExtends = false;
                 return result;
@@ -279,7 +286,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             AnnotatedDeclaredType adt = (AnnotatedDeclaredType) declared.shallowCopy();
 
             // Mapping between declared type argument to combined type argument
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+            IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                    new IdentityHashMap<>();
 
             AnnotationMirror resultAnnotation =
                     combineAnnotationWithAnnotation(
@@ -290,11 +298,11 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 // Recursively adapt the type arguments of this adt
                 AnnotatedTypeMirror combinedTypeArgument =
                         combineAnnotationWithType(receiverAnnotation, typeArgument);
-                mapping.put(typeArgument, combinedTypeArgument);
+                mappings.put(typeArgument, combinedTypeArgument);
             }
 
             // Construct result type
-            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(adt, mapping);
+            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(adt, mappings);
             result.replaceAnnotation(resultAnnotation);
 
             return result;
@@ -318,7 +326,8 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
         } else if (declared.getKind() == TypeKind.WILDCARD) {
             AnnotatedWildcardType awt = (AnnotatedWildcardType) declared.shallowCopy();
 
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+            IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                    new IdentityHashMap<>();
 
             // There is no main qualifier for a wildcard
 
@@ -328,7 +337,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 // Recursively adapt the extends bound of this awt
                 AnnotatedTypeMirror combinedExtend =
                         combineAnnotationWithType(receiverAnnotation, extend);
-                mapping.put(extend, combinedExtend);
+                mappings.put(extend, combinedExtend);
             }
 
             // Adapt super
@@ -337,10 +346,10 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
                 // Recursively adapt the lower bound of this awt
                 AnnotatedTypeMirror combinedZuper =
                         combineAnnotationWithType(receiverAnnotation, zuper);
-                mapping.put(zuper, combinedZuper);
+                mappings.put(zuper, combinedZuper);
             }
 
-            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(awt, mapping);
+            AnnotatedTypeMirror result = AnnotatedTypeCopierWithReplacement.replace(awt, mappings);
 
             return result;
         } else if (declared.getKind() == TypeKind.NULL) {
@@ -391,44 +400,47 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
             }
         } else if (rhs.getKind() == TypeKind.DECLARED) {
             AnnotatedDeclaredType adt = (AnnotatedDeclaredType) rhs.shallowCopy();
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+            IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                    new IdentityHashMap<>();
 
             for (AnnotatedTypeMirror formalTypeParameter : adt.getTypeArguments()) {
                 AnnotatedTypeMirror actualTypeArgument = substituteTVars(lhs, formalTypeParameter);
-                mapping.put(formalTypeParameter, actualTypeArgument);
+                mappings.put(formalTypeParameter, actualTypeArgument);
                 // The following code does the wrong thing!
             }
             // We must use AnnotatedTypeReplacer to replace the formal type parameters with actual
             // type arguments, but not replace with its main qualifier
-            rhs = AnnotatedTypeCopierWithReplacement.replace(adt, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(adt, mappings);
         } else if (rhs.getKind() == TypeKind.WILDCARD) {
             AnnotatedWildcardType awt = (AnnotatedWildcardType) rhs.shallowCopy();
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+            IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                    new IdentityHashMap<>();
 
             AnnotatedTypeMirror extend = awt.getExtendsBound();
             if (extend != null) {
                 AnnotatedTypeMirror substExtend = substituteTVars(lhs, extend);
-                mapping.put(extend, substExtend);
+                mappings.put(extend, substExtend);
             }
 
             AnnotatedTypeMirror zuper = awt.getSuperBound();
             if (zuper != null) {
                 AnnotatedTypeMirror substZuper = substituteTVars(lhs, zuper);
-                mapping.put(zuper, substZuper);
+                mappings.put(zuper, substZuper);
             }
 
-            rhs = AnnotatedTypeCopierWithReplacement.replace(awt, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(awt, mappings);
         } else if (rhs.getKind() == TypeKind.ARRAY) {
             AnnotatedArrayType aat = (AnnotatedArrayType) rhs.shallowCopy();
-            Map<AnnotatedTypeMirror, AnnotatedTypeMirror> mapping = new HashMap<>();
+            IdentityHashMap<AnnotatedTypeMirror, AnnotatedTypeMirror> mappings =
+                    new IdentityHashMap<>();
 
             AnnotatedTypeMirror compnentType = aat.getComponentType();
             // Type variable of compnentType already gets substituted
             AnnotatedTypeMirror substCompnentType = substituteTVars(lhs, compnentType);
-            mapping.put(compnentType, substCompnentType);
+            mappings.put(compnentType, substCompnentType);
 
             // Construct result type
-            rhs = AnnotatedTypeCopierWithReplacement.replace(aat, mapping);
+            rhs = AnnotatedTypeCopierWithReplacement.replace(aat, mappings);
         } else if (rhs.getKind().isPrimitive() || rhs.getKind() == TypeKind.NULL) {
             // nothing to do for primitive types and the null type
         } else {
@@ -491,7 +503,7 @@ public abstract class AbstractViewpointAdapter implements ViewpointAdapter {
 
         if (foundindex >= tparams.size()) {
             // Didn't find the desired type => Head for super type of "type"!
-            for (AnnotatedDeclaredType sup : type.directSuperTypes()) {
+            for (AnnotatedDeclaredType sup : type.directSupertypes()) {
                 Pair<AnnotatedDeclaredType, Integer> res = findDeclType(sup, var);
                 if (res != null) {
                     return res;

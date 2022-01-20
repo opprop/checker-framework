@@ -3,17 +3,21 @@ package org.checkerframework.checker.index.inequality;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.Tree;
-import java.util.ArrayList;
-import java.util.List;
-import javax.lang.model.element.AnnotationMirror;
+
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.index.Subsequence;
 import org.checkerframework.checker.index.upperbound.OffsetEquation;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.util.FlowExpressionParseUtil;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
+import org.plumelib.util.CollectionsPlume;
 
+import java.util.List;
+
+import javax.lang.model.element.AnnotationMirror;
+
+/** The visitor for the Less Than Checker. */
 public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactory> {
 
     private static final @CompilerMessageKey String FROM_GT_TO = "from.gt.to";
@@ -24,7 +28,10 @@ public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactor
 
     @Override
     protected void commonAssignmentCheck(
-            Tree varTree, ExpressionTree valueTree, @CompilerMessageKey String errorKey) {
+            Tree varTree,
+            ExpressionTree valueTree,
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
 
         // check that when an assignment to a variable declared as @HasSubsequence(a, from, to)
         // occurs, from <= to.
@@ -36,11 +43,13 @@ public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactor
                 anm =
                         atypeFactory.getAnnotationMirrorFromJavaExpressionString(
                                 subSeq.from, varTree, getCurrentPath());
-            } catch (FlowExpressionParseUtil.FlowExpressionParseException e) {
+            } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
                 anm = null;
             }
 
-            if (anm == null || !LessThanAnnotatedTypeFactory.isLessThanOrEqual(anm, subSeq.to)) {
+            LessThanAnnotatedTypeFactory factory = getTypeFactory();
+
+            if (anm == null || !factory.isLessThanOrEqual(anm, subSeq.to)) {
                 // issue an error
                 checker.reportError(
                         valueTree,
@@ -53,7 +62,7 @@ public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactor
             }
         }
 
-        super.commonAssignmentCheck(varTree, valueTree, errorKey);
+        super.commonAssignmentCheck(varTree, valueTree, errorKey, extraArgs);
     }
 
     @Override
@@ -61,14 +70,16 @@ public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactor
             AnnotatedTypeMirror varType,
             AnnotatedTypeMirror valueType,
             Tree valueTree,
-            @CompilerMessageKey String errorKey) {
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
         // If value is less than all expressions in the annotation in varType,
         // using the Value Checker, then skip the common assignment check.
-        // Also skip the check if the only expression is "a + 1" and the valueTree
-        // is "a".
+        // Also skip the check if the only expression is "a + 1" and the valueTree is "a".
         List<String> expressions =
-                LessThanAnnotatedTypeFactory.getLessThanExpressions(
-                        varType.getEffectiveAnnotationInHierarchy(atypeFactory.UNKNOWN));
+                getTypeFactory()
+                        .getLessThanExpressions(
+                                varType.getEffectiveAnnotationInHierarchy(
+                                        atypeFactory.LESS_THAN_UNKNOWN));
         if (expressions != null) {
             boolean isLessThan = true;
             for (String expression : expressions) {
@@ -98,27 +109,26 @@ public class LessThanVisitor extends BaseTypeVisitor<LessThanAnnotatedTypeFactor
                 return;
             }
         }
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey);
+        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
     }
 
     @Override
     protected boolean isTypeCastSafe(AnnotatedTypeMirror castType, AnnotatedTypeMirror exprType) {
 
         AnnotationMirror exprLTAnno =
-                exprType.getEffectiveAnnotationInHierarchy(atypeFactory.UNKNOWN);
+                exprType.getEffectiveAnnotationInHierarchy(atypeFactory.LESS_THAN_UNKNOWN);
 
         if (exprLTAnno != null) {
-            List<String> initialAnnotations =
-                    LessThanAnnotatedTypeFactory.getLessThanExpressions(exprLTAnno);
+            LessThanAnnotatedTypeFactory factory = getTypeFactory();
+            List<String> initialAnnotations = factory.getLessThanExpressions(exprLTAnno);
 
             if (initialAnnotations != null) {
-                List<String> updatedAnnotations = new ArrayList<>();
-
-                for (String annotation : initialAnnotations) {
-                    OffsetEquation updatedAnnotation =
-                            OffsetEquation.createOffsetFromJavaExpression(annotation);
-                    updatedAnnotations.add(updatedAnnotation.toString());
-                }
+                List<String> updatedAnnotations =
+                        CollectionsPlume.mapList(
+                                annotation ->
+                                        OffsetEquation.createOffsetFromJavaExpression(annotation)
+                                                .toString(),
+                                initialAnnotations);
 
                 exprType.replaceAnnotation(
                         atypeFactory.createLessThanQualifier(updatedAnnotations));

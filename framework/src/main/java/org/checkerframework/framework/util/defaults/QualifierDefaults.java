@@ -11,20 +11,8 @@ import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type.WildcardType;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Name;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.util.Elements;
+
+import org.checkerframework.checker.interning.qual.FindDistinct;
 import org.checkerframework.framework.qual.AnnotatedFor;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -32,7 +20,6 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedNoType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedUnionType;
@@ -40,15 +27,32 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.visitor.AnnotatedTypeScanner;
-import org.checkerframework.framework.util.CheckerMain;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.CollectionUtils;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.StringsPlume;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.Elements;
 
 /**
  * Determines the default qualifiers on a type. Default qualifiers are specified via the {@link
@@ -81,11 +85,15 @@ public class QualifierDefaults {
     /** Element utilities to use. */
     private final Elements elements;
 
+    /** The value() element/field of a @DefaultQualifier annotation. */
+    protected final ExecutableElement defaultQualifierValueElement;
+    /** The locations() element/field of a @DefaultQualifier annotation. */
+    protected final ExecutableElement defaultQualifierLocationsElement;
+    /** The value() element/field of a @DefaultQualifier.List annotation. */
+    protected final ExecutableElement defaultQualifierListValueElement;
+
     /** AnnotatedTypeFactory to use. */
     private final AnnotatedTypeFactory atypeFactory;
-
-    /** List of the upstream checker binary names. */
-    private final List<String> upstreamCheckerNames;
 
     /** Defaults for checked code. */
     private final DefaultSet checkedCodeDefaults = new DefaultSet();
@@ -105,10 +113,10 @@ public class QualifierDefaults {
      * earlier name for the field was "qualifierCache"). It can also be used by type systems to set
      * defaults for certain Elements.
      */
-    private final Map<Element, DefaultSet> elementDefaults = new IdentityHashMap<>();
+    private final IdentityHashMap<Element, DefaultSet> elementDefaults = new IdentityHashMap<>();
 
     /** A mapping of Element &rarr; Whether or not that element is AnnotatedFor this type system. */
-    private final Map<Element, Boolean> elementAnnotatedFors = new IdentityHashMap<>();
+    private final IdentityHashMap<Element, Boolean> elementAnnotatedFors = new IdentityHashMap<>();
 
     /** CLIMB locations whose standard default is top for a given type system. */
     public static final List<TypeUseLocation> STANDARD_CLIMB_DEFAULTS_TOP =
@@ -174,22 +182,27 @@ public class QualifierDefaults {
     public QualifierDefaults(Elements elements, AnnotatedTypeFactory atypeFactory) {
         this.elements = elements;
         this.atypeFactory = atypeFactory;
-        this.upstreamCheckerNames =
-                atypeFactory.getContext().getChecker().getUpstreamCheckerNames();
         this.useConservativeDefaultsBytecode =
-                atypeFactory.getContext().getChecker().useConservativeDefault("bytecode");
+                atypeFactory.getChecker().useConservativeDefault("bytecode");
         this.useConservativeDefaultsSource =
-                atypeFactory.getContext().getChecker().useConservativeDefault("source");
+                atypeFactory.getChecker().useConservativeDefault("source");
+        ProcessingEnvironment processingEnv = atypeFactory.getProcessingEnv();
+        this.defaultQualifierValueElement =
+                TreeUtils.getMethod(DefaultQualifier.class, "value", 0, processingEnv);
+        this.defaultQualifierLocationsElement =
+                TreeUtils.getMethod(DefaultQualifier.class, "locations", 0, processingEnv);
+        this.defaultQualifierListValueElement =
+                TreeUtils.getMethod(DefaultQualifier.List.class, "value", 0, processingEnv);
     }
 
     @Override
     public String toString() {
         // displays the checked and unchecked code defaults
-        return SystemUtil.joinLines(
+        return StringsPlume.joinLines(
                 "Checked code defaults: ",
-                SystemUtil.joinLines(checkedCodeDefaults),
+                StringsPlume.joinLines(checkedCodeDefaults),
                 "Unchecked code defaults: ",
-                SystemUtil.joinLines(uncheckedCodeDefaults),
+                StringsPlume.joinLines(uncheckedCodeDefaults),
                 "useConservativeDefaultsSource: " + useConservativeDefaultsSource,
                 "useConservativeDefaultsBytecode: " + useConservativeDefaultsBytecode);
     }
@@ -353,12 +366,43 @@ public class QualifierDefaults {
     }
 
     /**
-     * Applies default annotations to a type given an {@link javax.lang.model.element.Element}.
+     * Applies default annotations to a type obtained from an {@link
+     * javax.lang.model.element.Element}.
      *
      * @param elt the element from which the type was obtained
      * @param type the type to annotate
      */
     public void annotate(Element elt, AnnotatedTypeMirror type) {
+        if (elt != null) {
+            switch (elt.getKind()) {
+                case FIELD:
+                case LOCAL_VARIABLE:
+                case PARAMETER:
+                case RESOURCE_VARIABLE:
+                case EXCEPTION_PARAMETER:
+                case ENUM_CONSTANT:
+                    String varName = elt.getSimpleName().toString();
+                    ((GenericAnnotatedTypeFactory<?, ?, ?, ?>) atypeFactory)
+                            .getDefaultForTypeAnnotator()
+                            .defaultTypeFromName(type, varName);
+
+                    break;
+
+                case METHOD:
+                    String methodName = elt.getSimpleName().toString();
+                    AnnotatedTypeMirror returnType =
+                            ((AnnotatedExecutableType) type).getReturnType();
+                    ((GenericAnnotatedTypeFactory<?, ?, ?, ?>) atypeFactory)
+                            .getDefaultForTypeAnnotator()
+                            .defaultTypeFromName(returnType, methodName);
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
         applyDefaultsElement(elt, type);
     }
 
@@ -385,22 +429,18 @@ public class QualifierDefaults {
     private Element nearestEnclosingExceptLocal(Tree tree) {
         TreePath path = atypeFactory.getPath(tree);
         if (path == null) {
-            Element element = atypeFactory.getEnclosingElementForArtificialTree(tree);
-            if (element != null) {
-                return element;
-            } else {
-                return TreeUtils.elementFromTree(tree);
-            }
+            return TreeUtils.elementFromTree(tree);
         }
 
         Tree prev = null;
-
         for (Tree t : path) {
-            switch (t.getKind()) {
+            switch (TreeUtils.getKindRecordAsClass(t)) {
                 case VARIABLE:
                     VariableTree vtree = (VariableTree) t;
                     ExpressionTree vtreeInit = vtree.getInitializer();
-                    if (vtreeInit != null && prev == vtreeInit) {
+                    @SuppressWarnings("interning:not.interned") // check cached value
+                    boolean sameAsPrev = (vtreeInit != null && prev == vtreeInit);
+                    if (sameAsPrev) {
                         Element elt = TreeUtils.elementFromDeclaration((VariableTree) t);
                         AnnotationMirror d =
                                 atypeFactory.getDeclAnnotation(elt, DefaultQualifier.class);
@@ -421,7 +461,7 @@ public class QualifierDefaults {
                     return TreeUtils.elementFromDeclaration((VariableTree) t);
                 case METHOD:
                     return TreeUtils.elementFromDeclaration((MethodTree) t);
-                case CLASS:
+                case CLASS: // Including RECORD
                 case ENUM:
                 case INTERFACE:
                 case ANNOTATION_TYPE:
@@ -474,8 +514,7 @@ public class QualifierDefaults {
                 // scope of the declaration of the array.  Is that right?  -MDE)
 
             default:
-                // If no associated symbol was found, use the tree's (lexical)
-                // scope.
+                // If no associated symbol was found, use the tree's (lexical) scope.
                 elt = nearestEnclosingExceptLocal(tree);
                 // elt = nearestEnclosing(tree);
         }
@@ -495,10 +534,19 @@ public class QualifierDefaults {
         applyToTypeVar = false;
     }
 
-    // dq must be an AnnotationMirror that represent a @DefaultQualifier
+    /** The default {@code value} element for a @DefaultQualifier annotation. */
+    private static TypeUseLocation[] defaultQualifierValueDefault =
+            new TypeUseLocation[] {org.checkerframework.framework.qual.TypeUseLocation.ALL};
+
+    /**
+     * Create a DefaultSet from a @DefaultQualifier annotation.
+     *
+     * @param dq a @DefaultQualifier annotation
+     * @return a DefaultSet corresponding to the @DefaultQualifier annotation
+     */
     private DefaultSet fromDefaultQualifier(AnnotationMirror dq) {
         @SuppressWarnings("unchecked")
-        Name cls = AnnotationUtils.getElementValueClassName(dq, "value", false);
+        Name cls = AnnotationUtils.getElementValueClassName(dq, defaultQualifierValueElement);
         AnnotationMirror anno = AnnotationBuilder.fromName(elements, cls);
 
         if (anno == null) {
@@ -510,9 +558,12 @@ public class QualifierDefaults {
         }
 
         if (atypeFactory.isSupportedQualifier(anno)) {
-            List<TypeUseLocation> locations =
+            TypeUseLocation[] locations =
                     AnnotationUtils.getElementValueEnumArray(
-                            dq, "locations", TypeUseLocation.class, true);
+                            dq,
+                            defaultQualifierLocationsElement,
+                            TypeUseLocation.class,
+                            defaultQualifierValueDefault);
             DefaultSet ret = new DefaultSet();
             for (TypeUseLocation loc : locations) {
                 ret.add(new Default(anno, loc));
@@ -535,21 +586,12 @@ public class QualifierDefaults {
             return elementAnnotatedFors.get(elt);
         }
 
-        final AnnotationMirror af = atypeFactory.getDeclAnnotation(elt, AnnotatedFor.class);
+        final AnnotationMirror annotatedFor =
+                atypeFactory.getDeclAnnotation(elt, AnnotatedFor.class);
 
-        if (af != null) {
-            List<String> checkers =
-                    AnnotationUtils.getElementValueArray(af, "value", String.class, false);
-
-            if (checkers != null) {
-                for (String checker : checkers) {
-                    if (CheckerMain.matchesFullyQualifiedProcessor(
-                            checker, upstreamCheckerNames, true)) {
-                        elementAnnotatedForThisChecker = true;
-                        break;
-                    }
-                }
-            }
+        if (annotatedFor != null) {
+            elementAnnotatedForThisChecker =
+                    atypeFactory.doesAnnotatedForApplyToThisChecker(annotatedFor);
         }
 
         if (!elementAnnotatedForThisChecker) {
@@ -584,11 +626,11 @@ public class QualifierDefaults {
         DefaultSet qualifiers = null;
 
         {
-            AnnotationMirror d = atypeFactory.getDeclAnnotation(elt, DefaultQualifier.class);
+            AnnotationMirror dqAnno = atypeFactory.getDeclAnnotation(elt, DefaultQualifier.class);
 
-            if (d != null) {
+            if (dqAnno != null) {
                 qualifiers = new DefaultSet();
-                Set<Default> p = fromDefaultQualifier(d);
+                Set<Default> p = fromDefaultQualifier(dqAnno);
 
                 if (p != null) {
                     qualifiers.addAll(p);
@@ -597,16 +639,18 @@ public class QualifierDefaults {
         }
 
         {
-            AnnotationMirror ds = atypeFactory.getDeclAnnotation(elt, DefaultQualifier.List.class);
-            if (ds != null) {
+            AnnotationMirror dqListAnno =
+                    atypeFactory.getDeclAnnotation(elt, DefaultQualifier.List.class);
+            if (dqListAnno != null) {
                 if (qualifiers == null) {
                     qualifiers = new DefaultSet();
                 }
-                @SuppressWarnings("unchecked") // unchecked conversion to generic type
+                @SuppressWarnings("unchecked")
                 List<AnnotationMirror> values =
-                        AnnotationUtils.getElementValue(ds, "value", List.class, false);
-                for (AnnotationMirror d : values) {
-                    Set<Default> p = fromDefaultQualifier(d);
+                        AnnotationUtils.getElementValue(
+                                dqListAnno, defaultQualifierListValueElement, List.class);
+                for (AnnotationMirror dqAnno : values) {
+                    Set<Default> p = fromDefaultQualifier(dqAnno);
                     if (p != null) {
                         qualifiers.addAll(p);
                     }
@@ -671,8 +715,7 @@ public class QualifierDefaults {
             // treated as unchecked bytecode.   For now, all types in stub files are treated as
             // checked code. Eventually, @AnnotateFor(checker) will be programmatically added
             // to methods in stub files supplied via the @Stubfile annotation.  Stub files will
-            // be treated like unchecked code except for methods in the scope for an
-            // @AnnotatedFor.
+            // be treated like unchecked code except for methods in the scope for an @AnnotatedFor.
             return false;
         } else if (useConservativeDefaultsSource) {
             return !isElementAnnotatedForThisChecker(annotationScope);
@@ -790,7 +833,7 @@ public class QualifierDefaults {
 
             return !(type == null
                     // TODO: executables themselves should not be annotated
-                    // For some reason testchecker-tests fails with this.
+                    // For some reason h1h2checker-tests fails with this.
                     // || type.getKind() == TypeKind.EXECUTABLE
                     || type.getKind() == TypeKind.NONE
                     || type.getKind() == TypeKind.WILDCARD
@@ -811,28 +854,13 @@ public class QualifierDefaults {
             if (!type.isAnnotatedInHierarchy(qual) && type.getKind() != TypeKind.EXECUTABLE) {
                 type.addAnnotation(qual);
             }
-
-            /* Intersection types, list the types in the direct supertypes.
-             * Make sure to apply the default there too.
-             */
-            if (type.getKind() == TypeKind.INTERSECTION) {
-                List<AnnotatedDeclaredType> sups =
-                        ((AnnotatedIntersectionType) type).directSuperTypesField();
-                if (sups != null) {
-                    for (AnnotatedTypeMirror sup : sups) {
-                        if (!sup.isAnnotatedInHierarchy(qual)) {
-                            sup.addAnnotation(qual);
-                        }
-                    }
-                }
-            }
         }
 
         protected class DefaultApplierElementImpl
                 extends AnnotatedTypeScanner<Void, AnnotationMirror> {
 
             @Override
-            public Void scan(AnnotatedTypeMirror t, AnnotationMirror qual) {
+            public Void scan(@FindDistinct AnnotatedTypeMirror t, AnnotationMirror qual) {
                 if (!shouldBeAnnotated(t, t == defaultableTypeVar)) {
                     return super.scan(t, qual);
                 }
@@ -851,8 +879,7 @@ public class QualifierDefaults {
                         if (scope != null
                                 && scope.getKind() == ElementKind.LOCAL_VARIABLE
                                 && isTopLevelType) {
-                            // TODO: how do we determine that we are in a cast or instanceof
-                            // type?
+                            // TODO: how do we determine that we are in a cast or instanceof type?
                             addAnnotation(t, qual);
                         }
                         break;
@@ -934,6 +961,8 @@ public class QualifierDefaults {
                                 && scope.getKind() == ElementKind.CONSTRUCTOR
                                 && t.getKind() == TypeKind.EXECUTABLE
                                 && isTopLevelType) {
+                            // This is the return type of a constructor declaration (not a
+                            // constructor invocation).
                             final AnnotatedTypeMirror returnType =
                                     ((AnnotatedExecutableType) t).getReturnType();
                             if (shouldBeAnnotated(returnType, false)) {
@@ -1165,7 +1194,7 @@ public class QualifierDefaults {
                 }
             } else {
                 throw new BugInCF(
-                        SystemUtil.joinLines(
+                        StringsPlume.joinLines(
                                 "Unexpected tree type for typeVar Element:",
                                 "typeParamElem=" + typeParamElem,
                                 typeParamDecl));

@@ -8,12 +8,13 @@ class MyOpt<T extends Object> {
         throw new RuntimeException();
     }
 
+    // :: error: (type.argument.type.incompatible)
     static <S> MyOpt<S> of(S p) {
         throw new RuntimeException();
     }
 }
 
-class Issue1084 {
+public class Issue1084 {
     MyOpt<Long> get() {
         return this.hashCode() > 0 ? MyOpt.of(5L) : MyOpt.empty();
     }

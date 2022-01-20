@@ -1,9 +1,10 @@
 // Test case for issue 146: https://github.com/kelloggm/checker-framework/issues/146
 
-import java.util.Arrays;
 import org.checkerframework.checker.index.qual.*;
 
-class ObjectClone {
+import java.util.Arrays;
+
+public class ObjectClone {
 
     void test(int[] a, int @SameLen("#1") [] b) {
         int @SameLen("a") [] c = b.clone();

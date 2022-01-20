@@ -7,17 +7,16 @@ export SHELLOPTS
 echo "SHELLOPTS=${SHELLOPTS}"
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-# In newer shellcheck than 0.6.0, pass: "-P SCRIPTDIR" (literally)
-# shellcheck disable=SC1090
+# shellcheck disable=SC1090 # In newer shellcheck than 0.6.0, pass: "-P SCRIPTDIR" (literally)
 source "$SCRIPTDIR"/build.sh
 
 
 ## checker-framework-inference is a downstream test, but run it in its own
-## script rather than in ./test/downstream.sh because it is most likely to fail,
-## and it's helpful to see that only it, not other downstream tests, failed.
+## script rather than in ./test/downstream.sh, because it needs a different
+## Docker image.
 
-"/tmp/$USER/plume-scripts/git-clone-related" opprop checker-framework-inference
+"$SCRIPTDIR/.plume-scripts/git-clone-related" opprop checker-framework-inference
 
-export AFU="${AFU:-$(cd ../annotation-tools/annotation-file-utilities >/dev/null 2>&1 && pwd -P)}"
 export PATH=$AFU/scripts:$PATH
-(cd ../checker-framework-inference && ./.travis-build.sh)
+cd ../checker-framework-inference
+./.ci-build.sh

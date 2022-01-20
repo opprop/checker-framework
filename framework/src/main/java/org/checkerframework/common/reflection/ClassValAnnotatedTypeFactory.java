@@ -7,16 +7,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.UnionClassType;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
+
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.reflection.qual.ClassBound;
@@ -29,21 +20,43 @@ import org.checkerframework.common.value.ValueAnnotatedTypeFactory;
 import org.checkerframework.common.value.ValueChecker;
 import org.checkerframework.common.value.qual.StringVal;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.ElementQualifierHierarchy;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.Elements;
 
 public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     protected final AnnotationMirror CLASSVAL_TOP =
             AnnotationBuilder.fromClass(elements, UnknownClass.class);
+
+    /** The ClassBound.value argument/element. */
+    private final ExecutableElement classBoundValueElement =
+            TreeUtils.getMethod(ClassBound.class, "value", 0, processingEnv);
+    /** The ClassVal.value argument/element. */
+    private final ExecutableElement classValValueElement =
+            TreeUtils.getMethod(ClassVal.class, "value", 0, processingEnv);
 
     /**
      * Create a new ClassValAnnotatedTypeFactory.
@@ -52,6 +65,7 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      */
     public ClassValAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
+
         if (this.getClass() == ClassValAnnotatedTypeFactory.class) {
             this.postInit();
         }
@@ -67,16 +81,26 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                         ClassValBottom.class));
     }
 
+    /**
+     * Create a {@code @ClassVal} annotation with the given values.
+     *
+     * @param values the "value" field of the resulting {@code @ClassVal} annotation
+     * @return a {@code @ClassVal} annotation with the given values
+     */
     private AnnotationMirror createClassVal(List<String> values) {
-        AnnotationBuilder builder =
-                new AnnotationBuilder(processingEnv, ClassVal.class.getCanonicalName());
+        AnnotationBuilder builder = new AnnotationBuilder(processingEnv, ClassVal.class);
         builder.setValue("value", values);
         return builder.build();
     }
 
+    /**
+     * Create a {@code @ClassBound} annotation with the given values.
+     *
+     * @param values the "value" field of the resulting {@code @ClassBound} annotation
+     * @return a {@code @ClassBound} annotation with the given values
+     */
     private AnnotationMirror createClassBound(List<String> values) {
-        AnnotationBuilder builder =
-                new AnnotationBuilder(processingEnv, ClassBound.class.getCanonicalName());
+        AnnotationBuilder builder = new AnnotationBuilder(processingEnv, ClassBound.class);
         builder.setValue("value", values);
         return builder.build();
     }
@@ -89,22 +113,32 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @return list of classnames in anno
      */
     public List<String> getClassNamesFromAnnotation(AnnotationMirror anno) {
-        if (areSameByClass(anno, ClassBound.class) || areSameByClass(anno, ClassVal.class)) {
-            return AnnotationUtils.getElementValueArray(anno, "value", String.class, true);
+        if (areSameByClass(anno, ClassBound.class)) {
+            return AnnotationUtils.getElementValueArray(anno, classBoundValueElement, String.class);
+        } else if (areSameByClass(anno, ClassVal.class)) {
+            return AnnotationUtils.getElementValueArray(anno, classValValueElement, String.class);
+        } else {
+            return Collections.emptyList();
         }
-        return new ArrayList<>();
     }
 
     @Override
-    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new ClassValQualifierHierarchy(factory);
+    protected QualifierHierarchy createQualifierHierarchy() {
+        return new ClassValQualifierHierarchy(this.getSupportedTypeQualifiers(), elements);
     }
 
     /** The qualifier hierarchy for the ClassVal type system. */
-    protected class ClassValQualifierHierarchy extends MultiGraphQualifierHierarchy {
+    protected class ClassValQualifierHierarchy extends ElementQualifierHierarchy {
 
-        public ClassValQualifierHierarchy(MultiGraphFactory f) {
-            super(f);
+        /**
+         * Creates a ClassValQualifierHierarchy from the given classes.
+         *
+         * @param qualifierClasses classes of annotations that are the qualifiers for this hierarchy
+         * @param elements element utils
+         */
+        public ClassValQualifierHierarchy(
+                Set<Class<? extends Annotation>> qualifierClasses, Elements elements) {
+            super(qualifierClasses, elements);
         }
 
         /*
@@ -166,7 +200,7 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         /*
          * Computes subtyping as per the subtyping in the qualifier hierarchy
          * structure unless both annotations are ClassVal. In this case, rhs is
-         * a subtype of lhs iff lhs contains at least every element of rhs.
+         * a subtype of lhs iff lhs contains  every element of rhs.
          */
         @Override
         public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
@@ -222,7 +256,7 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 ExpressionTree etree = tree.getExpression();
                 Type classType = (Type) TreeUtils.typeOf(etree);
                 String name = getClassNameFromType(classType);
-                if (name != null) {
+                if (name != null && !name.equals("void")) {
                     AnnotationMirror newQual = createClassVal(Arrays.asList(name));
                     type.replaceAnnotation(newQual);
                 }
@@ -247,7 +281,7 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 if (TreeUtils.getReceiverTree(tree) != null) {
                     clType = (Type) TreeUtils.typeOf(TreeUtils.getReceiverTree(tree));
                 } else { // receiver is null, so it is implicitly "this"
-                    ClassTree classTree = TreeUtils.enclosingClass(getPath(tree));
+                    ClassTree classTree = TreePathUtil.enclosingClass(getPath(tree));
                     clType = (Type) TreeUtils.typeOf(classTree);
                 }
                 String className = getClassNameFromType(clType);
@@ -279,9 +313,12 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             if (annotation == null) {
                 return null;
             }
-            return AnnotationUtils.getElementValueArray(annotation, "value", String.class, true);
+            return AnnotationUtils.getElementValueArray(
+                    annotation, valueATF.stringValValueElement, String.class);
         }
 
+        // TODO: This looks like it returns a @BinaryName. Verify that fact and add a type
+        // qualifier.
         /**
          * Return String representation of class name. This will not return the correct name for
          * anonymous classes.
@@ -298,8 +335,7 @@ public class ClassValAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                 case DECLARED:
                     StringBuilder className =
                             new StringBuilder(
-                                    TypesUtils.getQualifiedName((DeclaredType) classType)
-                                            .toString());
+                                    TypesUtils.getQualifiedName((DeclaredType) classType));
                     if (classType.getEnclosingType() != null) {
                         while (classType.getEnclosingType().getKind() != TypeKind.NONE) {
                             classType = classType.getEnclosingType();

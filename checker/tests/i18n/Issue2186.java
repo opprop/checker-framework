@@ -1,9 +1,11 @@
 // Test case for issue #2186
 // https://github.com/typetools/checker-framework/issues/2186
 
-import java.util.ArrayList;
 import org.checkerframework.checker.i18n.qual.*;
 
+import java.util.ArrayList;
+
+@SuppressWarnings("anno.on.irrelevant")
 @LocalizableKey class Issue2186 {
     // :: error: (super.invocation.invalid) :: warning: (inconsistent.constructor.type)
     Issue2186() {}

@@ -1,20 +1,23 @@
 package org.checkerframework.framework.util.typeinference.constraint;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import javax.lang.model.type.TypeVariable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.typeinference.TypeArgInferenceUtil;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.lang.model.type.TypeVariable;
 
 /**
  * AFConstraint represent the initial constraints used to infer type arguments for method
  * invocations and new class invocations. These constraints are simplified then converted to
  * TUConstraints during type argument inference.
  *
- * <p>Subclasses of AFConstraint represent the following types of constraints found in
- * (https://docs.oracle.com/javase/specs/jls/se11/html/jls-15.html#jls-15.12.2.7)
+ * <p>Subclasses of AFConstraint represent the following <a
+ * href="https://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.12.2.7">types of
+ * constraints</a>:
  *
  * <p>A 《 F and F 》 A both imply that A is convertible to F. F 《 A and A 》 F both imply that F is
  * convertible to A (this may happen due to wildcard/typevar bounds and recursive types) A = F

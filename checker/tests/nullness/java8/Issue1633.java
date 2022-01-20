@@ -1,13 +1,14 @@
 // Test case for Issue 1633:
 // https://github.com/typetools/checker-framework/issues/1633
 
-import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.Covariant;
 
-class Issue1633 {
+import java.util.function.Supplier;
+
+public class Issue1633 {
 
     // supplyNullable is a supplier that may return null.
     // supplyNonNull is a supplier that does not return null.
@@ -53,7 +54,7 @@ class Issue1633 {
     }
 
     void foo6(Optional1633<String> o, Supplier<@NonNull String> supplyNonNull) {
-        // :: error: (argument.type.incompatible) :: error: (assignment.type.incompatible)
+        // :: error: (assignment.type.incompatible)
         @NonNull String str1 = o.orElseGetNullable(supplyNonNull);
     }
 

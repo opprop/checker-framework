@@ -1,10 +1,11 @@
-import java.util.Collections;
-import java.util.Set;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
-class NNOEStaticFields {
+import java.util.Collections;
+import java.util.Set;
+
+public class NNOEStaticFields {
     static @Nullable String nullable = null;
     static @Nullable String otherNullable = null;
 

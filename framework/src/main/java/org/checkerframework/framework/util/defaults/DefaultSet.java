@@ -1,7 +1,8 @@
 package org.checkerframework.framework.util.defaults;
 
+import org.plumelib.util.StringsPlume;
+
 import java.util.TreeSet;
-import org.checkerframework.javacutil.SystemUtil;
 
 /**
  * An ordered set of Defaults (see {@link org.checkerframework.framework.util.defaults.Default}).
@@ -17,7 +18,7 @@ class DefaultSet extends TreeSet<Default> {
 
     @Override
     public String toString() {
-        return "DefaultSet( " + SystemUtil.join(", ", this) + " )";
+        return "DefaultSet( " + StringsPlume.join(", ", this) + " )";
     }
 
     public static final DefaultSet EMPTY = new DefaultSet();

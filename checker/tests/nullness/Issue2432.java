@@ -1,12 +1,13 @@
 // Test case for issue 2432:
 // https://github.com/typetools/checker-framework/issues/2432
 
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
-class Issue2432 {
+import java.util.List;
+
+public class Issue2432 {
 
     void jdkAnnotation(List<@PolyNull Object> nl, @Nullable Object no, @PolyNull Object po) {
         // :: error: (argument.type.incompatible)
@@ -88,8 +89,7 @@ class Issue2432 {
         pc.tripleAdd(no, nno, nno);
     }
 
-    // ensure poly annotations from declaration is handled separately from poly from other
-    // context
+    // ensure poly annotations from declaration is handled separately from poly from other context
     void declarationPolyInParameter(
             TypeArgClass<@PolyNull Object> pc, @Nullable Object no, @NonNull Object nno) {
         // No error

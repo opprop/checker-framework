@@ -1,9 +1,10 @@
-import java.util.ArrayList;
 import org.checkerframework.common.value.qual.MinLen;
+
+import java.util.ArrayList;
 
 // @skip-test until we bring list support back
 
-class ListSupportML {
+public class ListSupportML {
 
     void newListMinLen() {
         List<Integer> list = new ArrayList<>();

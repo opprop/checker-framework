@@ -1,12 +1,13 @@
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import org.checkerframework.common.reflection.qual.ClassBound;
 import org.checkerframework.common.reflection.qual.ClassVal;
 import org.checkerframework.common.reflection.qual.MethodVal;
 import org.checkerframework.common.value.qual.ArrayLen;
 import org.checkerframework.common.value.qual.StringVal;
 
-class MethodValInferenceTest {
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+
+public class MethodValInferenceTest {
     boolean flag = true;
 
     public void testGetMethodParamLen(

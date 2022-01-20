@@ -11,7 +11,6 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.Tree.Kind;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.UnionTypeTree;
 import com.sun.source.tree.WildcardTree;
@@ -20,18 +19,8 @@ import com.sun.tools.javac.code.Symbol.TypeVariableSymbol;
 import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.code.Type.WildcardType;
 import com.sun.tools.javac.tree.JCTree.JCWildcard;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeVariable;
+
+import org.checkerframework.checker.interning.qual.FindDistinct;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
@@ -40,6 +29,21 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcard
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import org.plumelib.util.CollectionsPlume;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeVariable;
 
 /**
  * Converts type trees into AnnotatedTypeMirrors.
@@ -74,13 +78,13 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
             final AnnotatedWildcardType wctype = ((AnnotatedWildcardType) type);
             final ExpressionTree underlyingTree = node.getUnderlyingType();
 
-            if (underlyingTree.getKind() == Kind.UNBOUNDED_WILDCARD) {
+            if (underlyingTree.getKind() == Tree.Kind.UNBOUNDED_WILDCARD) {
                 // primary annotations on unbounded wildcard types apply to both bounds
                 wctype.getExtendsBound().addAnnotations(annos);
                 wctype.getSuperBound().addAnnotations(annos);
-            } else if (underlyingTree.getKind() == Kind.EXTENDS_WILDCARD) {
+            } else if (underlyingTree.getKind() == Tree.Kind.EXTENDS_WILDCARD) {
                 wctype.getSuperBound().addAnnotations(annos);
-            } else if (underlyingTree.getKind() == Kind.SUPER_WILDCARD) {
+            } else if (underlyingTree.getKind() == Tree.Kind.SUPER_WILDCARD) {
                 wctype.getExtendsBound().addAnnotations(annos);
             } else {
                 throw new BugInCF(
@@ -115,17 +119,17 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
         ClassSymbol baseType = (ClassSymbol) TreeUtils.elementFromTree(node.getType());
         updateWildcardBounds(node.getTypeArguments(), baseType.getTypeParameters());
 
-        List<AnnotatedTypeMirror> args = new ArrayList<>(node.getTypeArguments().size());
-        for (Tree t : node.getTypeArguments()) {
-            args.add(visit(t, f));
-        }
+        List<AnnotatedTypeMirror> args =
+                CollectionsPlume.mapList((Tree t) -> visit(t, f), node.getTypeArguments());
 
         AnnotatedTypeMirror result = f.type(node); // use creator?
         AnnotatedTypeMirror atype = visit(node.getType(), f);
         result.addAnnotations(atype.getAnnotations());
         // new ArrayList<>() type is AnnotatedExecutableType for some reason
 
-        if (result instanceof AnnotatedDeclaredType) {
+        // Don't initialize the type arguments if they are empty. The type arguments might be a
+        // diamond which should be inferred.
+        if (result instanceof AnnotatedDeclaredType && !args.isEmpty()) {
             assert result instanceof AnnotatedDeclaredType : node + " --> " + result;
             ((AnnotatedDeclaredType) result).setTypeArguments(args);
         }
@@ -150,10 +154,14 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
      * <p>In scenarios where the bound's owner is the same, we don't want to replace a
      * capture-converted bound in the wildcard type with a non-capture-converted bound given by the
      * type parameter declaration.
+     *
+     * @param typeArgs the type of the arguments at (e.g., at the call side)
+     * @param typeParams the type of the formal parameters (e.g., at the method declaration)
      */
+    @SuppressWarnings("interning:not.interned") // workaround for javac bug
     private void updateWildcardBounds(
             List<? extends Tree> typeArgs, List<TypeVariableSymbol> typeParams) {
-        if (typeArgs.size() == 0) {
+        if (typeArgs.isEmpty()) {
             // Nothing to do for empty type arguments.
             return;
         }
@@ -184,7 +192,7 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
 
     @Override
     public AnnotatedTypeVariable visitTypeParameter(
-            TypeParameterTree node, AnnotatedTypeFactory f) {
+            TypeParameterTree node, @FindDistinct AnnotatedTypeFactory f) {
 
         List<AnnotatedTypeMirror> bounds = new ArrayList<>(node.getBounds().size());
         for (Tree t : node.getBounds()) {
@@ -210,14 +218,10 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
                 result.setUpperBound(bounds.get(0));
                 break;
             default:
-                AnnotatedIntersectionType upperBound =
+                AnnotatedIntersectionType intersection =
                         (AnnotatedIntersectionType) result.getUpperBound();
-
-                List<AnnotatedDeclaredType> superBounds = new ArrayList<>(bounds.size());
-                for (AnnotatedTypeMirror b : bounds) {
-                    superBounds.add((AnnotatedDeclaredType) b);
-                }
-                upperBound.setDirectSuperTypes(superBounds);
+                intersection.setBounds(bounds);
+                intersection.copyIntersectionBoundAnnotations();
         }
 
         return result;
@@ -289,8 +293,8 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
                     visitTypeParameter(meth.getTypeParameters().get(idx), f).shallowCopy();
             result.setDeclaration(false);
             return result;
-        } else if (TypesUtils.isCaptured(typeVar)) {
-            // Captured types can have a generic element (owner) that is
+        } else if (TypesUtils.isCapturedTypeVariable(typeVar)) {
+            // Captured type variables can have a generic element (owner) that is
             // not an element at all, namely Symtab.noSymbol.
             return type.asUse();
         } else {
@@ -336,12 +340,14 @@ class TypeFromTypeTreeVisitor extends TypeFromTreeVisitor {
     @Override
     public AnnotatedTypeMirror visitIntersectionType(
             IntersectionTypeTree node, AnnotatedTypeFactory f) {
-        AnnotatedTypeMirror type = f.type(node);
-
-        if (type.getKind() == TypeKind.TYPEVAR) {
-            return getTypeVariableFromDeclaration((AnnotatedTypeVariable) type, f);
-        }
-
+        // This method is only called for IntersectionTypes in casts.  There is no
+        // IntersectionTypeTree
+        // for a type variable bound that is an intersection.  See #visitTypeParameter.
+        AnnotatedIntersectionType type = (AnnotatedIntersectionType) f.type(node);
+        List<AnnotatedTypeMirror> bounds =
+                CollectionsPlume.mapList((Tree boundTree) -> visit(boundTree, f), node.getBounds());
+        type.setBounds(bounds);
+        type.copyIntersectionBoundAnnotations();
         return type;
     }
 }

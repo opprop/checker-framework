@@ -1,15 +1,17 @@
 package org.checkerframework.framework.type;
 
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
+import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.TypesUtils;
+
 import java.util.Set;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedIntersectionType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedTypeVariable;
-import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.BugInCF;
 
 /** Utility class for applying the annotations inferred by dataflow to a given type. */
 public class DefaultInferredTypesApplier {
@@ -89,12 +91,6 @@ public class DefaultInferredTypesApplier {
             }
             if ((omitSubtypingCheck || hierarchy.isSubtype(inferred, primary))) {
                 type.replaceAnnotation(inferred);
-                if (type.getKind() == TypeKind.INTERSECTION) {
-                    for (AnnotatedTypeMirror superType :
-                            ((AnnotatedIntersectionType) type).directSuperTypes()) {
-                        superType.replaceAnnotation(inferred);
-                    }
-                }
             }
         }
     }
@@ -107,6 +103,9 @@ public class DefaultInferredTypesApplier {
         if (inferredTypeMirror.getKind() != TypeKind.TYPEVAR) {
             throw new BugInCF(
                     "Inferred value should not be missing annotations: " + inferredTypeMirror);
+        }
+        if (TypesUtils.isCapturedTypeVariable(inferredTypeMirror)) {
+            return;
         }
 
         TypeVariable typeVar = (TypeVariable) inferredTypeMirror;

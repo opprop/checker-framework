@@ -1,7 +1,8 @@
-import java.util.Hashtable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-class HashtableTest {
+import java.util.Hashtable;
+
+public class HashtableTest {
 
     public static void main(String[] args) {
 

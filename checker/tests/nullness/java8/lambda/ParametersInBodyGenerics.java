@@ -1,9 +1,10 @@
 // Test that parameter annotations are correct in the body of a lambda
 
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.*;
 
-class ParametersInBodyGenerics {
+import java.util.List;
+
+public class ParametersInBodyGenerics {
     interface NullableConsumer {
         void method(List<@Nullable String> s);
     }

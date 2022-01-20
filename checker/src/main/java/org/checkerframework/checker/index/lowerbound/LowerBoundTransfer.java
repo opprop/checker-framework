@@ -5,10 +5,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import java.util.List;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeKind;
+
 import org.checkerframework.checker.index.IndexAbstractTransfer;
 import org.checkerframework.checker.index.IndexRefinementInfo;
 import org.checkerframework.checker.index.qual.GTENegativeOne;
@@ -17,8 +14,6 @@ import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.index.upperbound.OffsetEquation;
 import org.checkerframework.common.value.ValueCheckerUtils;
-import org.checkerframework.dataflow.analysis.FlowExpressions;
-import org.checkerframework.dataflow.analysis.FlowExpressions.Receiver;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
@@ -33,13 +28,19 @@ import org.checkerframework.dataflow.cfg.node.NumericalMultiplicationNode;
 import org.checkerframework.dataflow.cfg.node.NumericalSubtractionNode;
 import org.checkerframework.dataflow.cfg.node.SignedRightShiftNode;
 import org.checkerframework.dataflow.cfg.node.UnsignedRightShiftNode;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAnalysis;
 import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
-import org.checkerframework.framework.util.FlowExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
+
+import java.util.List;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
 
 /**
  * Implements dataflow refinement rules based on tests: &lt;, &gt;, ==, and their derivatives.
@@ -207,16 +208,16 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
             if (aTypeFactory.areSameByClass(otherAnno, NonNegative.class)) {
                 List<Node> internals = splitAssignments(otherNode);
                 for (Node internal : internals) {
-                    Receiver rec = FlowExpressions.internalReprOf(aTypeFactory, internal);
-                    store.insertValue(rec, POS);
+                    JavaExpression je = JavaExpression.fromNode(internal);
+                    store.insertValue(je, POS);
                 }
             }
         } else if (intLiteral == -1) {
             if (aTypeFactory.areSameByClass(otherAnno, GTENegativeOne.class)) {
                 List<Node> internals = splitAssignments(otherNode);
                 for (Node internal : internals) {
-                    Receiver rec = FlowExpressions.internalReprOf(aTypeFactory, internal);
-                    store.insertValue(rec, NN);
+                    JavaExpression je = JavaExpression.fromNode(internal);
+                    store.insertValue(je, NN);
                 }
             }
         }
@@ -243,10 +244,9 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
             return result;
         }
 
-        // There is also special processing to look
-        // for literals on one side of the equals and a GTEN1 or NN on the other, so that
-        // those types can be promoted in the branch where their values are not equal to certain
-        // literals.
+        // There is also special processing to look for literals on one side of the equals and a
+        // GTEN1 or NN on the other, so that those types can be promoted in the branch where their
+        // values are not equal to certain literals.
         CFStore notEqualsStore = notEqualTo ? rfi.thenStore : rfi.elseStore;
         notEqualToValue(rfi.left, rfi.right, rfi.rightAnno, notEqualsStore);
         notEqualToValue(rfi.right, rfi.left, rfi.leftAnno, notEqualsStore);
@@ -267,11 +267,11 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
         if (!isNonNegative(leftAnno) || !isNonNegative(otherAnno)) {
             return;
         }
-        Receiver otherRec = FlowExpressions.internalReprOf(aTypeFactory, otherNode);
+        JavaExpression otherJe = JavaExpression.fromNode(otherNode);
         if (aTypeFactory
                 .getLessThanAnnotatedTypeFactory()
-                .isLessThanOrEqual(leftNode.getTree(), otherRec.toString())) {
-            store.insertValue(otherRec, POS);
+                .isLessThanOrEqual(leftNode.getTree(), otherJe.toString())) {
+            store.insertValue(otherJe, POS);
         }
     }
 
@@ -297,18 +297,18 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
             return;
         }
 
-        Receiver leftRec = FlowExpressions.internalReprOf(aTypeFactory, left);
+        JavaExpression leftJe = JavaExpression.fromNode(left);
 
         if (AnnotationUtils.areSame(rightAnno, GTEN1)) {
-            store.insertValue(leftRec, NN);
+            store.insertValue(leftJe, NN);
             return;
         }
         if (AnnotationUtils.areSame(rightAnno, NN)) {
-            store.insertValue(leftRec, POS);
+            store.insertValue(leftJe, POS);
             return;
         }
         if (AnnotationUtils.areSame(rightAnno, POS)) {
-            store.insertValue(leftRec, POS);
+            store.insertValue(leftJe, POS);
             return;
         }
     }
@@ -334,12 +334,12 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
             return;
         }
 
-        Receiver leftRec = FlowExpressions.internalReprOf(aTypeFactory, left);
+        JavaExpression leftJe = JavaExpression.fromNode(left);
 
         AnnotationMirror newLBType =
                 aTypeFactory.getQualifierHierarchy().greatestLowerBound(rightAnno, leftAnno);
 
-        store.insertValue(leftRec, newLBType);
+        store.insertValue(leftJe, newLBType);
     }
 
     /**
@@ -489,9 +489,8 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
 
             Tree leftExpr = minusNode.getLeftOperand().getTree();
             Integer minLen = null;
-            // Check if the left side is a field access of an array's length,
-            // or invocation of String.length. If so,
-            // try to look up the MinLen of the array, and potentially keep
+            // Check if the left side is a field access of an array's length, or invocation of
+            // String.length. If so, try to look up the MinLen of the array, and potentially keep
             // this either NN or POS instead of GTEN1 or LBU.
             if (leftExpr.getKind() == Tree.Kind.MEMBER_SELECT) {
                 MemberSelectTree mstree = (MemberSelectTree) leftExpr;
@@ -718,19 +717,8 @@ public class LowerBoundTransfer extends IndexAbstractTransfer {
 
         for (VariableTree variableTree : paramTrees) {
             if (TreeUtils.typeOf(variableTree).getKind() == TypeKind.CHAR) {
-
-                Receiver rec = null;
-                try {
-                    rec =
-                            FlowExpressionParseUtil.internalReprOfVariable(
-                                    aTypeFactory, variableTree);
-                } catch (FlowExpressionParseUtil.FlowExpressionParseException e) {
-                    // do nothing
-                }
-
-                if (rec != null) {
-                    info.insertValue(rec, aTypeFactory.NN);
-                }
+                JavaExpression je = JavaExpression.fromVariableTree(variableTree);
+                info.insertValuePermitNondeterministic(je, aTypeFactory.NN);
             }
         }
     }

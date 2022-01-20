@@ -1,18 +1,27 @@
 package org.checkerframework.dataflow.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.javacutil.BugInCF;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.javacutil.BugInCF;
 
-/** Base class for sets that are more efficient than HashSet for 0 and 1 elements. */
+/**
+ * Base class for arbitrary-size sets that very efficient (more efficient than HashSet) for 0 and 1
+ * elements.
+ *
+ * <p>Does not support storing {@code null}.
+ *
+ * <p>This class exists because it has multiple subclasses (currently {@link MostlySingleton} and
+ * {@link IdentityMostlySingleton}).
+ */
 public abstract class AbstractMostlySingleton<T extends Object> implements Set<T> {
 
-    /** The possible states of the collection. */
+    /** The possible states of this set. */
     public enum State {
         /** An empty set. */
         EMPTY,
@@ -26,8 +35,8 @@ public abstract class AbstractMostlySingleton<T extends Object> implements Set<T
     protected State state;
     /** The current value, non-null when the state is SINGLETON. */
     protected @Nullable T value;
-    /** The wrapped collection, non-null when the state is ANY. */
-    protected @Nullable Collection<T> set;
+    /** The wrapped set, non-null when the state is ANY. */
+    protected @Nullable Set<T> set;
 
     /** Create an AbstractMostlySingleton. */
     protected AbstractMostlySingleton(State s) {
@@ -88,7 +97,8 @@ public abstract class AbstractMostlySingleton<T extends Object> implements Set<T
 
                     @Override
                     public void remove() {
-                        throw new UnsupportedOperationException();
+                        state = State.EMPTY;
+                        value = null;
                     }
                 };
             case ANY:
@@ -129,7 +139,7 @@ public abstract class AbstractMostlySingleton<T extends Object> implements Set<T
     }
 
     @Override
-    public <S> @Nullable S @PolyNull [] toArray(S @PolyNull [] a) {
+    public <S> @Nullable S[] toArray(@PolyNull S[] a) {
         throw new UnsupportedOperationException();
     }
 

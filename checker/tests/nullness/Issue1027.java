@@ -4,14 +4,15 @@
 // Use  -J-XX:MaxJavaStackTraceDepth=1000000 as parameter
 // to javac to see a longer stacktrace.
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.checkerframework.checker.nullness.qual.KeyFor;
 
-class Issue1027 {
+public class Issue1027 {
 
     // Stand-alone reproduction
 
@@ -19,7 +20,7 @@ class Issue1027 {
         void bar(Function<T, String> p) {}
     }
 
-    @SuppressWarnings("nullness")
+    @SuppressWarnings({"nullness", "keyfor"})
     Repr<@KeyFor("this") String> foo() {
         return null;
     }

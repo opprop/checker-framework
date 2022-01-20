@@ -3,7 +3,7 @@ import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.framework.qual.EnsuresQualifier;
 import org.checkerframework.framework.qual.EnsuresQualifierIf;
 
-class Initializer {
+public class Initializer {
 
     public String a;
     public String b = "abc";
@@ -13,6 +13,7 @@ class Initializer {
 
     public String d = ("");
 
+    // :: error: (initialization.fields.uninitialized)
     public Initializer() {
         // :: error: (assignment.type.incompatible)
         a = null;
@@ -26,11 +27,13 @@ class Initializer {
     public Initializer(int foo) {
         a = "";
         c = "";
+        f = "";
     }
 
     public Initializer(float foo) {
         setField();
         c = "";
+        f = "";
     }
 
     public Initializer(double foo) {
@@ -38,6 +41,7 @@ class Initializer {
             a = "";
         }
         c = "";
+        f = "";
     }
 
     // :: error: (initialization.fields.uninitialized)
@@ -59,7 +63,7 @@ class Initializer {
         return true;
     }
 
-    String f = "";
+    String f;
 
     void t1(@UnknownInitialization Initializer this) {
         // :: error: (dereference.of.nullable)
@@ -71,7 +75,8 @@ class Initializer {
 
 class SubInitializer extends Initializer {
 
-    String f = "";
+    // :: error: (initialization.field.uninitialized)
+    String f;
 
     void subt1(@UnknownInitialization(Initializer.class) SubInitializer this) {
         fieldF.toString();

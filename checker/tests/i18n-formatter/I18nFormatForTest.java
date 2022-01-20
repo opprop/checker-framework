@@ -1,6 +1,7 @@
+import org.checkerframework.checker.i18nformatter.qual.I18nFormatFor;
+
 import java.text.MessageFormat;
 import java.util.Date;
-import org.checkerframework.checker.i18nformatter.qual.I18nFormatFor;
 
 public class I18nFormatForTest {
 
@@ -75,6 +76,7 @@ public class I18nFormatForTest {
     }
 
     // @I18nFormatFor needs to be annotated to a string.
+    // :: error: (anno.on.irrelevant)
     static void e(@I18nFormatFor("#2") int f, Object... args) {}
 
     // The parameter type is not necessary to an array of objects

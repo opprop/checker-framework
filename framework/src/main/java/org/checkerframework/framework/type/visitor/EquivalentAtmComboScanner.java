@@ -1,8 +1,5 @@
 package org.checkerframework.framework.type.visitor;
 
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.Map;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -16,6 +13,9 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedUnionTyp
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedWildcardType;
 import org.checkerframework.framework.util.AtmCombo;
 
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+
 /**
  * EquivalentAtmComboScanner is an AtmComboVisitor that accepts combinations that are identical in
  * TypeMirror structure but might differ in contained AnnotationMirrors. This method will scan the
@@ -23,6 +23,7 @@ import org.checkerframework.framework.util.AtmCombo;
  */
 public abstract class EquivalentAtmComboScanner<RETURN_TYPE, PARAM>
         extends AbstractAtmComboVisitor<RETURN_TYPE, PARAM> {
+
     /**
      * A history of type pairs that have already been visited and the return type of their visit.
      */
@@ -142,7 +143,7 @@ public abstract class EquivalentAtmComboScanner<RETURN_TYPE, PARAM>
         }
         visited.add(type1, type2, null);
 
-        return scan(type1.directSuperTypes(), type2.directSuperTypes(), param);
+        return scan(type1.getBounds(), type2.getBounds(), param);
     }
 
     @Override
@@ -202,23 +203,27 @@ public abstract class EquivalentAtmComboScanner<RETURN_TYPE, PARAM>
         return r;
     }
 
+    /**
+     * A history of type pairs that have already been visited and the return type of their visit.
+     */
     protected class Visited {
 
-        private final Map<AnnotatedTypeMirror, Map<AnnotatedTypeMirror, RETURN_TYPE>> visits =
-                new IdentityHashMap<>();
+        private final IdentityHashMap<
+                        AnnotatedTypeMirror, IdentityHashMap<AnnotatedTypeMirror, RETURN_TYPE>>
+                visits = new IdentityHashMap<>();
 
         public void clear() {
             visits.clear();
         }
 
         public boolean contains(final AnnotatedTypeMirror type1, final AnnotatedTypeMirror type2) {
-            Map<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 = visits.get(type1);
+            IdentityHashMap<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 = visits.get(type1);
             return recordFor1 != null && recordFor1.containsKey(type2);
         }
 
         public RETURN_TYPE getResult(
                 final AnnotatedTypeMirror type1, final AnnotatedTypeMirror type2) {
-            Map<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 = visits.get(type1);
+            IdentityHashMap<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 = visits.get(type1);
             if (recordFor1 == null) {
                 return null;
             }
@@ -226,16 +231,19 @@ public abstract class EquivalentAtmComboScanner<RETURN_TYPE, PARAM>
             return recordFor1.get(type2);
         }
 
+        /**
+         * Add a new pair to the history.
+         *
+         * @param type1 the first type
+         * @param type2 the second type
+         * @param ret the result
+         */
         public void add(
                 final AnnotatedTypeMirror type1,
                 final AnnotatedTypeMirror type2,
                 final RETURN_TYPE ret) {
-            Map<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 = visits.get(type1);
-            if (recordFor1 == null) {
-                recordFor1 = new IdentityHashMap<>();
-                visits.put(type1, recordFor1);
-            }
-
+            IdentityHashMap<AnnotatedTypeMirror, RETURN_TYPE> recordFor1 =
+                    visits.computeIfAbsent(type1, __ -> new IdentityHashMap<>());
             recordFor1.put(type2, ret);
         }
     }

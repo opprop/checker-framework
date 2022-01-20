@@ -1,10 +1,11 @@
 // Test case for issue #1032:
 // https://github.com/typetools/checker-framework/issues/1032
 
-import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.*;
 
-class Issue1032 {
+import java.util.stream.Stream;
+
+public class Issue1032 {
 
     @SuppressWarnings("nullness")
     static @NonNull String castStringToNonNull(@Nullable String arg) {

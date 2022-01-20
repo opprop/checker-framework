@@ -1,9 +1,10 @@
+import org.checkerframework.checker.regex.qual.*;
+import org.checkerframework.checker.regex.util.RegexUtil;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.checkerframework.checker.regex.RegexUtil;
-import org.checkerframework.checker.regex.qual.*;
 
-class TestIsRegex {
+public class TestIsRegex {
     void test1(String str1) throws Exception {
         if (!RegexUtil.isRegex(str1)) {
             throw new Exception();

@@ -1,11 +1,12 @@
 // Test for Issue 289:
 // https://github.com/typetools/checker-framework/issues/289
 
-import java.util.ArrayList;
-import java.util.List;
 import org.checkerframework.checker.nullness.qual.*;
 
-class Issue289 {
+import java.util.ArrayList;
+import java.util.List;
+
+public class Issue289 {
     void simple() {
         List<Object> lo = new ArrayList<>();
         List<String> ls = new ArrayList<>();

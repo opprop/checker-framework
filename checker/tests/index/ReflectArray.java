@@ -1,7 +1,8 @@
-import java.lang.reflect.Array;
 import org.checkerframework.common.value.qual.MinLen;
 
-class ReflectArray {
+import java.lang.reflect.Array;
+
+public class ReflectArray {
 
     void testNewInstance(int i) {
         // :: error: (argument.type.incompatible)

@@ -1,7 +1,8 @@
-import java.util.Collection;
 import org.checkerframework.checker.nullness.qual.*;
 
-class ArrayNew {
+import java.util.Collection;
+
+public class ArrayNew {
     void m(Collection<? extends @NonNull Integer> seq1) {
         Integer[] seq1_array = new @NonNull Integer[] {5};
         Integer[] seq2_array = seq1.toArray(new @NonNull Integer[0]);

@@ -3,13 +3,16 @@ package org.checkerframework.common.util.debug;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.tree.Pretty;
+
+import org.checkerframework.javacutil.AbstractTypeProcessor;
+
 import java.io.IOException;
 import java.io.StringWriter;
+
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
-import org.checkerframework.javacutil.AbstractTypeProcessor;
 
 /**
  * A utility class for pretty-printing the AST of a program.
@@ -22,8 +25,6 @@ import org.checkerframework.javacutil.AbstractTypeProcessor;
  * <p>A simple main method is also provided. You can invoke this tool as:
  *
  * <p>java org.checkerframework.common.util.debug.TreePrinter *.java
- *
- * <p>TODO: is there an environment variable for the bootclasspath?
  *
  * <p>The visitor simply uses the javac Pretty visitor to output a nicely formatted version of the
  * AST.

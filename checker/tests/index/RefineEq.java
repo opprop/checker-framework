@@ -1,7 +1,7 @@
 import org.checkerframework.checker.index.qual.LTEqLengthOf;
 import org.checkerframework.checker.index.qual.LTLengthOf;
 
-class RefineEq {
+public class RefineEq {
     int[] arr = {1};
 
     void testLTL(@LTLengthOf("arr") int test) {
@@ -28,7 +28,6 @@ class RefineEq {
         if (test == b) {
             @LTEqLengthOf("arr") int c = b;
 
-            // :: error: (assignment.type.incompatible)
             @LTLengthOf("arr") int g = b;
         } else {
             // :: error: (assignment.type.incompatible)

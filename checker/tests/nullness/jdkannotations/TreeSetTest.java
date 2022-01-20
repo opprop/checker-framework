@@ -3,10 +3,11 @@
 
 // @skip-test until we fix the issue
 
-import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-class TreeSetTest {
+import java.util.TreeSet;
+
+public class TreeSetTest {
 
     public static void main(String[] args) {
 

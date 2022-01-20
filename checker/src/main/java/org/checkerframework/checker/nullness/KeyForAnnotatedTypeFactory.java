@@ -3,23 +3,12 @@ package org.checkerframework.checker.nullness;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.AnnotationValue;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
+
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.KeyForBottom;
 import org.checkerframework.checker.nullness.qual.PolyKeyFor;
 import org.checkerframework.checker.nullness.qual.UnknownKeyFor;
+import org.checkerframework.checker.signature.qual.CanonicalName;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.util.NodeUtils;
@@ -28,22 +17,29 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.DefaultTypeHierarchy;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.framework.type.SubtypeIsSupersetQualifierHierarchy;
 import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.util.GraphQualifierHierarchy;
-import org.checkerframework.framework.util.MultiGraphQualifierHierarchy.MultiGraphFactory;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
 
 public class KeyForAnnotatedTypeFactory
         extends GenericAnnotatedTypeFactory<
                 KeyForValue, KeyForStore, KeyForTransfer, KeyForAnalysis> {
 
-    /** The @{@link KeyFor} annotation. */
-    protected final AnnotationMirror KEYFOR = AnnotationBuilder.fromClass(elements, KeyFor.class);
     /** The @{@link UnknownKeyFor} annotation. */
     protected final AnnotationMirror UNKNOWNKEYFOR =
             AnnotationBuilder.fromClass(elements, UnknownKeyFor.class);
@@ -52,7 +48,7 @@ public class KeyForAnnotatedTypeFactory
             AnnotationBuilder.fromClass(elements, KeyForBottom.class);
 
     /** The canonical name of the KeyFor class. */
-    protected final String KEYFOR_NAME = KeyFor.class.getCanonicalName();
+    protected final @CanonicalName String KEYFOR_NAME = KeyFor.class.getCanonicalName();
 
     /** The Map.containsKey method. */
     private final ExecutableElement mapContainsKey =
@@ -63,18 +59,40 @@ public class KeyForAnnotatedTypeFactory
     /** The Map.put method. */
     private final ExecutableElement mapPut =
             TreeUtils.getMethod("java.util.Map", "put", 2, processingEnv);
+    /** The KeyFor.value field/element. */
+    protected final ExecutableElement keyForValueElement =
+            TreeUtils.getMethod(KeyFor.class, "value", 0, processingEnv);
 
+    /** Moves annotations from one side of a pseudo-assignment to the other. */
     private final KeyForPropagator keyForPropagator = new KeyForPropagator(UNKNOWNKEYFOR);
 
-    /** Create a new KeyForAnnotatedTypeFactory. */
+    /**
+     * If true, assume the argument to Map.get is always a key for the receiver map. This is set by
+     * the `-AassumeKeyFor` command-line argument. However, if the Nullness Checker is being run,
+     * then `-AassumeKeyFor` disables the Map Key Checker.
+     */
+    private final boolean assumeKeyFor;
+
+    /**
+     * Creates a new KeyForAnnotatedTypeFactory.
+     *
+     * @param checker the associated checker
+     */
     public KeyForAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker, true);
 
+        assumeKeyFor = checker.hasOption("assumeKeyFor");
+
         // Add compatibility annotations:
-        addAliasedAnnotation(
+        addAliasedTypeAnnotation(
                 "org.checkerframework.checker.nullness.compatqual.KeyForDecl", KeyFor.class, true);
-        addAliasedAnnotation(
+        addAliasedTypeAnnotation(
                 "org.checkerframework.checker.nullness.compatqual.KeyForType", KeyFor.class, true);
+
+        // While strictly required for soundness, this leads to too many false positives.  Printing
+        // a key or putting it in a map erases all knowledge of what maps it was a key for.
+        // TODO: Revisit when side effect annotations are more precise.
+        // sideEffectsUnrefineAliases = true;
 
         this.postInit();
     }
@@ -142,10 +160,9 @@ public class KeyForAnnotatedTypeFactory
     }
 
     @Override
-    protected KeyForAnalysis createFlowAnalysis(
-            List<Pair<VariableElement, KeyForValue>> fieldValues) {
+    protected KeyForAnalysis createFlowAnalysis() {
         // Explicitly call the constructor instead of using reflection.
-        return new KeyForAnalysis(checker, this, fieldValues);
+        return new KeyForAnalysis(checker, this);
     }
 
     @Override
@@ -155,10 +172,13 @@ public class KeyForAnnotatedTypeFactory
         return new KeyForTransfer((KeyForAnalysis) analysis);
     }
 
-    /*
+    /**
      * Given a string array 'values', returns an AnnotationMirror corresponding to @KeyFor(values)
+     *
+     * @param values the values for the {@code @KeyFor} annotation
+     * @return a {@code @KeyFor} annotation with the given values
      */
-    public AnnotationMirror createKeyForAnnotationMirrorWithValue(LinkedHashSet<String> values) {
+    public AnnotationMirror createKeyForAnnotationMirrorWithValue(Set<String> values) {
         // Create an AnnotationBuilder with the ArrayList
         AnnotationBuilder builder = new AnnotationBuilder(getProcessingEnv(), KeyFor.class);
         builder.setValue("value", values.toArray());
@@ -167,14 +187,14 @@ public class KeyForAnnotatedTypeFactory
         return builder.build();
     }
 
-    /*
+    /**
      * Given a string 'value', returns an AnnotationMirror corresponding to @KeyFor(value)
+     *
+     * @param value the argument to {@code @KeyFor}
+     * @return a {@code @KeyFor} annotation with the given value
      */
     public AnnotationMirror createKeyForAnnotationMirrorWithValue(String value) {
-        // Create an ArrayList with the value
-        LinkedHashSet<String> values = new LinkedHashSet<>();
-        values.add(value);
-        return createKeyForAnnotationMirrorWithValue(values);
+        return createKeyForAnnotationMirrorWithValue(Collections.singleton(value));
     }
 
     /**
@@ -185,11 +205,18 @@ public class KeyForAnnotatedTypeFactory
      * @return whether or not the expression is a key for the map
      */
     public boolean isKeyForMap(String mapExpression, ExpressionTree tree) {
+        // This test only has an effect if the Map Key Checker is being run on its own.  If the
+        // Nullness Checker is being run, then -AassumeKeyFor disables the Map Key Checker.
+        if (assumeKeyFor) {
+            return true;
+        }
         Collection<String> maps = null;
         AnnotatedTypeMirror type = getAnnotatedType(tree);
         AnnotationMirror keyForAnno = type.getAnnotation(KeyFor.class);
         if (keyForAnno != null) {
-            maps = AnnotationUtils.getElementValueArray(keyForAnno, "value", String.class, false);
+            maps =
+                    AnnotationUtils.getElementValueArray(
+                            keyForAnno, keyForValueElement, String.class);
         } else {
             KeyForValue value = getInferredValueFor(tree);
             if (value != null) {
@@ -201,108 +228,8 @@ public class KeyForAnnotatedTypeFactory
     }
 
     @Override
-    public QualifierHierarchy createQualifierHierarchy(MultiGraphFactory factory) {
-        return new KeyForQualifierHierarchy(factory);
-    }
-
-    private final class KeyForQualifierHierarchy extends GraphQualifierHierarchy {
-
-        public KeyForQualifierHierarchy(MultiGraphFactory factory) {
-            super(factory, KEYFORBOTTOM);
-        }
-
-        private List<String> extractValues(AnnotationMirror anno) {
-            Map<? extends ExecutableElement, ? extends AnnotationValue> valMap =
-                    anno.getElementValues();
-
-            List<String> res;
-            if (valMap.isEmpty()) {
-                res = new ArrayList<>();
-            } else {
-                res = AnnotationUtils.getElementValueArray(anno, "value", String.class, true);
-            }
-            return res;
-        }
-
-        @Override
-        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
-            if (AnnotationUtils.areSameByName(superAnno, KEYFOR_NAME)
-                    && AnnotationUtils.areSameByName(subAnno, KEYFOR_NAME)) {
-                List<String> lhsValues = extractValues(superAnno);
-                List<String> rhsValues = extractValues(subAnno);
-
-                return rhsValues.containsAll(lhsValues);
-            }
-            // Ignore annotation values to ensure that annotation is in supertype map.
-            if (AnnotationUtils.areSameByName(superAnno, KEYFOR_NAME)) {
-                superAnno = KEYFOR;
-            }
-            if (AnnotationUtils.areSameByName(subAnno, KEYFOR_NAME)) {
-                subAnno = KEYFOR;
-            }
-            // TODO: the erased TypeMirror will be used.  Can we store that already here?
-            return super.isSubtype(subAnno, superAnno);
-        }
-
-        @Override
-        public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
-            if (AnnotationUtils.areSameByName(a1, UNKNOWNKEYFOR)) {
-                return a1;
-            } else if (AnnotationUtils.areSameByName(a2, UNKNOWNKEYFOR)) {
-                return a2;
-            } else if (AnnotationUtils.areSameByName(a1, KEYFORBOTTOM)) {
-                return a2;
-            } else if (AnnotationUtils.areSameByName(a2, KEYFORBOTTOM)) {
-                return a1;
-            } else if (AnnotationUtils.areSameByName(a1, KEYFOR)
-                    && AnnotationUtils.areSameByName(a2, KEYFOR)) {
-                List<String> a1Values = extractValues(a1);
-                List<String> a2Values = extractValues(a2);
-                LinkedHashSet<String> set = new LinkedHashSet<>(a1Values);
-                set.retainAll(a2Values);
-                return createKeyForAnnotationMirrorWithValue(set);
-            }
-            // a1 or a2 is @PolyKeyFor.
-            // Ignore annotation values to ensure that annotation is in supertype map.
-            if (AnnotationUtils.areSameByName(a1, KEYFOR)) {
-                a1 = KEYFOR;
-            }
-            if (AnnotationUtils.areSameByName(a2, KEYFOR)) {
-                a2 = KEYFOR;
-            }
-            // Let super handle @PolyKeyFor.
-            return super.leastUpperBound(a1, a2);
-        }
-
-        @Override
-        public AnnotationMirror greatestLowerBound(AnnotationMirror a1, AnnotationMirror a2) {
-            if (AnnotationUtils.areSameByName(a1, UNKNOWNKEYFOR)) {
-                return a2;
-            } else if (AnnotationUtils.areSameByName(a2, UNKNOWNKEYFOR)) {
-                return a1;
-            } else if (AnnotationUtils.areSameByName(a1, KEYFORBOTTOM)) {
-                return a1;
-            } else if (AnnotationUtils.areSameByName(a2, KEYFORBOTTOM)) {
-                return a2;
-            } else if (AnnotationUtils.areSameByName(a1, KEYFOR)
-                    && AnnotationUtils.areSameByName(a2, KEYFOR)) {
-                List<String> a1Values = extractValues(a1);
-                List<String> a2Values = extractValues(a2);
-                LinkedHashSet<String> set = new LinkedHashSet<>(a1Values);
-                set.addAll(a2Values);
-                return createKeyForAnnotationMirrorWithValue(set);
-            }
-            // a1 or a2 is @PolyKeyFor.
-            // Ignore annotation values to ensure that annotation is in supertype map.
-            if (AnnotationUtils.areSameByName(a1, KEYFOR)) {
-                a1 = KEYFOR;
-            }
-            if (AnnotationUtils.areSameByName(a2, KEYFOR)) {
-                a2 = KEYFOR;
-            }
-            // Let super handle @PolyKeyFor.
-            return super.greatestLowerBound(a1, a2);
-        }
+    public QualifierHierarchy createQualifierHierarchy() {
+        return new SubtypeIsSupersetQualifierHierarchy(getSupportedTypeQualifiers(), processingEnv);
     }
 
     /** Returns true if the node is an invocation of Map.containsKey. */

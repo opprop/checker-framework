@@ -9,7 +9,7 @@
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-class Issue347 {
+public class Issue347 {
 
     @MonotonicNonNull String mono;
 
@@ -19,9 +19,8 @@ class Issue347 {
         if (mono == null) {
             return;
         }
-        // The object referenced by mono might change, but
-        // it can't become null again, even in concurrent
-        // semantics.
+        // The object referenced by mono might change, but it can't become null again, even in
+        // concurrent semantics.
         mono.toString();
     }
 

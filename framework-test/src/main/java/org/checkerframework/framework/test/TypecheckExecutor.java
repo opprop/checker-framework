@@ -1,35 +1,60 @@
 package org.checkerframework.framework.test;
 
+import org.checkerframework.framework.test.diagnostics.JavaDiagnosticReader;
+import org.checkerframework.framework.test.diagnostics.TestDiagnostic;
+import org.checkerframework.javacutil.SystemUtil;
+import org.plumelib.util.StringsPlume;
+
 import java.io.File;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import org.checkerframework.framework.test.diagnostics.JavaDiagnosticReader;
-import org.checkerframework.framework.test.diagnostics.TestDiagnostic;
-import org.checkerframework.javacutil.SystemUtil;
 
 /** Used by the Checker Framework test suite to run the framework and generate a test result. */
 public class TypecheckExecutor {
 
+    /** Creates a new TypecheckExecutor. */
     public TypecheckExecutor() {}
 
-    /** Runs a typechecking test using the given configuration and returns the test result. */
+    /**
+     * Runs a typechecking test using the given configuration and returns the test result.
+     *
+     * @param configuration the test configuration
+     * @return the test result
+     */
     public TypecheckResult runTest(TestConfiguration configuration) {
-        CompilationResult result = compile(configuration);
-        return interpretResults(configuration, result);
+        try {
+            CompilationResult result = compile(configuration);
+            return interpretResults(configuration, result);
+        } catch (OutOfMemoryError e) {
+            String message =
+                    String.format(
+                            "Max memory = %d, total memory = %d, free memory = %d.",
+                            Runtime.getRuntime().maxMemory(),
+                            Runtime.getRuntime().totalMemory(),
+                            Runtime.getRuntime().freeMemory());
+            System.out.println(message);
+            System.err.println(message);
+            throw new Error(message, e);
+        }
     }
 
     /**
      * Using the settings from the input configuration, compile all source files in the
-     * configuration, and return place the result in a CompilationResult
+     * configuration, and return the result in a CompilationResult.
      */
     public CompilationResult compile(TestConfiguration configuration) {
-        TestUtilities.ensureDirectoryExists(new File(configuration.getOptions().get("-d")));
+        String dOption = configuration.getOptions().get("-d");
+        if (dOption == null) {
+            throw new Error("-d not supplied");
+        }
+        TestUtilities.ensureDirectoryExists(dOption);
 
         final StringWriter javacOutput = new StringWriter();
         DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
@@ -42,8 +67,8 @@ public class TypecheckExecutor {
 
         // Even though the method compiler.getTask takes a list of processors, it fails if
         // processors are passed this way with the message:
-        // error: Class names, 'org.checkerframework.checker.interning.InterningChecker', are only
-        // accepted if annotation processing is explicitly requested
+        //   error: Class names, 'org.checkerframework.checker.interning.InterningChecker', are only
+        //   accepted if annotation processing is explicitly requested
         // Therefore, we now add them to the beginning of the options list.
         final List<String> options = new ArrayList<>();
         options.add("-processor");
@@ -70,6 +95,8 @@ public class TypecheckExecutor {
         nonJvmOptions.add("-ApermitMissingJdk");
         nonJvmOptions.add("-Anocheckjdk"); // temporary, for backward compatibility
 
+        nonJvmOptions.add("-AnoJreVersionCheck");
+
         options.addAll(nonJvmOptions);
 
         if (configuration.shouldEmitDebugInfo()) {
@@ -78,7 +105,7 @@ public class TypecheckExecutor {
                     "javac "
                             + String.join(" ", options)
                             + " "
-                            + SystemUtil.join(" ", configuration.getTestSourceFiles()));
+                            + StringsPlume.join(" ", configuration.getTestSourceFiles()));
         }
 
         JavaCompiler.CompilationTask task =
@@ -107,7 +134,7 @@ public class TypecheckExecutor {
 
     /**
      * Reads the expected diagnostics for the given configuration and creates a TypecheckResult
-     * which contains all of the missing and expected diagnostics
+     * which contains all of the missing and expected diagnostics.
      */
     public TypecheckResult interpretResults(
             TestConfiguration config, CompilationResult compilationResult) {
@@ -117,8 +144,8 @@ public class TypecheckExecutor {
     }
 
     /**
-     * Added in case a subclass wishes to filter out errors or add new expected errors. This method
-     * is called immediately before results are checked.
+     * A subclass can override this to filter out errors or add new expected errors. This method is
+     * called immediately before results are checked.
      */
     protected List<TestDiagnostic> readDiagnostics(
             TestConfiguration config, CompilationResult compilationResult) {

@@ -16,12 +16,12 @@ import java.util.Objects;
  *
  * <p>Note: Does not represent any AST structure.
  */
-public class MergeOfStoreNode extends Node {
+public class ExpressionStatementNode extends Node {
     /** The expression precedes this MergeOfStoreNode. */
     protected final ExpressionTree tree;
 
     /** @param t the expression precedes this MergeOfStoreNode */
-    public MergeOfStoreNode(ExpressionTree t) {
+    public ExpressionStatementNode(ExpressionTree t) {
         super(TreeUtils.typeOf(t));
         tree = t;
     }
@@ -38,7 +38,7 @@ public class MergeOfStoreNode extends Node {
 
     @Override
     public <R, P> R accept(NodeVisitor<R, P> visitor, P p) {
-        return visitor.visitMergeOfStore(this, p);
+        return visitor.visitExpressionStatement(this, p);
     }
 
     @Override

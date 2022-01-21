@@ -383,7 +383,7 @@ public abstract class AbstractNodeVisitor<R, P> implements NodeVisitor<R, P> {
 
     // Merge store after an expression statement
     @Override
-    public R visitMergeOfStore(MergeOfStoreNode n, P p) {
+    public R visitExpressionStatement(ExpressionStatementNode n, P p) {
         return visitNode(n, p);
     }
 }

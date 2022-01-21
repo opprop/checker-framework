@@ -173,10 +173,10 @@ public interface NodeVisitor<R, P> {
     /**
      * Merges store after an expression statement.
      *
-     * @param n the {@link MergeOfStoreNode} to be visited
+     * @param n the {@link ExpressionStatementNode} to be visited
      * @param p the argument of the operation implemented by this visitor
      * @return the return type of the operation implemented by this visitor, use Void if no return
      *     type is needed
      */
-    R visitMergeOfStore(MergeOfStoreNode n, P p);
+    R visitExpressionStatement(ExpressionStatementNode n, P p);
 }

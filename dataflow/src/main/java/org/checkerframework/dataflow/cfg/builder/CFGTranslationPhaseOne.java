@@ -86,6 +86,7 @@ import org.checkerframework.dataflow.cfg.node.ConditionalOrNode;
 import org.checkerframework.dataflow.cfg.node.DoubleLiteralNode;
 import org.checkerframework.dataflow.cfg.node.EqualToNode;
 import org.checkerframework.dataflow.cfg.node.ExplicitThisNode;
+import org.checkerframework.dataflow.cfg.node.ExpressionStatementNode;
 import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
 import org.checkerframework.dataflow.cfg.node.FloatLiteralNode;
 import org.checkerframework.dataflow.cfg.node.FloatingDivisionNode;
@@ -105,7 +106,6 @@ import org.checkerframework.dataflow.cfg.node.LessThanOrEqualNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.LongLiteralNode;
 import org.checkerframework.dataflow.cfg.node.MarkerNode;
-import org.checkerframework.dataflow.cfg.node.MergeOfStoreNode;
 import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.NarrowingConversionNode;
@@ -2361,9 +2361,7 @@ public class CFGTranslationPhaseOne extends TreePathScanner<Node, Void> {
     public Node visitExpressionStatement(ExpressionStatementTree tree, Void p) {
         ExpressionTree exprTree = tree.getExpression();
         scan(exprTree, p);
-        if (!(exprTree instanceof AssignmentTree)) {
-            extendWithNode(new MergeOfStoreNode(exprTree));
-        }
+        extendWithNode(new ExpressionStatementNode(exprTree));
         return null;
     }
 

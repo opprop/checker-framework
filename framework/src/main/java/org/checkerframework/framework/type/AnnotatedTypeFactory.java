@@ -1414,6 +1414,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedTypeMirror fromTypeTree = fromTypeTree(clause);
         Set<AnnotationMirror> bound = getTypeDeclarationBounds(fromTypeTree.getUnderlyingType());
         fromTypeTree.addMissingAnnotations(bound);
+        addComputedTypeAnnotations(clause, fromTypeTree);
         return fromTypeTree;
     }
 

@@ -160,7 +160,7 @@ public interface NodeVisitor<R, P> {
     R visitMarker(MarkerNode n, P p);
 
     /**
-     * Visits anonymous/inner/nested class declaration within a method.
+     * Visits an anonymous/inner/nested class declaration within a method.
      *
      * @param classDeclarationNode the {@link ClassDeclarationNode} to be visited
      * @param p the argument of the operation implemented by this visitor
@@ -171,7 +171,7 @@ public interface NodeVisitor<R, P> {
 
     //
     /**
-     * Merges store after an expression statement.
+     * Visits a non-syntactical {@link ExpressionStatementNode}, which is appended to the syntactical nodes of an expression statement.
      *
      * @param n the {@link ExpressionStatementNode} to be visited
      * @param p the argument of the operation implemented by this visitor

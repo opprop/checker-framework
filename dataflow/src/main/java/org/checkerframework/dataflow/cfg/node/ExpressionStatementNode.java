@@ -11,16 +11,16 @@ import java.util.Collections;
 import java.util.Objects;
 
 /**
- * A node for the purpose of merging store in dataflow analysis. It usually follows an expression
- * statement.
- *
- * <p>Note: Does not represent any AST structure.
+ * An expression that is used as a statement.
  */
 public class ExpressionStatementNode extends Node {
-    /** The expression precedes this MergeOfStoreNode. */
+    /** The expression constituting this ExpressionStatementNode. */
     protected final ExpressionTree tree;
 
-    /** @param t the expression precedes this MergeOfStoreNode */
+    /** Construct a ExpressionStatementNode.
+     *
+     * @param t the expression constituting this ExpressionStatementNode
+     */
     public ExpressionStatementNode(ExpressionTree t) {
         super(TreeUtils.typeOf(t));
         tree = t;
@@ -43,7 +43,7 @@ public class ExpressionStatementNode extends Node {
 
     @Override
     public String toString() {
-        return "merge store after " + tree.toString();
+        return "expression statement " + tree.toString();
     }
 
     @Override

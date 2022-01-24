@@ -1367,6 +1367,7 @@ public abstract class CFAbstractTransfer<
     @Override
     public TransferResult<V, S> visitExpressionStatement(
             ExpressionStatementNode n, TransferInput<V, S> vsTransferInput) {
+        // Merge the input
         S info = vsTransferInput.getRegularStore();
         return new RegularTransferResult<>(finishValue(null, info), info);
     }

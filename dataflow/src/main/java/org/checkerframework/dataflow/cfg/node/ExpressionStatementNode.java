@@ -10,14 +10,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 
-/**
- * An expression that is used as a statement.
- */
+/** An expression that is used as a statement. */
 public class ExpressionStatementNode extends Node {
     /** The expression constituting this ExpressionStatementNode. */
     protected final ExpressionTree tree;
 
-    /** Construct a ExpressionStatementNode.
+    /**
+     * Construct a ExpressionStatementNode.
      *
      * @param t the expression constituting this ExpressionStatementNode
      */

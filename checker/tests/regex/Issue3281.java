@@ -64,4 +64,18 @@ public class Issue3281 {
             f = s;
         }
     }
+
+    void foo(String s1, String s2) {
+        bar(
+                RegexUtil.isRegex(s1),
+                // :: error: (argument.type.incompatible)
+                Pattern.compile(s1));
+        boolean b;
+        bar(
+                b = RegexUtil.isRegex(s2),
+                // :: error: (argument.type.incompatible)
+                Pattern.compile(s2));
+    }
+
+    void bar(boolean b, Object o) {}
 }

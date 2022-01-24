@@ -171,7 +171,8 @@ public interface NodeVisitor<R, P> {
 
     //
     /**
-     * Visits a non-syntactical {@link ExpressionStatementNode}, which is appended to the syntactical nodes of an expression statement.
+     * Visits a non-syntactical {@link ExpressionStatementNode}, which is appended to the
+     * syntactical nodes of an expression statement.
      *
      * @param n the {@link ExpressionStatementNode} to be visited
      * @param p the argument of the operation implemented by this visitor

@@ -163,21 +163,17 @@ public interface NodeVisitor<R, P> {
      * Visits an anonymous/inner/nested class declaration within a method.
      *
      * @param classDeclarationNode the {@link ClassDeclarationNode} to be visited
-     * @param p the argument of the operation implemented by this visitor
-     * @return the return type of the operation implemented by this visitor, use Void if no return
-     *     type is needed
+     * @param p the argument for the operation implemented by this visitor
+     * @return the return value of the operation implemented by this visitor
      */
     R visitClassDeclaration(ClassDeclarationNode classDeclarationNode, P p);
 
-    //
     /**
-     * Visits a non-syntactical {@link ExpressionStatementNode}, which is appended to the
-     * syntactical nodes of an expression statement.
+     * Visits an expression that is used as a statement. This node is a marker after the expression node(s).
      *
      * @param n the {@link ExpressionStatementNode} to be visited
-     * @param p the argument of the operation implemented by this visitor
-     * @return the return type of the operation implemented by this visitor, use Void if no return
-     *     type is needed
+     * @param p the argument for the operation implemented by this visitor
+     * @return the return value of the operation implemented by this visitor
      */
     R visitExpressionStatement(ExpressionStatementNode n, P p);
 }

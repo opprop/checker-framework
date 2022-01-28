@@ -169,7 +169,8 @@ public interface NodeVisitor<R, P> {
     R visitClassDeclaration(ClassDeclarationNode classDeclarationNode, P p);
 
     /**
-     * Visits an expression that is used as a statement. This node is a marker after the expression node(s).
+     * Visits an expression that is used as a statement. This node is a marker after the expression
+     * node(s).
      *
      * @param n the {@link ExpressionStatementNode} to be visited
      * @param p the argument for the operation implemented by this visitor

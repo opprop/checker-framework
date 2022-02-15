@@ -1,15 +1,17 @@
 package org.checkerframework.dataflow.reachdefinition;
 
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.StringJoiner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.Store;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.javacutil.BugInCF;
+
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.StringJoiner;
 
 /** A live variable store contains a set of live variables represented by nodes. */
 public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
@@ -32,52 +34,27 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
     }
 
     /**
-     * Add the information of a live variable into the live variable set.
-     *
-     * @param variable a live variable
-     */
-    public void putLiveVar(ReachDefinitionValue variable) {
-        reachDefSet.add(variable);
-    }
-
-    /**
      * Remove the information of a live variable from the live variable set.
      *
-     * @param variable a live variable
+     * @param def a live variable
      */
-    public void killDef(ReachDefinitionValue variable) {
-        reachDefSet.remove(variable);
+    public void killDef(ReachDefinitionValue def) {
+        Iterator<ReachDefinitionValue> it = reachDefSet.iterator();
+        while (it.hasNext()) {
+            ReachDefinitionValue existedDef = it.next();
+            if (existedDef.defs.getTarget().toString().equals(def.defs.getTarget().toString())) {
+                it.remove();
+            }
+        }
     }
 
     /**
-     * Add the information of live variables in an expression to the live variable set.
+     * Add the information of a live variable into the live variable set.
      *
-     * @param expression a node
+     * @param def a live variable
      */
-    public void addUseInExpression(Node expression) {
-        // TODO Do we need a AbstractNodeScanner to do the following job?
-        if (expression instanceof LocalVariableNode || expression instanceof FieldAccessNode) {
-            ReachDefinitionValue liveVarValue = new ReachDefinitionValue(expression);
-            putLiveVar(liveVarValue);
-        } else if (expression instanceof UnaryOperationNode) {
-            UnaryOperationNode unaryNode = (UnaryOperationNode) expression;
-            addUseInExpression(unaryNode.getOperand());
-        } else if (expression instanceof TernaryExpressionNode) {
-            TernaryExpressionNode ternaryNode = (TernaryExpressionNode) expression;
-            addUseInExpression(ternaryNode.getConditionOperand());
-            addUseInExpression(ternaryNode.getThenOperand());
-            addUseInExpression(ternaryNode.getElseOperand());
-        } else if (expression instanceof TypeCastNode) {
-            TypeCastNode typeCastNode = (TypeCastNode) expression;
-            addUseInExpression(typeCastNode.getOperand());
-        } else if (expression instanceof InstanceOfNode) {
-            InstanceOfNode instanceOfNode = (InstanceOfNode) expression;
-            addUseInExpression(instanceOfNode.getOperand());
-        } else if (expression instanceof BinaryOperationNode) {
-            BinaryOperationNode binaryNode = (BinaryOperationNode) expression;
-            addUseInExpression(binaryNode.getLeftOperand());
-            addUseInExpression(binaryNode.getRightOperand());
-        }
+    public void putDef(ReachDefinitionValue def) {
+        reachDefSet.add(def);
     }
 
     @Override
@@ -121,7 +98,7 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
 
     @Override
     public String visualize(CFGVisualizer<?, ReachDefinitionStore, ?> viz) {
-        String key = "live variables";
+        String key = "reach definitions";
         if (reachDefSet.isEmpty()) {
             return viz.visualizeStoreKeyVal(key, "none");
         }

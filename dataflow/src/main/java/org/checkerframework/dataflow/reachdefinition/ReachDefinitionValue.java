@@ -2,7 +2,7 @@ package org.checkerframework.dataflow.reachdefinition;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.AbstractValue;
-import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.javacutil.BugInCF;
 
 /** A live variable (which is represented by a node) wrapper turning node into abstract value. */
@@ -10,10 +10,9 @@ public class ReachDefinitionValue implements AbstractValue<ReachDefinitionValue>
 
     /**
      * A live variable is represented by a node, which can be a {@link
-     * org.checkerframework.dataflow.cfg.node.LocalVariableNode} or {@link
-     * org.checkerframework.dataflow.cfg.node.FieldAccessNode}.
+     * org.checkerframework.dataflow.cfg.node.AssignmentNode}.
      */
-    protected final Node reachDefinition;
+    protected final AssignmentNode defs;
 
     @Override
     public ReachDefinitionValue leastUpperBound(ReachDefinitionValue other) {
@@ -21,17 +20,17 @@ public class ReachDefinitionValue implements AbstractValue<ReachDefinitionValue>
     }
 
     /**
-     * Create a new live variable.
+     * Create a new definition.
      *
      * @param n a node
      */
-    public ReachDefinitionValue(Node n) {
-        this.reachDefinition = n;
+    public ReachDefinitionValue(AssignmentNode n) {
+        this.defs = n;
     }
 
     @Override
     public int hashCode() {
-        return this.reachDefinition.hashCode();
+        return this.defs.hashCode();
     }
 
     @Override
@@ -40,11 +39,11 @@ public class ReachDefinitionValue implements AbstractValue<ReachDefinitionValue>
             return false;
         }
         ReachDefinitionValue other = (ReachDefinitionValue) obj;
-        return this.reachDefinition.equals(other.reachDefinition);
+        return this.defs.equals(other.defs);
     }
 
     @Override
     public String toString() {
-        return this.reachDefinition.toString();
+        return this.defs.toString();
     }
 }

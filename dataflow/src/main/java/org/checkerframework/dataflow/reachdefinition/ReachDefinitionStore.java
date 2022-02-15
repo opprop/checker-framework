@@ -13,30 +13,30 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.StringJoiner;
 
-/** A live variable store contains a set of live variables represented by nodes. */
+/** A reach definition store contains a set of reach definitions represented by nodes. */
 public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
 
-    /** A set of live variable abstract values. */
+    /** A set of reach definitions abstract values. */
     private final Set<ReachDefinitionValue> reachDefSet;
 
-    /** Create a new LiveVarStore. */
+    /** Create a new ReachDefinitionStore. */
     public ReachDefinitionStore() {
         reachDefSet = new LinkedHashSet<>();
     }
 
     /**
-     * Create a new LiveVarStore.
+     * Create a new ReachDefinitionStore.
      *
-     * @param reachDefSet a set of live variable abstract values
+     * @param reachDefSet a set of reach definition abstract values
      */
     public ReachDefinitionStore(Set<ReachDefinitionValue> reachDefSet) {
         this.reachDefSet = reachDefSet;
     }
 
     /**
-     * Remove the information of a live variable from the live variable set.
+     * Remove the information of a reach definition from the reach definition set.
      *
-     * @param def a live variable
+     * @param def a reach definition
      */
     public void killDef(ReachDefinitionValue def) {
         Iterator<ReachDefinitionValue> it = reachDefSet.iterator();
@@ -49,9 +49,9 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
     }
 
     /**
-     * Add the information of a live variable into the live variable set.
+     * Add the information of a reach definition into the reach definition set.
      *
-     * @param def a live variable
+     * @param def a reach definition
      */
     public void putDef(ReachDefinitionValue def) {
         reachDefSet.add(def);
@@ -88,7 +88,7 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
     /** It should not be called since it is not used by the backward analysis. */
     @Override
     public ReachDefinitionStore widenedUpperBound(ReachDefinitionStore previous) {
-        throw new BugInCF("wub of LiveVarStore get called!");
+        throw new BugInCF("wub of reach definition get called!");
     }
 
     @Override
@@ -103,8 +103,8 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
             return viz.visualizeStoreKeyVal(key, "none");
         }
         StringJoiner sjStoreVal = new StringJoiner(", ");
-        for (ReachDefinitionValue liveVarValue : reachDefSet) {
-            sjStoreVal.add(liveVarValue.toString());
+        for (ReachDefinitionValue reachDefValue : reachDefSet) {
+            sjStoreVal.add(reachDefValue.toString());
         }
         return viz.visualizeStoreKeyVal(key, sjStoreVal.toString());
     }

@@ -10,7 +10,7 @@ import org.checkerframework.dataflow.cfg.node.*;
 
 import java.util.List;
 
-/** A live variable transfer function. */
+/** A reach definition transfer function. */
 public class ReachDefTransfer
         extends AbstractNodeVisitor<
                 TransferResult<ReachDefinitionValue, ReachDefinitionStore>,
@@ -40,10 +40,10 @@ public class ReachDefTransfer
     }
 
     /**
-     * Update the information of live variables from an assignment statement.
+     * Update the information of reach definition from an assignment statement.
      *
-     * @param def the def that should be killed
-     * @param store the live variable store
+     * @param def the def that should be put into the store
+     * @param store the reach defination store
      */
     private void processDefinition(AssignmentNode def, ReachDefinitionStore store) {
         store.killDef(new ReachDefinitionValue(def));

@@ -5,18 +5,18 @@ import org.checkerframework.dataflow.analysis.AbstractValue;
 import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.javacutil.BugInCF;
 
-/** A live variable (which is represented by a node) wrapper turning node into abstract value. */
+/** A reach definition (which is represented by a node) wrapper turning node into abstract value. */
 public class ReachDefinitionValue implements AbstractValue<ReachDefinitionValue> {
 
     /**
-     * A live variable is represented by a node, which can be a {@link
+     * A reach definition is represented by a node, which can be a {@link
      * org.checkerframework.dataflow.cfg.node.AssignmentNode}.
      */
     protected final AssignmentNode defs;
 
     @Override
     public ReachDefinitionValue leastUpperBound(ReachDefinitionValue other) {
-        throw new BugInCF("lub of LiveVar get called!");
+        throw new BugInCF("lub of reachDef get called!");
     }
 
     /**

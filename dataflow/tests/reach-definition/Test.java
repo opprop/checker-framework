@@ -8,6 +8,7 @@ public class Test {
             int e = a + b;
         }
         b = 0;
+        a = b;
         return a;
     }
 }

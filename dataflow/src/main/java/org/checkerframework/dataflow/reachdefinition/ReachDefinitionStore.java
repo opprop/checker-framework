@@ -2,7 +2,6 @@ package org.checkerframework.dataflow.reachdefinition;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.analysis.Store;
-import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.javacutil.BugInCF;
@@ -80,8 +79,12 @@ public class ReachDefinitionStore implements Store<ReachDefinitionStore> {
     public ReachDefinitionStore leastUpperBound(ReachDefinitionStore other) {
         Set<ReachDefinitionValue> reachDefSetLub =
                 new HashSet<>(this.reachDefSet.size() + other.reachDefSet.size());
+        System.out.println(">>>>>>>>>>>>>>>>>>>>test lub of reach definition store");
+        System.out.println(other.toString());
+        System.out.println(this.toString());
         reachDefSetLub.addAll(this.reachDefSet);
         reachDefSetLub.addAll(other.reachDefSet);
+        System.out.println(reachDefSetLub.toString());
         return new ReachDefinitionStore(reachDefSetLub);
     }
 

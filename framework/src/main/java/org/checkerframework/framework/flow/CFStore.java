@@ -4,7 +4,21 @@ package org.checkerframework.framework.flow;
 public class CFStore extends CFAbstractStore<CFValue, CFStore> {
 
     public CFStore(CFAbstractAnalysis<CFValue, CFStore, ?> analysis, boolean sequentialSemantics) {
-        super(analysis, sequentialSemantics);
+        this(analysis, sequentialSemantics, false);
+    }
+
+    /**
+     * Constructor for CFStore.
+     *
+     * @param analysis the analysis class this store belongs to
+     * @param sequentialSemantics should the analysis use sequential Java semantics?
+     * @param isBottom is the store a bottom store?
+     */
+    public CFStore(
+            CFAbstractAnalysis<CFValue, CFStore, ?> analysis,
+            boolean sequentialSemantics,
+            boolean isBottom) {
+        super(analysis, sequentialSemantics, isBottom);
     }
 
     /**

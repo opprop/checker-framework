@@ -120,7 +120,6 @@ import org.checkerframework.dataflow.cfg.node.ParameterizedTypeNode;
 import org.checkerframework.dataflow.cfg.node.PrimitiveTypeNode;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.SignedRightShiftNode;
-import org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
@@ -282,8 +281,11 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     /** Map from AST {@link Tree}s to post-conversion sets of {@link Node}s. */
     private final IdentityHashMap<Tree, Set<Node>> convertedTreeLookupMap;
 
-    /** Map from AST {@link UnaryTree}s to compound {@link AssignmentNode}s. */
-    private final IdentityHashMap<UnaryTree, AssignmentNode> unaryAssignNodeLookupMap;
+    /**
+     * Map from postfix increment or decrement trees that are AST {@link UnaryTree}s to the
+     * synthetic tree that is {@code v + 1} or {@code v - 1}.
+     */
+    private final IdentityHashMap<UnaryTree, BinaryTree> postfixLookupMap;
 
     /** The list of extended nodes. */
     private final ArrayList<ExtendedNode> nodeList;
@@ -392,7 +394,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         // initialize lists and maps
         treeLookupMap = new IdentityHashMap<>();
         convertedTreeLookupMap = new IdentityHashMap<>();
-        unaryAssignNodeLookupMap = new IdentityHashMap<>();
+        postfixLookupMap = new IdentityHashMap<>();
         nodeList = new ArrayList<>();
         bindings = new HashMap<>();
         leaders = new HashSet<>();
@@ -467,7 +469,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                     underlyingAST,
                     treeLookupMap,
                     convertedTreeLookupMap,
-                    unaryAssignNodeLookupMap,
+                    postfixLookupMap,
                     nodeList,
                     bindings,
                     leaders,
@@ -648,17 +650,6 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         } else {
             existing.add(node);
         }
-    }
-
-    /**
-     * Add a unary tree in the compound assign lookup map. This method is used to update the
-     * UnaryTree-AssignmentNode mapping with compound assign nodes.
-     *
-     * @param tree the tree used as a key in the map
-     * @param unaryAssignNode the node to add to the lookup map
-     */
-    protected void addToUnaryAssignLookupMap(UnaryTree tree, AssignmentNode unaryAssignNode) {
-        unaryAssignNodeLookupMap.put(tree, unaryAssignNode);
     }
 
     /**
@@ -1851,9 +1842,18 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                         assert (kind == Tree.Kind.PLUS_ASSIGNMENT);
                         Node targetRHS = stringConversion(targetLHS);
                         value = stringConversion(value);
-                        Node r = new StringConcatenateAssignmentNode(tree, targetRHS, value);
-                        extendWithNode(r);
-                        return r;
+                        BinaryTree operTree =
+                                treeBuilder.buildBinary(
+                                        leftType,
+                                        withoutAssignment(kind),
+                                        tree.getVariable(),
+                                        tree.getExpression());
+                        handleArtificialTree(operTree);
+                        Node operNode = new StringConcatenateNode(operTree, targetRHS, value);
+                        extendWithNode(operNode);
+                        AssignmentNode assignNode = new AssignmentNode(tree, targetLHS, operNode);
+                        extendWithNode(assignNode);
+                        return assignNode;
                     } else {
                         TypeMirror promotedType = binaryPromotedType(leftType, rightType);
                         Node targetRHS = binaryNumericPromotion(targetLHS, promotedType);
@@ -3874,9 +3874,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                             kind == Tree.Kind.POSTFIX_INCREMENT
                                     || kind == Tree.Kind.POSTFIX_DECREMENT;
                     AssignmentNode unaryAssign =
-                            createIncrementOrDecrementAssign(
-                                    isPostfix ? null : tree, expr, isIncrement);
-                    addToUnaryAssignLookupMap(tree, unaryAssign);
+                            createIncrementOrDecrementAssign(tree, expr, isIncrement, isPostfix);
 
                     if (isPostfix) {
                         TypeMirror exprType = TreeUtils.typeOf(exprTree);
@@ -3932,20 +3930,20 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     /**
      * Create assignment node which represent increment or decrement.
      *
-     * @param target tree for assignment node. If it's null, corresponding assignment tree will be
-     *     generated.
+     * @param unaryTree increment or decrement tree
      * @param expr expression node to be incremented or decremented
      * @param isIncrement true when it's increment
+     * @param isPostfix true if {@code expr} is a postfix increment or decrement.
      * @return assignment node for corresponding increment or decrement
      */
     private AssignmentNode createIncrementOrDecrementAssign(
-            Tree target, Node expr, boolean isIncrement) {
+            UnaryTree unaryTree, Node expr, boolean isIncrement, boolean isPostfix) {
         ExpressionTree exprTree = (ExpressionTree) expr.getTree();
         TypeMirror exprType = expr.getType();
         TypeMirror oneType = types.getPrimitiveType(TypeKind.INT);
         TypeMirror promotedType = binaryPromotedType(exprType, oneType);
 
-        LiteralTree oneTree = treeBuilder.buildLiteral(Integer.valueOf(1));
+        LiteralTree oneTree = treeBuilder.buildLiteral(1);
         handleArtificialTree(oneTree);
 
         Node exprRHS = binaryNumericPromotion(expr, promotedType);
@@ -3960,6 +3958,9 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                         isIncrement ? Tree.Kind.PLUS : Tree.Kind.MINUS,
                         exprTree,
                         oneTree);
+        if (isPostfix) {
+            postfixLookupMap.put(unaryTree, operTree);
+        }
         handleArtificialTree(operTree);
 
         Node operNode;
@@ -3973,9 +3974,12 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
 
         Node narrowed = narrowAndBox(operNode, exprType);
 
-        if (target == null) {
+        Tree target;
+        if (isPostfix) {
             target = treeBuilder.buildAssignment(exprTree, (ExpressionTree) narrowed.getTree());
             handleArtificialTree(target);
+        } else {
+            target = unaryTree;
         }
 
         AssignmentNode assignNode = new AssignmentNode(target, expr, narrowed);

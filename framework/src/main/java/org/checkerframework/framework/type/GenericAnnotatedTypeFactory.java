@@ -1626,6 +1626,15 @@ public abstract class GenericAnnotatedTypeFactory<
         return type;
     }
 
+    @Override
+    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
+        boolean oldUseFlow = useFlow;
+        useFlow = true; // what if the useFlow passes in is false?
+        AnnotatedTypeMirror res = super.getAnnotatedType(tree);
+        useFlow = oldUseFlow;
+        return res;
+    }
+
     /**
      * Returns the type of a left-hand side of an assignment.
      *
@@ -1648,7 +1657,7 @@ public abstract class GenericAnnotatedTypeFactory<
             case IDENTIFIER:
             case MEMBER_SELECT:
             case ARRAY_ACCESS:
-                res = getAnnotatedType(lhsTree);
+                res = super.getAnnotatedType(lhsTree);
                 break;
             case PARENTHESIZED:
                 res = getAnnotatedTypeLhs(TreeUtils.withoutParens((ExpressionTree) lhsTree));
@@ -1657,7 +1666,7 @@ public abstract class GenericAnnotatedTypeFactory<
                 if (TreeUtils.isTypeTree(lhsTree)) {
                     // lhsTree is a type tree at the pseudo assignment of a returned expression to
                     // declared return type.
-                    res = getAnnotatedType(lhsTree);
+                    res = super.getAnnotatedType(lhsTree);
                 } else {
                     throw new BugInCF(
                             "GenericAnnotatedTypeFactory: Unexpected tree passed to"

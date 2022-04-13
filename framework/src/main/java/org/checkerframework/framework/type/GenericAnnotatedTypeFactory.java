@@ -207,6 +207,9 @@ public abstract class GenericAnnotatedTypeFactory<
      */
     private boolean useFlow;
 
+    /* Record the initial value of useFlow passed in */
+    private boolean initialUseFlow;
+
     /** Is this type factory configured to use flow-sensitive type refinement? */
     private final boolean everUseFlow;
 
@@ -331,6 +334,7 @@ public abstract class GenericAnnotatedTypeFactory<
         this.everUseFlow = useFlow;
         this.shouldDefaultTypeVarLocals = useFlow;
         this.useFlow = useFlow;
+        this.initialUseFlow = useFlow;
 
         this.variablesUnderInitialization = new HashSet<>();
         this.scannedClasses = new HashMap<>();
@@ -1629,7 +1633,7 @@ public abstract class GenericAnnotatedTypeFactory<
     @Override
     public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
         boolean oldUseFlow = useFlow;
-        useFlow = true; // what if the useFlow passes in is false?
+        useFlow = initialUseFlow;
         AnnotatedTypeMirror res = super.getAnnotatedType(tree);
         useFlow = oldUseFlow;
         return res;

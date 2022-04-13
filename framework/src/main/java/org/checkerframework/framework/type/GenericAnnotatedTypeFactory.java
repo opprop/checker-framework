@@ -207,7 +207,7 @@ public abstract class GenericAnnotatedTypeFactory<
      */
     private boolean useFlow;
 
-    /* Record the initial value of useFlow passed in */
+    /** Record the initial value of useFlow passed in. */
     private boolean initialUseFlow;
 
     /** Is this type factory configured to use flow-sensitive type refinement? */

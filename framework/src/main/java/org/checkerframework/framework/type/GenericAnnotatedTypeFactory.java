@@ -207,9 +207,6 @@ public abstract class GenericAnnotatedTypeFactory<
      */
     private boolean useFlow;
 
-    /** Record the initial value of useFlow passed in. */
-    private boolean initialUseFlow;
-
     /** Is this type factory configured to use flow-sensitive type refinement? */
     private final boolean everUseFlow;
 
@@ -334,7 +331,6 @@ public abstract class GenericAnnotatedTypeFactory<
         this.everUseFlow = useFlow;
         this.shouldDefaultTypeVarLocals = useFlow;
         this.useFlow = useFlow;
-        this.initialUseFlow = useFlow;
 
         this.variablesUnderInitialization = new HashSet<>();
         this.scannedClasses = new HashMap<>();
@@ -1633,7 +1629,7 @@ public abstract class GenericAnnotatedTypeFactory<
     @Override
     public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
         boolean oldUseFlow = useFlow;
-        useFlow = initialUseFlow;
+        useFlow = everUseFlow;
         AnnotatedTypeMirror res = super.getAnnotatedType(tree);
         useFlow = oldUseFlow;
         return res;
@@ -1661,6 +1657,7 @@ public abstract class GenericAnnotatedTypeFactory<
             case IDENTIFIER:
             case MEMBER_SELECT:
             case ARRAY_ACCESS:
+                // For member-select tree, we want the receiver to have the refinement
                 res = super.getAnnotatedType(lhsTree);
                 break;
             case PARENTHESIZED:

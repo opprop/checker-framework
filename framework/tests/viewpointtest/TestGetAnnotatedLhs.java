@@ -13,14 +13,14 @@ class TestGetAnnotatedLhs {
         "cast.unsafe.constructor.invocation"
     })
     @ReceiverDependentQual
-    Test() {
+    TestGetAnnotatedLhs() {
         this.f = new @ReceiverDependentQual Object();
     }
 
     @SuppressWarnings({"cast.unsafe.constructor.invocation"})
     void test1() {
-        Test a = new @A Test();
-        Test top = new @Top Test();
+        TestGetAnnotatedLhs a = new @A TestGetAnnotatedLhs();
+        TestGetAnnotatedLhs top = new @Top TestGetAnnotatedLhs();
         top = a;
         // :: error: (assignment.type.incompatible)
         top.f = new @B Object();

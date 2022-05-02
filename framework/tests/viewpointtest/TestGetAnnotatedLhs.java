@@ -18,11 +18,18 @@ class TestGetAnnotatedLhs {
     }
 
     @SuppressWarnings({"cast.unsafe.constructor.invocation"})
-    void test1() {
+    void topWithRefinement() {
         TestGetAnnotatedLhs a = new @A TestGetAnnotatedLhs();
         TestGetAnnotatedLhs top = new @Top TestGetAnnotatedLhs();
         top = a;
         // :: error: (assignment.type.incompatible)
         top.f = new @B Object();
+        top.f = new @A Object(); // no error here
+    }
+
+    @SuppressWarnings({"cast.unsafe.constructor.invocation"})
+    void topWithoutRefinement() {
+        TestGetAnnotatedLhs top = new @Top TestGetAnnotatedLhs();
+        top.f = new @A Object();
     }
 }

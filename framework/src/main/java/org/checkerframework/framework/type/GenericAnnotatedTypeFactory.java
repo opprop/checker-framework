@@ -1626,6 +1626,15 @@ public abstract class GenericAnnotatedTypeFactory<
         return type;
     }
 
+    /**
+     * The method is overridden for having receiver refinement. Previously, {@code
+     * getAnnotatedTypeLhs} sets {@code useFlow} to false and calls {@code getAnnotatedType},
+     * resulting in no refinement for receiver type. This workaround overrides {@code
+     * getAnnotatedType} to re-set {@code useFlow} as the initial value passes in. Note that if any
+     * other checker overrides {@code getAnnotatedType} and calls {@code getAnnotatedTypeLhs}, the
+     * super version of {@code getAnnotatedType} will be called rather than the one customized by
+     * the sub checker.
+     */
     @Override
     public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
         boolean oldUseFlow = useFlow;

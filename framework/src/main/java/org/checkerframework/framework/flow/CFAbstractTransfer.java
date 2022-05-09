@@ -39,6 +39,7 @@ import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.SwitchExpressionNode;
 import org.checkerframework.dataflow.cfg.node.TernaryExpressionNode;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
+import org.checkerframework.dataflow.cfg.node.TypeCastNode;
 import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
 import org.checkerframework.dataflow.cfg.node.WideningConversionNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
@@ -1251,18 +1252,24 @@ public abstract class CFAbstractTransfer<
      * usually take the annotation of the type {@code C} (here {@code @A}). However, if the inferred
      * annotation of {@code e} is more precise, we keep that one.
      */
-    // @Override
-    // public TransferResult<V, S> visitTypeCast(TypeCastNode n,
-    // TransferInput<V, S> p) {
-    // TransferResult<V, S> result = super.visitTypeCast(n, p);
-    // V value = result.getResultValue();
-    // V operandValue = p.getValueOfSubNode(n.getOperand());
-    // // Normally we take the value of the type cast node. However, if the old
-    // // flow-refined value was more precise, we keep that value.
-    // V resultValue = moreSpecificValue(value, operandValue);
-    // result.setResultValue(resultValue);
-    // return result;
-    // }
+    @Override
+    public TransferResult<V, S> visitTypeCast(TypeCastNode n, TransferInput<V, S> p) {
+        TransferResult<V, S> result = super.visitTypeCast(n, p);
+        V value = result.getResultValue();
+        V operandValue = p.getValueOfSubNode(n.getOperand());
+        // Normally we take the value of the type cast node. However, if the old
+        // flow-refined value was more precise, we keep that value.
+        if (value == null) {
+            result.setResultValue(operandValue);
+        } else {
+            V moreSpecificValue = moreSpecificValue(operandValue, value);
+            V resultValue =
+                    analysis.createAbstractValue(
+                            moreSpecificValue.getAnnotations(), value.getUnderlyingType());
+            result.setResultValue(resultValue);
+        }
+        return result;
+    }
 
     /**
      * Returns the abstract value of {@code (value1, value2)} that is more specific. If the two are

@@ -9,7 +9,6 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
-import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.util.TreePath;
 
@@ -22,7 +21,6 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.CollectionUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreePathUtil;
-import org.checkerframework.javacutil.TypeKindUtils;
 
 import java.util.Map;
 import java.util.Set;
@@ -267,55 +265,6 @@ public class PropagationTreeAnnotator extends TreeAnnotator {
         }
         return super.visitConditionalExpression(node, type);
     }*/
-
-    @Override
-    public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
-        if (hasPrimaryAnnotationInAllHierarchies(type)) {
-            // If the type is already has a primary annotation in all hierarchies, then the
-            // propagated annotations won't be applied.  So don't compute them.
-            return null;
-        }
-
-        AnnotatedTypeMirror exprType = atypeFactory.getAnnotatedType(node.getExpression());
-        if (type.getKind() == TypeKind.TYPEVAR) {
-            if (exprType.getKind() == TypeKind.TYPEVAR) {
-                // If both types are type variables, take the direct annotations.
-                type.addMissingAnnotations(exprType.getAnnotations());
-            }
-            // else do nothing.
-        } else {
-            // Use effective annotations from the expression, to get upper bound of type variables.
-            Set<AnnotationMirror> expressionAnnos = exprType.getEffectiveAnnotations();
-
-            TypeKind castKind = type.getPrimitiveKind();
-            if (castKind != null) {
-                TypeKind exprKind = exprType.getPrimitiveKind();
-                if (exprKind != null) {
-                    switch (TypeKindUtils.getPrimitiveConversionKind(exprKind, castKind)) {
-                        case WIDENING:
-                            expressionAnnos =
-                                    atypeFactory.getWidenedAnnotations(
-                                            expressionAnnos, exprKind, castKind);
-                            break;
-                        case NARROWING:
-                            atypeFactory.getNarrowedAnnotations(
-                                    expressionAnnos, exprKind, castKind);
-                            break;
-                        case SAME:
-                            // Nothing to do
-                            break;
-                    }
-                }
-            }
-
-            // If the qualifier on the expression type is a supertype of the qualifier upper bound
-            // of the cast type, then apply the bound as the default qualifier rather than the
-            // expression qualifier.
-            addAnnoOrBound(type, expressionAnnos);
-        }
-
-        return null;
-    }
 
     private boolean hasPrimaryAnnotationInAllHierarchies(AnnotatedTypeMirror type) {
         boolean annotated = true;

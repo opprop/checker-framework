@@ -73,7 +73,9 @@ public class PropagationTreeAnnotator extends TreeAnnotator {
     @Override
     public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
         // Add top annotations here, and CFG will refine.
-        type.addMissingAnnotations(qualHierarchy.getTopAnnotations());
+        if (type.getKind() != TypeKind.TYPEVAR) {
+            type.addMissingAnnotations(qualHierarchy.getTopAnnotations());
+        }
         return null;
     }
 

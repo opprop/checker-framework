@@ -9,6 +9,7 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import com.sun.source.util.TreePath;
 
@@ -68,6 +69,13 @@ public class PropagationTreeAnnotator extends TreeAnnotator {
      */
     private final Map<MethodInvocationTree, AnnotatedExecutableType> methodInvocationToType =
             CollectionUtils.createLRUCache(300);
+
+    @Override
+    public Void visitTypeCast(TypeCastTree node, AnnotatedTypeMirror type) {
+        // Add top annotations here, and CFG will refine.
+        type.addMissingAnnotations(qualHierarchy.getTopAnnotations());
+        return null;
+    }
 
     @Override
     public Void visitNewArray(NewArrayTree tree, AnnotatedTypeMirror type) {

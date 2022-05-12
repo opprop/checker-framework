@@ -60,6 +60,7 @@ import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypeKindUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +77,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 /**
@@ -1254,21 +1256,56 @@ public abstract class CFAbstractTransfer<
      */
     @Override
     public TransferResult<V, S> visitTypeCast(TypeCastNode n, TransferInput<V, S> p) {
-        TransferResult<V, S> result = super.visitTypeCast(n, p);
-        V value = result.getResultValue();
-        V operandValue = p.getValueOfSubNode(n.getOperand());
-        // Normally we take the value of the type cast node. However, if the old
-        // flow-refined value was more precise, we keep that value.
+        TypeMirror type = n.getType();
+        Node exprNode = n.getOperand();
+        TypeMirror exprType = exprNode.getType();
+        V exprValue = p.getValueOfSubNode(exprNode);
+        if (type.getKind() == TypeKind.TYPEVAR) {
+            if (exprType.getKind() == TypeKind.TYPEVAR) {
+                return createTransferResult(exprValue, p);
+            }
+        }
+
+        TypeKind castKind = TypeKindUtils.primitiveOrBoxedToTypeKind(type);
+        if (castKind != null) {
+            TypeKind exprKind = TypeKindUtils.primitiveOrBoxedToTypeKind(exprType);
+            if (exprKind != null) {
+                Set<AnnotationMirror> exprAnnos =
+                        exprValue != null ? exprValue.getAnnotations() : null;
+                switch (TypeKindUtils.getPrimitiveConversionKind(exprKind, castKind)) {
+                    case WIDENING:
+                        exprAnnos =
+                                analysis.atypeFactory.getWidenedAnnotations(
+                                        exprAnnos, exprKind, castKind);
+                        break;
+                    case NARROWING:
+                        exprAnnos =
+                                analysis.atypeFactory.getNarrowedAnnotations(
+                                        exprAnnos, exprKind, castKind);
+                        break;
+                    case SAME:
+                        // Nothing to do
+                        break;
+                }
+                exprValue = analysis.createAbstractValue(exprAnnos, exprType);
+            }
+        }
+
+        V value =
+                analysis.createAbstractValue(
+                        analysis.atypeFactory.getQualifierUpperBounds().getBoundQualifiers(type),
+                        type);
+        V resultValue;
         if (value == null) {
-            result.setResultValue(operandValue);
+            resultValue = exprValue;
         } else {
-            V moreSpecificValue = moreSpecificValue(operandValue, value);
-            V resultValue =
+            V moreSpecificValue = moreSpecificValue(exprValue, value);
+            resultValue =
                     analysis.createAbstractValue(
                             moreSpecificValue.getAnnotations(), value.getUnderlyingType());
-            result.setResultValue(resultValue);
         }
-        return result;
+
+        return createTransferResult(resultValue, p);
     }
 
     /**

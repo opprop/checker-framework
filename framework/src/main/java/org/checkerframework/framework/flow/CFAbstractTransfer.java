@@ -1264,6 +1264,7 @@ public abstract class CFAbstractTransfer<
             if (exprType.getKind() == TypeKind.TYPEVAR) {
                 return createTransferResult(exprValue, p);
             }
+            return createTransferResult(null, p);
         }
 
         TypeKind castKind = TypeKindUtils.primitiveOrBoxedToTypeKind(type);

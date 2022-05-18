@@ -57,6 +57,7 @@ import org.checkerframework.framework.util.Contract.Precondition;
 import org.checkerframework.framework.util.ContractsFromMethod;
 import org.checkerframework.framework.util.JavaExpressionParseUtil.JavaExpressionParseException;
 import org.checkerframework.framework.util.StringToJavaExpression;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
@@ -1256,23 +1257,30 @@ public abstract class CFAbstractTransfer<
      */
     @Override
     public TransferResult<V, S> visitTypeCast(TypeCastNode n, TransferInput<V, S> p) {
-        TypeMirror type = n.getType();
+        TypeMirror castType = n.getType();
         Node exprNode = n.getOperand();
         TypeMirror exprType = exprNode.getType();
+        AnnotatedTypeMirror atm =
+                AnnotatedTypeMirror.createType(castType, analysis.atypeFactory, false);
+        atm.addAnnotations(castType.getAnnotationMirrors());
         V exprValue = p.getValueOfSubNode(exprNode);
-        if (type.getKind() == TypeKind.TYPEVAR) {
-            if (exprType.getKind() == TypeKind.TYPEVAR) {
-                return createTransferResult(exprValue, p);
+
+        if (castType.getKind() == TypeKind.TYPEVAR) {
+            if (exprType.getKind() == TypeKind.TYPEVAR && exprValue != null) {
+                atm.addMissingAnnotations(exprValue.annotations);
+                return createTransferResult(analysis.createAbstractValue(atm), p);
             }
-            return createTransferResult(null, p);
+            return createTransferResult(analysis.createAbstractValue(atm), p);
         }
 
-        TypeKind castKind = TypeKindUtils.primitiveOrBoxedToTypeKind(type);
+        TypeKind castKind = TypeKindUtils.primitiveOrBoxedToTypeKind(castType);
         if (castKind != null) {
             TypeKind exprKind = TypeKindUtils.primitiveOrBoxedToTypeKind(exprType);
             if (exprKind != null) {
                 Set<AnnotationMirror> exprAnnos =
-                        exprValue != null ? exprValue.getAnnotations() : null;
+                        exprValue != null
+                                ? exprValue.getAnnotations()
+                                : AnnotationUtils.createAnnotationSet();
                 switch (TypeKindUtils.getPrimitiveConversionKind(exprKind, castKind)) {
                     case WIDENING:
                         exprAnnos =
@@ -1294,8 +1302,10 @@ public abstract class CFAbstractTransfer<
 
         V value =
                 analysis.createAbstractValue(
-                        analysis.atypeFactory.getQualifierUpperBounds().getBoundQualifiers(type),
-                        type);
+                        analysis.atypeFactory
+                                .getQualifierUpperBounds()
+                                .getBoundQualifiers(castType),
+                        castType);
         V resultValue;
         if (value == null) {
             resultValue = exprValue;
@@ -1305,8 +1315,10 @@ public abstract class CFAbstractTransfer<
                     analysis.createAbstractValue(
                             moreSpecificValue.getAnnotations(), value.getUnderlyingType());
         }
-
-        return createTransferResult(resultValue, p);
+        if (resultValue != null) {
+            atm.addMissingAnnotations(resultValue.annotations);
+        }
+        return createTransferResult(analysis.createAbstractValue(atm), p);
     }
 
     /**

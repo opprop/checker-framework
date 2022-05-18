@@ -220,7 +220,7 @@ public class SignednessAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         Set<AnnotationMirror> result = AnnotationUtils.createAnnotationSet();
 
         if (narrowedTypeKind == TypeKind.CHAR) {
-            result.add(SIGNED);
+            result.add(UNSIGNED);
             return result;
         }
 

@@ -2471,7 +2471,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
 
         if (node.getType().getKind() == Tree.Kind.INTERSECTION_TYPE) {
             AnnotatedIntersectionType intersection =
-                    (AnnotatedIntersectionType) atypeFactory.getAnnotatedType(node);
+                    (AnnotatedIntersectionType) atypeFactory.getAnnotatedType(node.getType());
             checkExplicitAnnotationsOnIntersectionBounds(
                     intersection, ((IntersectionTypeTree) node.getType()).getBounds());
         }

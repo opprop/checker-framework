@@ -13,6 +13,7 @@ import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.InstanceOfTree;
+import com.sun.source.tree.IntersectionTypeTree;
 import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
@@ -2075,5 +2076,16 @@ public final class TreeUtils {
             kind = Tree.Kind.CLASS;
         }
         return kind;
+    }
+
+    public static List<? extends AnnotationMirror> getPrimaryAnnoFromIntersectionTree(
+            IntersectionTypeTree tree) {
+        List<? extends Tree> trees = tree.getBounds();
+        for (Tree t : trees) {
+            if (t instanceof AnnotatedTypeTree) {
+                return annotationsFromTree((AnnotatedTypeTree) t);
+            }
+        }
+        return Collections.emptyList();
     }
 }

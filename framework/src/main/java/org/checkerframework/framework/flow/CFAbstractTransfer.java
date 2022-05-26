@@ -1,9 +1,12 @@
 package org.checkerframework.framework.flow;
 
+import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.IntersectionTypeTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TypeCastTree;
 import com.sun.source.util.TreePath;
 
 import org.checkerframework.checker.interning.qual.InternedDistinct;
@@ -1257,12 +1260,19 @@ public abstract class CFAbstractTransfer<
      */
     @Override
     public TransferResult<V, S> visitTypeCast(TypeCastNode n, TransferInput<V, S> p) {
+        TypeCastTree castTree = n.getTree();
         TypeMirror castType = n.getType();
         Node exprNode = n.getOperand();
         TypeMirror exprType = exprNode.getType();
         AnnotatedTypeMirror atm =
                 AnnotatedTypeMirror.createType(castType, analysis.atypeFactory, false);
-        atm.addAnnotations(castType.getAnnotationMirrors());
+        Tree t = castTree.getType();
+        if (t instanceof AnnotatedTypeTree) {
+            atm.addAnnotations(TreeUtils.annotationsFromTree((AnnotatedTypeTree) t));
+        } else if (t instanceof IntersectionTypeTree) {
+            atm.addAnnotations(
+                    TreeUtils.getPrimaryAnnoFromIntersectionTree((IntersectionTypeTree) t));
+        }
         V exprValue = p.getValueOfSubNode(exprNode);
 
         if (castType.getKind() == TypeKind.TYPEVAR) {

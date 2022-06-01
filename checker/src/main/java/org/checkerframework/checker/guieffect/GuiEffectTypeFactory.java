@@ -72,6 +72,12 @@ public class GuiEffectTypeFactory extends BaseAnnotatedTypeFactory {
      */
     protected final Set<TypeElement> uiAnonClasses = new HashSet<>();
 
+    /**
+     * Create a GuiEffectTypeFactory.
+     *
+     * @param checker checker
+     * @param spew debugSpew
+     */
     public GuiEffectTypeFactory(BaseTypeChecker checker, boolean spew) {
         // use true to enable flow inference, false to disable it
         super(checker, true);

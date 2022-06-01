@@ -281,6 +281,12 @@ public class PropagationTreeAnnotator extends TreeAnnotator {
         return super.visitConditionalExpression(node, type);
     }*/
 
+    /**
+     * See if the type has already had all primary annotations from all hierarchies.
+     *
+     * @param type type
+     * @return true if the type has got all primary annotations in all hierarchies
+     */
     private boolean hasPrimaryAnnotationInAllHierarchies(AnnotatedTypeMirror type) {
         boolean annotated = true;
         for (AnnotationMirror top : qualHierarchy.getTopAnnotations()) {

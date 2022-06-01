@@ -2078,6 +2078,12 @@ public final class TreeUtils {
         return kind;
     }
 
+    /**
+     * Return primary annotations on the tree.
+     *
+     * @param tree an IntersectionTypeTree
+     * @return Return primary annotations on the tree
+     */
     public static List<? extends AnnotationMirror> getPrimaryAnnoFromIntersectionTree(
             IntersectionTypeTree tree) {
         List<? extends Tree> trees = tree.getBounds();

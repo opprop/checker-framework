@@ -103,6 +103,11 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     private static final Map<String, AnnotationMirror> aliasMap = new HashMap<>();
 
+    /**
+     * Create a UnitsAnnotatedTypeFactory.
+     *
+     * @param checker checker
+     */
     public UnitsAnnotatedTypeFactory(BaseTypeChecker checker) {
         // use true to enable flow inference, false to disable it
         super(checker, true);

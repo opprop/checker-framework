@@ -1,7 +1,9 @@
 package org.checkerframework.checker.guieffect.qual;
 
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.TypeUseLocation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -20,4 +22,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
 @SubtypeOf({UI.class})
 @DefaultQualifierInHierarchy
+@DefaultFor({
+    TypeUseLocation.LOCAL_VARIABLE,
+    TypeUseLocation.RESOURCE_VARIABLE,
+    TypeUseLocation.EXCEPTION_PARAMETER,
+    TypeUseLocation.IMPLICIT_UPPER_BOUND
+})
 public @interface AlwaysSafe {}

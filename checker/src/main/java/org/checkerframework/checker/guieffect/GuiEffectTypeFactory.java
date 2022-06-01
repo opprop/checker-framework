@@ -74,7 +74,7 @@ public class GuiEffectTypeFactory extends BaseAnnotatedTypeFactory {
 
     public GuiEffectTypeFactory(BaseTypeChecker checker, boolean spew) {
         // use true to enable flow inference, false to disable it
-        super(checker, false);
+        super(checker, true);
 
         debugSpew = spew;
         this.postInit();

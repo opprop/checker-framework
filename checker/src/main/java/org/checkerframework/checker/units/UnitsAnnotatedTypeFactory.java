@@ -105,7 +105,7 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     public UnitsAnnotatedTypeFactory(BaseTypeChecker checker) {
         // use true to enable flow inference, false to disable it
-        super(checker, false);
+        super(checker, true);
 
         this.postInit();
     }

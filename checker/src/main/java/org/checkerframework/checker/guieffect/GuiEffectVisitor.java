@@ -500,7 +500,7 @@ public class GuiEffectVisitor extends BaseTypeVisitor<GuiEffectTypeFactory> {
             case ASSIGNMENT:
                 AssignmentTree assignmentTree = (AssignmentTree) tree;
                 commonAssignmentCheck(
-                        atypeFactory.getAnnotatedType(assignmentTree.getVariable()),
+                        atypeFactory.getAnnotatedTypeLhs(assignmentTree.getVariable()),
                         atypeFactory.getAnnotatedType(assignmentTree.getExpression()),
                         assignmentTree.getExpression(),
                         "assignment.type.incompatible");
@@ -508,7 +508,7 @@ public class GuiEffectVisitor extends BaseTypeVisitor<GuiEffectTypeFactory> {
             case VARIABLE:
                 VariableTree variableTree = (VariableTree) tree;
                 commonAssignmentCheck(
-                        atypeFactory.getAnnotatedType(variableTree),
+                        atypeFactory.getAnnotatedTypeLhs(variableTree),
                         atypeFactory.getAnnotatedType(variableTree.getInitializer()),
                         variableTree.getInitializer(),
                         "assignment.type.incompatible");

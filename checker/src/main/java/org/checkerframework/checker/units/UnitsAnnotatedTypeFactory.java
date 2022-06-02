@@ -101,6 +101,7 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     private static final Map<@CanonicalName String, Class<? extends Annotation>> externalQualsMap =
             new HashMap<>();
 
+    /** Map from the name of the aliased annotations, to their annotation mirrors */
     private static final Map<String, AnnotationMirror> aliasMap = new HashMap<>();
 
     /**

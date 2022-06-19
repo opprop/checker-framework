@@ -1,12 +1,119 @@
-Version 3.21.4-eisop2 (April ?, 2022)
--------------------------------------
+Version 3.22.2-eisop1 (July ?, 2022)
+------------------------------------
+
+**User-visible changes:**
+
+**Implementation details:**
+
+Method `CFAbstractTransfer.visitMethodInvocation` now only creates a
+`ConditionalTransferResult` when the method return type is boolean or
+Boolean. This avoids unnecessary duplication of many stores, reducing
+memory consumption.
+
+**Closed issues:**
+
+
+Version 3.22.2 (July 1, 2022)
+---------------------------------
 
 **User-visible changes:**
 
 **Implementation details:**
 
 **Closed issues:**
+
+
+Version 3.22.1-eisop1 (June 3, 2022)
+------------------------------------
+
+**User-visible changes:**
+
+Type parameters with explicit j.l.Object upper bounds and
+unannotated, unbounded wildcards now behave the same in .astub
+files and in .java files.
+
+**Implementation details:**
+
+In `PropagationTreeAnnotator.visitBinary`, we now consider the two cases where
+the resulting Java type of a binary operation can be different from the operands'
+types: string concatenation and binary comparison. We apply the declaration
+bounds of the resulting Java type to ensure annotations in the ATM are valid.
+
+Deprecated `AnnotatedTypeFactory.binaryTreeArgTypes(AnnotatedTypeMirror, AnnotatedTypeMirror)` in favor of
+`AnnotatedTypeFactory.binaryTreeArgTypes(BinaryTree)` and
+`AnnotatedTypeFactory.compoundAssignmentTreeArgTypes(CompoundAssignmentTree)`.
+
+**Closed issues:**
+
+typetools#3025, typetools#3030, typetools#3236.
+
+Test cases for issues that already pass:
+typetools#2722, typetools#2995, typetools#3015, typetools#3027.
+
+typetools#58 was closed in error. See
+https://github.com/eisop/checker-framework/issues/242
+for follow-up discussions.
+
+
+Version 3.22.1 (June 1, 2022)
+-----------------------------
+
+**Closed issues:**
+#58, #5136, #5138, #5142, #5143.
+
+
+Version 3.22.0-eisop1 (May 6, 2022)
+-----------------------------------
+
+**User-visible changes:**
+
+Added reaching definitions and very busy expressions analysis demos.
+
+**Implementation details:**
+
+Fixed the types of `MethodInvocationNode#arguments` and
+`ObjectCreationNode#arguments` in CFGs. Previously, argument nodes are created
+using the types from the method declaration, which means some nodes are using
+type variables that are not substituted by type arguments at the call site.
+For example, we used to observe `new T[]{"a", "b"}` instead of
+`new String[]{"a", "b"}`, while the second one makes more sense.
+
+Added a new gradle task `fastAssemble` to quickly rebuild the Checker
+Framework for local development. This command will assemble the jar
+files without generating any Javadoc or sources.jar files, thus it is
+faster than the gradle assemble task.
+
+Type system test drivers no longer need to pass `-Anomsgtext`.
+The Checker Framework test driver (in `TypecheckExecutor.compile`) now always
+passes the `-Anomsgtext` option.
+
+Moved the `-AajavaChecks` option from `CheckerFrameworkPerDirectoryTest` to
+`TypecheckExecutor.compile` to ensure the option is used for all tests.
+
+**Closed issues:**
 eisop#210.
+
+
+Version 3.22.0 (May 2, 2022)
+----------------------------
+
+**User-visible changes:**
+
+The Signedness Checker now checks calls to `equals()` as well as to `==`.  When
+two formal parameter types are annotated with @PolySigned, the two arguments at
+a call site must have the same signedness type annotation. (This differs from
+the standard rule for polymorphic qualifiers.)
+
+**Implementation details:**
+
+When passed a NewClassTree that creates an anonymous constructor,
+AnnotatedTypeFactory#constructorFormUse now returns the type of the anonymous
+constructor rather than the type of the super constructor invoked in the
+anonymous classes constructor.  If the super constructor has explicit
+annotations, they are copied to the anonymous classes constructor.
+
+**Closed issues:**
+#5113.
 
 
 Version 3.21.4-eisop1 (April 4, 2022)

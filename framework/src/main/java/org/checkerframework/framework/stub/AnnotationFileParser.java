@@ -1578,7 +1578,23 @@ public class AnnotationFileParser {
                             null,
                             astNode);
                     annotate(wildcardType.getExtendsBound(), primaryAnnotations, astNode);
+                } else if (primaryAnnotations.isEmpty()) {
+                    // Unannotated unbounded wildcard "?": remove any existing annotations and
+                    // add the annotations from the type variable corresponding to the wildcard.
+                    wildcardType.getExtendsBound().clearAnnotations();
+                    wildcardType.getSuperBound().clearAnnotations();
+                    AnnotatedTypeVariable atv =
+                            (AnnotatedTypeVariable)
+                                    atypeFactory.getAnnotatedType(
+                                            wildcardType.getTypeVariable().asElement());
+                    wildcardType
+                            .getExtendsBound()
+                            .addAnnotations(atv.getUpperBound().getAnnotations());
+                    wildcardType
+                            .getSuperBound()
+                            .addAnnotations(atv.getLowerBound().getAnnotations());
                 } else {
+                    // Annotated unbounded wildcard "@A ?": use annotations.
                     annotate(atype, primaryAnnotations, astNode);
                 }
                 break;
@@ -1815,6 +1831,18 @@ public class AnnotationFileParser {
                     // TODO: add support for intersection types
                     stubWarnNotFound(
                             param, "Annotations on intersection types are not yet supported");
+                }
+                if (param.getTypeBound().size() == 1
+                        && param.getTypeBound().get(0).getAnnotations().isEmpty()
+                        && paramType
+                                .getUpperBound()
+                                .getUnderlyingType()
+                                .toString()
+                                .contentEquals("java.lang.Object")) {
+                    // If there is an explicit "T extends Object" type parameter bound,
+                    // treat it like an explicit use of "Object" in code.
+                    AnnotatedTypeMirror ub = atypeFactory.getAnnotatedType(Object.class);
+                    paramType.getUpperBound().replaceAnnotations(ub.getAnnotations());
                 }
             }
             putMerge(
@@ -3111,11 +3139,12 @@ public class AnnotationFileParser {
 
         @Override
         public Void visitMethod(MethodTree javacTree, Node javaParserNode) {
-            ExecutableElement elt = TreeUtils.elementFromDeclaration(javacTree);
             List<AnnotatedTypeVariable> variablesToClear = null;
-            if (javaParserNode instanceof CallableDeclaration<?>) {
+            Element elt = TreeUtils.elementFromTree(javacTree);
+            if (elt != null && javaParserNode instanceof CallableDeclaration<?>) {
                 variablesToClear =
-                        processCallableDeclaration((CallableDeclaration<?>) javaParserNode, elt);
+                        processCallableDeclaration(
+                                (CallableDeclaration<?>) javaParserNode, (ExecutableElement) elt);
             }
 
             super.visitMethod(javacTree, javaParserNode);

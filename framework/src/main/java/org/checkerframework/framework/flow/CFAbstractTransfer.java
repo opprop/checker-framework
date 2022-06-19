@@ -58,6 +58,7 @@ import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -390,30 +391,41 @@ public abstract class CFAbstractTransfer<
     // the declared type instead of a refined type. Issue a warning to alert users?
     private void addInitialFieldValues(S store, ClassTree classTree, MethodTree methodTree) {
         boolean isConstructor = TreeUtils.isConstructor(methodTree);
+        boolean isStaticMethod =
+                ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodTree));
         TypeElement classEle = TreeUtils.elementFromDeclaration(classTree);
         for (FieldInitialValue<V> fieldInitialValue : analysis.getFieldInitialValues()) {
             VariableElement varEle = fieldInitialValue.fieldDecl.getField();
+            boolean isStaticField = ElementUtils.isStatic(varEle);
+            if (isStaticMethod && !isStaticField) {
+                continue;
+            }
             // Insert the value from the initializer of private final fields.
             if (fieldInitialValue.initializer != null
                     // && varEle.getModifiers().contains(Modifier.PRIVATE)
                     && ElementUtils.isFinal(varEle)
                     && analysis.atypeFactory.isImmutable(ElementUtils.getType(varEle))) {
                 store.insertValue(fieldInitialValue.fieldDecl, fieldInitialValue.initializer);
+                // The type from the initializer is always more specific than (or equal to) the
+                // declared type of the field.
+                // So, if there is an initializer, there is no point in inserting the declared type
+                // below.
+                continue;
             }
 
+            boolean isFieldOfCurrentClass = varEle.getEnclosingElement().equals(classEle);
             // Maybe insert the declared type:
             if (!isConstructor) {
                 // If it's not a constructor, use the declared type if the receiver of the method is
                 // fully initialized.
                 boolean isInitializedReceiver = !isNotFullyInitializedReceiver(methodTree);
-                if (isInitializedReceiver && varEle.getEnclosingElement().equals(classEle)) {
+                if (isInitializedReceiver && isFieldOfCurrentClass) {
                     store.insertValue(fieldInitialValue.fieldDecl, fieldInitialValue.declared);
                 }
             } else {
                 // If it is a constructor, then only use the declared type if the field has been
                 // initialized.
-                if (fieldInitialValue.initializer != null
-                        && varEle.getEnclosingElement().equals(classEle)) {
+                if (fieldInitialValue.initializer != null && isFieldOfCurrentClass) {
                     store.insertValue(fieldInitialValue.fieldDecl, fieldInitialValue.declared);
                 }
             }
@@ -959,16 +971,19 @@ public abstract class CFAbstractTransfer<
     @Override
     public TransferResult<V, S> visitObjectCreation(ObjectCreationNode n, TransferInput<V, S> p) {
         /* NO-AFU
-               if (shouldPerformWholeProgramInference(n.getTree())) {
-                   ExecutableElement constructorElt =
-                           analysis.getTypeFactory()
-                                   .constructorFromUse(n.getTree())
-                                   .executableType
-                                   .getElement();
-                   analysis.atypeFactory
-                           .getWholeProgramInference()
-                           .updateFromObjectCreation(n, constructorElt, p.getRegularStore());
-               }
+        if (shouldPerformWholeProgramInference(n.getTree())) {
+          NewClassTree newClassTree = n.getTree();
+          // Can't infer annotations on an anonymous constructor, so use the super constructor.
+          ExecutableElement constructorElt = TreeUtils.getSuperConstructor(newClassTree);
+          if (newClassTree.getClassBody() == null || !TreeUtils.hasSyntheticArgument(newClassTree)) {
+            // TODO: WPI could be changed to handle the synthetic argument, but for now just don't infer
+            // annotations for those new class trees.
+            analysis
+                .atypeFactory
+                .getWholeProgramInference()
+                .updateFromObjectCreation(n, constructorElt, p.getRegularStore());
+          }
+        }
         */
         return super.visitObjectCreation(n, p);
     }
@@ -1004,14 +1019,18 @@ public abstract class CFAbstractTransfer<
         // add new information based on postcondition
         processPostconditions(n, store, method, invocationTree);
 
-        S thenStore = store;
-        S elseStore = thenStore.copy();
+        if (TypesUtils.isBooleanType(method.getReturnType())) {
+            S thenStore = store;
+            S elseStore = thenStore.copy();
 
-        // add new information based on conditional postcondition
-        processConditionalPostconditions(n, method, invocationTree, thenStore, elseStore);
+            // add new information based on conditional postcondition
+            processConditionalPostconditions(n, method, invocationTree, thenStore, elseStore);
 
-        return new ConditionalTransferResult<>(
-                finishValue(resValue, thenStore, elseStore), thenStore, elseStore);
+            return new ConditionalTransferResult<>(
+                    finishValue(resValue, thenStore, elseStore), thenStore, elseStore);
+        } else {
+            return new RegularTransferResult<>(finishValue(resValue, store), store);
+        }
     }
 
     @Override

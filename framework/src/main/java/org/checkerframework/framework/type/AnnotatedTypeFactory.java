@@ -2828,6 +2828,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         // Type may already have explicit dependent type annotations that have not yet been vpa.
         type.clearAnnotations();
         type.addAnnotations(explicitAnnos);
+        // Use the receiver type as enclosing type, if present.
+        AnnotatedDeclaredType enclosingType = (AnnotatedDeclaredType) getReceiverType(newClassTree);
+        if (enclosingType != null) {
+            type.setEnclosingType(enclosingType);
+        }
         return type;
     }
 
@@ -4210,9 +4215,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         // If parsing annotation files, return only the annotations in the element.
-        if (stubTypes.isParsing()
-                || ajavaTypes.isParsing()
-                || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing())) {
+        // The only exception is package because we always load package-info eagerly
+        // and there is no parent element to parse.
+        boolean isParsing =
+                stubTypes.isParsing()
+                        || ajavaTypes.isParsing()
+                        || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing());
+        if (isParsing && elt.getKind() != ElementKind.PACKAGE) {
             return results;
         }
 

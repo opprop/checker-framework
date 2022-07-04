@@ -1333,10 +1333,10 @@ public abstract class CFAbstractTransfer<
             }
         }
 
-        if (exprValue != null){
+        if (exprValue != null) {
             Set<AnnotationMirror> resultAnno =
-                    analysis.atypeFactory.getAnnotationOrTypeDeclarationBound
-                            (castType, exprValue.getAnnotations());
+                    analysis.atypeFactory.getAnnotationOrTypeDeclarationBound(
+                            castType, exprValue.getAnnotations());
             atm.addMissingAnnotations(resultAnno);
         }
 

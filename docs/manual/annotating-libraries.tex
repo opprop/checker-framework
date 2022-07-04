@@ -20,10 +20,10 @@ annotations invariably lead to checker warnings.
 
 This chapter describes how to eliminate
 the warnings by adding annotations to the library.
-(Alternately, you can instead
+(Alternately, the \code{-AskipUses} or \code{-AonlyUses} command-line
+option can
 suppress all warnings related to an unannotated library, or to part of your
-codebase, by use of the
-\code{-AskipUses} or \code{-AonlyUses} command-line option; see
+codebase; see
 Sections~\ref{askipuses}--\ref{askipdefs}.)
 
 You can write annotations for a library, and make them known to a checker, in two ways.
@@ -533,7 +533,7 @@ superclass, even though the subclass inherits (does not define) the method.
 An example, \<SecureRandom.nextInt()>, is shown below.
 
 To express that method \<m> has a different type in subclass \<Sub> than
-where \<m> is defined, write a ``fake override'':  write the method in in
+where \<m> is defined, write a ``fake override'':  write the method in
 class \<Sub> in a stub file.  The Checker Framework will use that type for
 \<m> at calls where the receiver's declared type is \<Sub> or lower.
 
@@ -921,7 +921,7 @@ For example:
 \end{Verbatim}
 \end{myxsmall}
 
-If there's an annotation in both a source file file and the corresponding a
+If there's an annotation in both a source file and the corresponding a
 source file, the Checker Framework uses the greatest lower bound, as with
 the \code{-AmergeStubsWithSource} option.
 
@@ -936,8 +936,17 @@ specific relationship to one another.
 
 \subsubsectionAndLabel{Names of ajava files}{ajava-file-name}
 
-The ajava file must be found below one of the arguments to
-\code{-Aajava}, in a subdirectory matching its package name.
+The ajava file must either (1) be found below one of the arguments to
+\code{-Aajava}, in a subdirectory matching its package name, or (2) be
+unambiguously specified directly with its full path. A pair of \<.ajava>
+files are specified ambiguously if one of their fully-qualified names
+is a substring of the other, and both are specified as \<.ajava> files (rather
+than being found under directories). For example, if the \<-Aajava> argument
+was \<-Aajava=~/foo/Bar.ajava:~/baz/foo/Bar.ajava>, the two \<.ajava> files
+would be considered ambiguous and a \<ambiguous.ajava> warning would be issued.
+Files found under a directory are always unambiguous, because their file structure
+must match their package name; the solution to a \<ambiguous.ajava> warning is to
+convert the specific files in the \<-Aajava> argument to directories.
 
 The ajava file must be named
 \code{ClassName-checker.qualified.name.ajava} where
@@ -993,7 +1002,7 @@ Here is an example invocation:
 \sectionAndLabel{Troubleshooting/debugging annotated libraries}{libraries-troubleshooting}
 
 Sometimes, it may seem that a checker is treating a library as unannotated
-even though the library has annotations.  The compiler has a flags that
+even though the library has annotations.  The compiler has a flag that
 may help you in determining which library files are read.
 
 \begin{description}

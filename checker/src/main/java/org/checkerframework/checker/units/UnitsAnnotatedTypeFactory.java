@@ -580,7 +580,7 @@ public class UnitsAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     /** Set the Bottom qualifier as the bottom of the hierarchy. */
     @Override
-    public QualifierHierarchy createQualifierHierarchy() {
+    protected QualifierHierarchy createQualifierHierarchy() {
         return new UnitsQualifierHierarchy();
     }
 

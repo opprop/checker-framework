@@ -1285,6 +1285,7 @@ public abstract class CFAbstractTransfer<
         TypeMirror castType = n.getType();
         Node exprNode = n.getOperand();
         TypeMirror exprType = exprNode.getType();
+        // add cast type, cast annotations on atm first, refine afterwards
         AnnotatedTypeMirror atm =
                 AnnotatedTypeMirror.createType(castType, analysis.atypeFactory, false);
         Tree t = castTree.getType();
@@ -1294,6 +1295,7 @@ public abstract class CFAbstractTransfer<
             atm.addAnnotations(
                     TreeUtils.getPrimaryAnnoFromIntersectionTree((IntersectionTypeTree) t));
         }
+
         V exprValue = p.getValueOfSubNode(exprNode);
 
         if (castType.getKind() == TypeKind.TYPEVAR) {
@@ -1331,24 +1333,13 @@ public abstract class CFAbstractTransfer<
             }
         }
 
-        V value =
-                analysis.createAbstractValue(
-                        analysis.atypeFactory
-                                .getQualifierUpperBounds()
-                                .getBoundQualifiers(castType),
-                        castType);
-        V resultValue;
-        if (value == null) {
-            resultValue = exprValue;
-        } else {
-            V moreSpecificValue = moreSpecificValue(exprValue, value);
-            resultValue =
-                    analysis.createAbstractValue(
-                            moreSpecificValue.getAnnotations(), value.getUnderlyingType());
+        if (exprValue != null){
+            Set<AnnotationMirror> resultAnno =
+                    analysis.atypeFactory.getAnnotationOrTypeDeclarationBound
+                            (castType, exprValue.getAnnotations());
+            atm.addMissingAnnotations(resultAnno);
         }
-        if (resultValue != null) {
-            atm.addMissingAnnotations(resultValue.annotations);
-        }
+
         return createTransferResult(analysis.createAbstractValue(atm), p);
     }
 

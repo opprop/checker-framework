@@ -275,7 +275,7 @@ public final class TypesUtils {
         if (t1.tsym.name != t2.tsym.name) {
             return false;
         }
-        return t1.toString().equals(t1.toString());
+        return t1.toString().equals(t2.toString());
     }
 
     /**
@@ -326,7 +326,7 @@ public final class TypesUtils {
     }
 
     /**
-     * Checks if the type represents a boolean type, that is either boolean (primitive type) or
+     * Checks if the type represents a boolean type, i.e., it is either boolean (primitive type) or
      * java.lang.Boolean.
      *
      * @param type the type to test
@@ -334,6 +334,17 @@ public final class TypesUtils {
      */
     public static boolean isBooleanType(TypeMirror type) {
         return isDeclaredOfName(type, "java.lang.Boolean") || type.getKind() == TypeKind.BOOLEAN;
+    }
+
+    /**
+     * Checks if the type represents a character type, i.e., it is either char (primitive type) or
+     * java.lang.Character.
+     *
+     * @param type the type to test
+     * @return true iff type represents a character type
+     */
+    public static boolean isCharType(TypeMirror type) {
+        return isDeclaredOfName(type, "java.lang.Character") || type.getKind() == TypeKind.CHAR;
     }
 
     /**
@@ -878,16 +889,30 @@ public final class TypesUtils {
         }
         // Special case for primitives.
         if (isPrimitive(t1) || isPrimitive(t2)) {
-            if (types.isAssignable(t1, t2)) {
+            // NOTE: we need to know which type is primitive because e.g. int and Integer are
+            // assignable to each other.
+            if (isPrimitive(t1) && types.isAssignable(t1, t2)) {
                 return t2;
-            } else if (types.isAssignable(t2, t1)) {
+            } else if (isPrimitive(t2) && types.isAssignable(t2, t1)) {
                 return t1;
             } else {
                 Elements elements = processingEnv.getElementUtils();
                 return elements.getTypeElement("java.lang.Object").asType();
             }
         }
-        return types.lub(t1, t2);
+
+        try {
+            return types.lub(t1, t2);
+        } catch (Exception e) {
+            // typetools issue #3025: In at least Java 8/9, types.lub throws an NPE
+            // on capture/wildcard combinations, see test case
+            // checker/tests/nullness/generics/Issue3025.java.
+            // Using j.l.Object is too coarse in case the type actually matters.
+            // This problem doesn't exist anymore in Java 11+, so let's
+            // see whether this is a problem for anyone in practice.
+            Elements elements = processingEnv.getElementUtils();
+            return elements.getTypeElement("java.lang.Object").asType();
+        }
     }
 
     /**
@@ -1035,6 +1060,25 @@ public final class TypesUtils {
             ClassType tt = (ClassType) t;
             if (!tt.isInterface()) {
                 return t;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the superclass the given type. If there is no superclass the first interface returned
+     * by {@link Types#directSupertypes(TypeMirror)} is returned. If the type has neither a
+     * superclass nor a superinterface, then null is returned.
+     *
+     * @param type a type
+     * @param types type utilities
+     * @return the superclass or super interface of the given type, or null
+     */
+    public static @Nullable DeclaredType getSuperClassOrInterface(TypeMirror type, Types types) {
+        List<? extends TypeMirror> superTypes = types.directSupertypes(type);
+        for (TypeMirror t : superTypes) {
+            if (t.getKind() == TypeKind.DECLARED) {
+                return (DeclaredType) t;
             }
         }
         return null;

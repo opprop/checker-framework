@@ -85,6 +85,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
@@ -143,6 +144,9 @@ public final class TreeUtils {
 
     /** The value of Flags.RECORD which does not exist in Java 9 or 11. */
     private static final long Flags_RECORD = 2305843009213693952L;
+
+    /** The set of tree kinds that can be categorized as binary comparison. */
+    private static final Set<Tree.Kind> BINARY_COMPARISON_TREE_KINDS;
 
     static {
         final SourceVersion latestSource = SourceVersion.latest();
@@ -210,6 +214,15 @@ public final class TreeUtils {
             err.initCause(e);
             throw err;
         }
+
+        BINARY_COMPARISON_TREE_KINDS =
+                EnumSet.of(
+                        Tree.Kind.EQUAL_TO,
+                        Tree.Kind.NOT_EQUAL_TO,
+                        Tree.Kind.LESS_THAN,
+                        Tree.Kind.GREATER_THAN,
+                        Tree.Kind.LESS_THAN_EQUAL,
+                        Tree.Kind.GREATER_THAN_EQUAL);
     }
 
     /**
@@ -323,8 +336,7 @@ public final class TreeUtils {
 
     /**
      * Gets the {@link Element} for the given Tree API node. For an object instantiation returns the
-     * value of the {@link JCNewClass#constructor} field. Note that this result might differ from
-     * the result of {@link TreeUtils#constructor(NewClassTree)}.
+     * value of the {@link JCNewClass#constructor} field.
      *
      * @param tree the {@link Tree} node to get the symbol for
      * @throws BugInCF if {@code tree} is null or is not a valid javac-internal tree (JCTree)
@@ -465,52 +477,90 @@ public final class TreeUtils {
     }
 
     /**
-     * Determines the symbol for a constructor given an invocation via {@code new}.
+     * Determines the type for a method invocation at its call site, which has all type variables
+     * substituted with the type arguments at the call site.
      *
-     * @see #anonymousSuperConstructor(NewClassTree)
-     * @see #elementFromUse(NewClassTree)
-     * @param tree the constructor invocation
-     * @return the {@link ExecutableElement} corresponding to the constructor call in {@code tree}
+     * @param tree the method invocation
+     * @return the {@link ExecutableType} corresponding to the method invocation at its call site
      */
-    public static ExecutableElement constructor(NewClassTree tree) {
-        if (!(tree instanceof JCTree.JCNewClass)) {
-            throw new BugInCF("TreeUtils.constructor: not a javac internal tree");
+    @Pure
+    public static ExecutableType typeFromUse(MethodInvocationTree tree) {
+        TypeMirror type = TreeUtils.typeOf(tree.getMethodSelect());
+        if (!(type instanceof ExecutableType)) {
+            throw new BugInCF(
+                    "TreeUtils.typeFromUse(MethodInvocationTree): type of method select in method"
+                            + " invocation should be ExecutableType. Found: %s",
+                    type);
         }
-
-        JCNewClass newClassTree = (JCNewClass) tree;
-        Element e = newClassTree.constructor;
-        return (ExecutableElement) e;
+        return (ExecutableType) type;
     }
 
     /**
-     * Given an anonymous class instantiation via {@code new}, returns the symbol for the super
-     * constructor, i.e. the one that gets invoked in the anonymous constructor (JLS 15.9.5.1)
+     * Determines the type for a constructor at its call site given an invocation via {@code new},
+     * which has all type variables substituted with the type arguments at the call site.
      *
-     * @param tree the anonymous constructor invocation
-     * @return the {@link ExecutableElement} corresponding to the super constructor called in {@code
-     *     tree}
+     * @param tree the constructor invocation
+     * @return the {@link ExecutableType} corresponding to the constructor call (i.e., the given
+     *     {@code tree}) at its call site
      */
-    public static ExecutableElement anonymousSuperConstructor(NewClassTree tree) {
-        assert tree.getClassBody() != null;
+    @Pure
+    public static ExecutableType typeFromUse(NewClassTree tree) {
+        if (!(tree instanceof JCTree.JCNewClass)) {
+            throw new BugInCF("TreeUtils.typeFromUse(NewClassTree): not a javac internal tree");
+        }
 
         JCNewClass newClassTree = (JCNewClass) tree;
+        TypeMirror type = newClassTree.constructorType;
 
-        // anonymous constructor bodies should contain exactly one statement
+        if (!(type instanceof ExecutableType)) {
+            throw new BugInCF(
+                    "TreeUtils.typeFromUse(NewClassTree): type of constructor in new class tree"
+                            + " should be ExecutableType. Found: %s",
+                    type);
+        }
+        return (ExecutableType) type;
+    }
+
+    /**
+     * Returns the constructor invoked by {@code newClassTree} unless {@code newClassTree} is
+     * creating an anonymous class. In which case, the super constructor is returned.
+     *
+     * @param newClassTree the constructor invocation
+     * @return the super constructor invoked in the body of the anonymous constructor; or {@link
+     *     #constructor(NewClassTree)} if {@code newClassTree} is not creating an anonymous class
+     */
+    public static ExecutableElement getSuperConstructor(NewClassTree newClassTree) {
+        if (newClassTree.getClassBody() == null) {
+            return constructor(newClassTree);
+        }
+        JCNewClass jcNewClass = (JCNewClass) newClassTree;
+        // Anonymous constructor bodies, which are always synthetic, contain exactly one statement
         // in the form:
         //    super(arg1, ...)
         // or
         //    o.super(arg1, ...)
         //
-        // which is a method invocation (!) to the actual constructor
+        // which is a method invocation of the super constructor.
 
-        // the method call is guaranteed to return nonnull
+        // The method call is guaranteed to return nonnull.
         JCMethodDecl anonConstructor =
-                (JCMethodDecl) TreeInfo.declarationFor(newClassTree.constructor, newClassTree);
+                (JCMethodDecl) TreeInfo.declarationFor(jcNewClass.constructor, jcNewClass);
         assert anonConstructor != null;
         assert anonConstructor.body.stats.size() == 1;
         JCExpressionStatement stmt = (JCExpressionStatement) anonConstructor.body.stats.head;
-        JCTree.JCMethodInvocation superInvok = (JCMethodInvocation) stmt.expr;
+        JCMethodInvocation superInvok = (JCMethodInvocation) stmt.expr;
         return (ExecutableElement) TreeInfo.symbol(superInvok.meth);
+    }
+
+    /**
+     * Determines the symbol for a constructor given an invocation via {@code new}.
+     *
+     * @see #elementFromUse(NewClassTree)
+     * @param tree the constructor invocation
+     * @return the {@link ExecutableElement} corresponding to the constructor call in {@code tree}
+     */
+    public static ExecutableElement constructor(NewClassTree tree) {
+        return (ExecutableElement) ((JCNewClass) tree).constructor;
     }
 
     /**
@@ -2075,5 +2125,15 @@ public final class TreeUtils {
             kind = Tree.Kind.CLASS;
         }
         return kind;
+    }
+
+    /**
+     * Returns true if the {@code tree} is a binary tree that performs a comparison.
+     *
+     * @param tree the tree to check
+     * @return whether the tree represents a binary comparison
+     */
+    public static boolean isBinaryComparison(BinaryTree tree) {
+        return BINARY_COMPARISON_TREE_KINDS.contains(tree.getKind());
     }
 }

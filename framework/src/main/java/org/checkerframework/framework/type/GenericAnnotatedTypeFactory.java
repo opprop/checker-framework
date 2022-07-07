@@ -1627,24 +1627,6 @@ public abstract class GenericAnnotatedTypeFactory<
     }
 
     /**
-     * The method is overridden for having receiver refinement. Previously, {@code
-     * getAnnotatedTypeLhs} sets {@code useFlow} to false and calls {@code getAnnotatedType},
-     * resulting in no refinement for receiver type. This workaround overrides {@code
-     * getAnnotatedType} to re-set {@code useFlow} as the initial value passes in. Now if any other
-     * checker overrides {@code getAnnotatedType} and calls {@code getAnnotatedTypeLhs}, the {@code
-     * AnnotatedTypeFactory} version of {@code getAnnotatedType} will be called rather than the one
-     * customized by the sub checker.
-     */
-    @Override
-    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
-        boolean oldUseFlow = useFlow;
-        useFlow = everUseFlow;
-        AnnotatedTypeMirror res = super.getAnnotatedType(tree);
-        useFlow = oldUseFlow;
-        return res;
-    }
-
-    /**
      * Returns the type of a left-hand side of an assignment.
      *
      * <p>The default implementation returns the type without considering dataflow type refinement.
@@ -1655,9 +1637,7 @@ public abstract class GenericAnnotatedTypeFactory<
      */
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
         AnnotatedTypeMirror res;
-        boolean oldUseFlow = useFlow;
         boolean oldShouldCache = shouldCache;
-        useFlow = false;
         // Don't cache the result because getAnnotatedType(lhsTree) could
         // be called from elsewhere and would expect flow-sensitive type refinements.
         shouldCache = false;
@@ -1667,7 +1647,7 @@ public abstract class GenericAnnotatedTypeFactory<
             case MEMBER_SELECT:
             case ARRAY_ACCESS:
                 // For member-select tree, we want the receiver to have the refinement
-                res = super.getAnnotatedType(lhsTree);
+                res = getAnnotatedType(lhsTree);
                 break;
             case PARENTHESIZED:
                 res = getAnnotatedTypeLhs(TreeUtils.withoutParens((ExpressionTree) lhsTree));
@@ -1676,7 +1656,7 @@ public abstract class GenericAnnotatedTypeFactory<
                 if (TreeUtils.isTypeTree(lhsTree)) {
                     // lhsTree is a type tree at the pseudo assignment of a returned expression to
                     // declared return type.
-                    res = super.getAnnotatedType(lhsTree);
+                    res = getAnnotatedType(lhsTree);
                 } else {
                     throw new BugInCF(
                             "GenericAnnotatedTypeFactory: Unexpected tree passed to"
@@ -1686,7 +1666,6 @@ public abstract class GenericAnnotatedTypeFactory<
                                     + lhsTree.getKind());
                 }
         }
-        useFlow = oldUseFlow;
         shouldCache = oldShouldCache;
         return res;
     }

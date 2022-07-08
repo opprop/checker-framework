@@ -205,7 +205,7 @@ public abstract class GenericAnnotatedTypeFactory<
      *
      * @see #getAnnotatedTypeLhs(Tree)
      */
-    private boolean useFlow;
+    public boolean useFlow;
 
     /** Is this type factory configured to use flow-sensitive type refinement? */
     private final boolean everUseFlow;
@@ -1770,26 +1770,14 @@ public abstract class GenericAnnotatedTypeFactory<
     }
 
     /**
-     * This method is final; override {@link #addComputedTypeAnnotations(Tree, AnnotatedTypeMirror,
-     * boolean)} instead.
-     *
-     * <p>{@inheritDoc}
-     */
-    @Override
-    protected final void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type) {
-        addComputedTypeAnnotations(tree, type, this.useFlow);
-    }
-
-    /**
      * Like {@link #addComputedTypeAnnotations(Tree, AnnotatedTypeMirror)}. Overriding
      * implementations typically simply pass the boolean to calls to super.
      *
      * @param tree an AST node
      * @param type the type obtained from tree
-     * @param iUseFlow whether to use information from dataflow analysis
      */
-    protected void addComputedTypeAnnotations(
-            Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
+    @Override
+    protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type) {
         if (root == null && ajavaTypes.isParsing()) {
             return;
         }
@@ -1811,7 +1799,7 @@ public abstract class GenericAnnotatedTypeFactory<
         }
         log(
                 "%s GATF.addComputedTypeAnnotations#1(%s, %s, %s)%n",
-                thisClass, treeString, type, iUseFlow);
+                thisClass, treeString, type, this.useFlow);
         if (!TreeUtils.isExpressionTree(tree)) {
             // Don't apply defaults to expressions. Their types may be computed from subexpressions
             // in treeAnnotator.
@@ -1832,7 +1820,7 @@ public abstract class GenericAnnotatedTypeFactory<
         defaults.annotate(tree, type);
         log("%s GATF.addComputedTypeAnnotations#7(%s, %s)%n", thisClass, treeString, type);
 
-        if (iUseFlow) {
+        if (this.useFlow) {
             Value as = getInferredValueFor(tree);
             if (as != null) {
                 applyInferredAnnotations(type, as);
@@ -1843,7 +1831,7 @@ public abstract class GenericAnnotatedTypeFactory<
         }
         log(
                 "%s GATF.addComputedTypeAnnotations#9(%s, %s, %s) done%n",
-                thisClass, treeString, type, iUseFlow);
+                thisClass, treeString, type, this.useFlow);
     }
 
     /**
@@ -2394,7 +2382,11 @@ public abstract class GenericAnnotatedTypeFactory<
         TypeMirror defaultValueTM = TreeUtils.typeOf(defaultValueTree);
         AnnotatedTypeMirror defaultValueATM =
                 AnnotatedTypeMirror.createType(defaultValueTM, this, false);
-        addComputedTypeAnnotations(defaultValueTree, defaultValueATM, false);
+        boolean oldUseflow = useFlow;
+        useFlow = false;
+        addComputedTypeAnnotations(defaultValueTree, defaultValueATM);
+        useFlow = oldUseflow;
+
         return defaultValueATM;
     }
 

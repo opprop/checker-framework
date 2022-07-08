@@ -117,20 +117,19 @@ public class SignednessAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     @Override
-    protected void addComputedTypeAnnotations(
-            Tree tree, AnnotatedTypeMirror type, boolean iUseFlow) {
+    protected void addComputedTypeAnnotations(Tree tree, AnnotatedTypeMirror type) {
         if (!computingAnnotatedTypeMirrorOfLHS) {
             addSignednessGlbAnnotation(tree, type);
         }
 
-        super.addComputedTypeAnnotations(tree, type, iUseFlow);
+        super.addComputedTypeAnnotations(tree, type);
     }
 
     /**
      * True when the AnnotatedTypeMirror currently being computed is the left hand side of an
      * assignment or pseudo-assignment.
      *
-     * @see #addComputedTypeAnnotations(Tree, AnnotatedTypeMirror, boolean)
+     * @see #addComputedTypeAnnotations(Tree, AnnotatedTypeMirror)
      * @see #getAnnotatedTypeLhs(Tree)
      */
     private boolean computingAnnotatedTypeMirrorOfLHS = false;

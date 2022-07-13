@@ -1334,10 +1334,15 @@ public abstract class CFAbstractTransfer<
         }
 
         if (exprValue != null) {
-            Set<AnnotationMirror> resultAnno =
-                    analysis.atypeFactory.getAnnotationOrTypeDeclarationBound(
-                            castType, exprValue.getAnnotations());
-            atm.addMissingAnnotations(resultAnno);
+            if (exprValue.getAnnotations().isEmpty()) {
+                // analysis.atypeFactory.getAnnotatedType(((Type.Class) castType).asElement());
+                atm.addMissingAnnotations(analysis.atypeFactory.getTypeDeclarationBounds(castType));
+            } else {
+                Set<AnnotationMirror> resultAnno =
+                        analysis.atypeFactory.getAnnotationOrTypeDeclarationBound(
+                                castType, exprValue.getAnnotations());
+                atm.addMissingAnnotations(resultAnno);
+            }
         }
 
         return createTransferResult(analysis.createAbstractValue(atm), p);

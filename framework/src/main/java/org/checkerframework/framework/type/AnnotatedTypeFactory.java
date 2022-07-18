@@ -270,8 +270,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     private final @Nullable WholeProgramInference wholeProgramInference;
     */
 
-    /** Viewpoint adapter used to perform viewpoint adaptation */
-    protected ViewpointAdapter viewpointAdapter;
+    /** Viewpoint adapter used to perform viewpoint adaptation or null */
+    protected @Nullable ViewpointAdapter viewpointAdapter;
 
     /**
      * This formatter is used for converting AnnotatedTypeMirrors to Strings. This formatter will be
@@ -1042,10 +1042,12 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Factory method to create a ViewpointAdaptor. Subclasses should implement and instantiate a
-     * ViewpointAdapter subclass here if viewpoint adaptation is needed for analysis.
+     * Factory method to create a ViewpointAdapter. Subclasses should implement and instantiate a
+     * ViewpointAdapter subclass if viewpoint adaptation is needed for a type system.
+     *
+     * @return viewpoint adapter to perform viewpoint adaptation or null
      */
-    protected ViewpointAdapter createViewpointAdapter() {
+    protected @Nullable ViewpointAdapter createViewpointAdapter() {
         return null;
     }
 
@@ -2050,7 +2052,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * <p>Clients should generally call {@link #getReceiverType}.
      *
      * @param tree the expression that might have an implicit receiver
-     * @return the type of the implicit receiver
+     * @return the type of the implicit receiver. Returns null if the expression has an explicit
+     *     receiver or doesn't have a receiver.
      */
     protected @Nullable AnnotatedDeclaredType getImplicitReceiverType(ExpressionTree tree) {
         assert (tree.getKind() == Tree.Kind.IDENTIFIER
@@ -2092,7 +2095,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         if (thisType == null) {
             return null;
         }
-        // An implicit receiver is the first enclosing type that is a subtype of the type where
+        // An implicit receiver is the first enclosing type that is a subtype of the type where the
         // element is declared.
         while (!isSubtype(thisType.getUnderlyingType(), typeOfImplicitReceiver)) {
             thisType = thisType.getEnclosingType();
@@ -2339,7 +2342,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     public ParameterizedExecutableType methodFromUse(
             ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-
         AnnotatedExecutableType memberTypeWithoutOverrides =
                 getAnnotatedType(methodElt); // get unsubstituted type
         AnnotatedExecutableType memberTypeWithOverrides =
@@ -2672,7 +2674,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *     (inferred) type arguments
      */
     public ParameterizedExecutableType constructorFromUse(NewClassTree tree) {
-
         // Get the annotations written on the new class tree.
         AnnotatedDeclaredType type =
                 (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(tree), false);

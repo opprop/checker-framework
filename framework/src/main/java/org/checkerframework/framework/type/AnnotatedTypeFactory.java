@@ -3805,9 +3805,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *
      * <p>The method uses the parameter only if the most enclosing method cannot be found directly.
      *
-     * @param tree the tree used to find the enclosing method.
+     * @param tree the tree used to find the enclosing method
      * @return receiver type of the most enclosing method being visited
-     * @deprecated Use {@link #getSelfType(Tree)} instead.
+     * @deprecated Use {@link #getSelfType(Tree)} instead
      */
     @Deprecated // 2021-11-01
     protected final @Nullable AnnotatedDeclaredType getCurrentMethodReceiver(Tree tree) {
@@ -3841,7 +3841,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     /**
      * Returns true if {@code tree} is within a constructor.
      *
-     * @param tree the tree that might be within a constructor.
+     * @param tree the tree that might be within a constructor
      * @return true if {@code tree} is within a constructor
      */
     protected final boolean isWithinConstructor(Tree tree) {
@@ -4215,17 +4215,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             }
         }
 
-        // If parsing annotation files, return only the annotations in the element.
-        // The only exception is package because we always load package-info eagerly
-        // and there is no parent element to parse.
-        boolean isParsing =
-                stubTypes.isParsing()
-                        || ajavaTypes.isParsing()
-                        || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing());
-        if (isParsing && elt.getKind() != ElementKind.PACKAGE) {
-            return results;
-        }
-
         // Add annotations from annotation files.
         results.addAll(stubTypes.getDeclAnnotations(elt));
         results.addAll(ajavaTypes.getDeclAnnotations(elt));
@@ -4241,7 +4230,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         // Add the element and its annotations to the cache.
-        cacheDeclAnnos.put(elt, results);
+        if (!stubTypes.isParsing()
+                && !ajavaTypes.isParsing()
+                && (currentFileAjavaTypes == null || !currentFileAjavaTypes.isParsing())) {
+            cacheDeclAnnos.put(elt, results);
+        }
         return results;
     }
 
@@ -4305,8 +4298,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                         annotationsOnAnnotation =
                                 annotation.getAnnotationType().asElement().getAnnotationMirrors();
                     } catch (com.sun.tools.javac.code.Symbol.CompletionFailure cf) {
-                        // Fix for Issue 348: If a CompletionFailure occurs,
-                        // issue a warning.
+                        // Fix for Issue 348: If a CompletionFailure occurs, issue a warning.
                         checker.reportWarning(
                                 annotation.getAnnotationType().asElement(),
                                 "annotation.not.completed",
@@ -5901,7 +5893,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * Returns true if the type is immutable. Subclasses can override this method to add types that
      * are mutable, but the annotated type of an object is immutable.
      *
-     * @param type type to test.
+     * @param type type to test
      * @return true if the type is immutable
      */
     public boolean isImmutable(TypeMirror type) {

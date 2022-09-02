@@ -120,7 +120,6 @@ import org.checkerframework.dataflow.cfg.node.ParameterizedTypeNode;
 import org.checkerframework.dataflow.cfg.node.PrimitiveTypeNode;
 import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.SignedRightShiftNode;
-import org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
@@ -169,6 +168,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.ReferenceType;
 import javax.lang.model.type.TypeKind;
@@ -194,9 +194,15 @@ import javax.lang.model.util.Types;
  *
  * <p>Every {@code visit*} method is assumed to add at least one extended node to the list of nodes
  * (which might only be a jump).
+ *
+ * <p>The entry point to process a single body (e.g., method) is {@link #process(TreePath,
+ * UnderlyingAST)}.
  */
 @SuppressWarnings("nullness") // TODO
 public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
+
+    /** Path to the tree currently being scanned. */
+    private TreePath path;
 
     /** Annotation processing environment. */
     protected final ProcessingEnvironment env;
@@ -282,8 +288,11 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     /** Map from AST {@link Tree}s to post-conversion sets of {@link Node}s. */
     private final IdentityHashMap<Tree, Set<Node>> convertedTreeLookupMap;
 
-    /** Map from AST {@link UnaryTree}s to compound {@link AssignmentNode}s. */
-    private final IdentityHashMap<UnaryTree, AssignmentNode> unaryAssignNodeLookupMap;
+    /**
+     * Map from postfix increment or decrement trees that are AST {@link UnaryTree}s to the
+     * synthetic tree that is {@code v + 1} or {@code v - 1}.
+     */
+    private final IdentityHashMap<UnaryTree, BinaryTree> postfixLookupMap;
 
     /** The list of extended nodes. */
     private final ArrayList<ExtendedNode> nodeList;
@@ -392,7 +401,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         // initialize lists and maps
         treeLookupMap = new IdentityHashMap<>();
         convertedTreeLookupMap = new IdentityHashMap<>();
-        unaryAssignNodeLookupMap = new IdentityHashMap<>();
+        postfixLookupMap = new IdentityHashMap<>();
         nodeList = new ArrayList<>();
         bindings = new HashMap<>();
         leaders = new HashSet<>();
@@ -431,20 +440,24 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     }
 
     /**
-     * Performs the actual work of phase one.
+     * Performs the actual work of phase one: processing a single body (of a method, lambda,
+     * top-level block, etc.).
      *
      * @param bodyPath path to the body of the underlying AST's method
      * @param underlyingAST the AST for which the CFG is to be built
      * @return the result of phase one
      */
     public PhaseOneResult process(TreePath bodyPath, UnderlyingAST underlyingAST) {
-        // traverse AST of the method body
+
+        // Set class variables
         this.path = bodyPath;
+
+        // Traverse AST of the method body.
         try { // "finally" clause is "this.path = null"
             Node finalNode = scan(path.getLeaf(), null);
 
             // If we are building the CFG for a lambda with a single expression as the body, then
-            // add an extra node for the result of that lambda
+            // add an extra node for the result of that lambda.
             if (underlyingAST.getKind() == UnderlyingAST.Kind.LAMBDA) {
                 LambdaExpressionTree lambdaTree =
                         ((UnderlyingAST.CFGLambda) underlyingAST).getLambdaTree();
@@ -467,7 +480,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                     underlyingAST,
                     treeLookupMap,
                     convertedTreeLookupMap,
-                    unaryAssignNodeLookupMap,
+                    postfixLookupMap,
                     nodeList,
                     bindings,
                     leaders,
@@ -481,6 +494,15 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         }
     }
 
+    /**
+     * Process a single body within {@code root}. This method does not process the entire given
+     * CompilationUnitTree. Rather, it processes one body (of a method/lambda/etc.) within it, which
+     * corresponds to {@code underlyingAST}.
+     *
+     * @param root the compilation unit
+     * @param underlyingAST the AST corresponding to the body to process
+     * @return a PhaseOneResult
+     */
     public PhaseOneResult process(CompilationUnitTree root, UnderlyingAST underlyingAST) {
         // TODO: Isn't this costly? Is there no cache we can reuse?
         TreePath bodyPath = trees.getPath(root, underlyingAST.getCode());
@@ -504,9 +526,6 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     public TreePath getCurrentPath() {
         return path;
     }
-
-    /** Path to the tree currently being scanned. */
-    private TreePath path;
 
     // TODO: remove method and instead use JCP to add version-specific methods.
     // Switch expressions first appeared in 12, standard in 14, so don't use 17.
@@ -648,17 +667,6 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         } else {
             existing.add(node);
         }
-    }
-
-    /**
-     * Add a unary tree in the compound assign lookup map. This method is used to update the
-     * UnaryTree-AssignmentNode mapping with compound assign nodes.
-     *
-     * @param tree the tree used as a key in the map
-     * @param unaryAssignNode the node to add to the lookup map
-     */
-    protected void addToUnaryAssignLookupMap(UnaryTree tree, AssignmentNode unaryAssignNode) {
-        unaryAssignNodeLookupMap.put(tree, unaryAssignNode);
     }
 
     /**
@@ -1233,22 +1241,25 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     }
 
     /**
-     * Given a method element and as list of argument expressions, return a list of {@link Node}s
-     * representing the arguments converted for a call of the method. This method applies to both
-     * method invocations and constructor calls.
+     * Given a method element, its type at the call site, and a list of argument expressions, return
+     * a list of {@link Node}s representing the arguments converted for a call of the method. This
+     * method applies to both method invocations and constructor calls.
      *
      * @param method an ExecutableElement representing a method to be called
+     * @param methodType an ExecutableType representing the type of the method call
      * @param actualExprs a List of argument expressions to a call
      * @return a List of {@link Node}s representing arguments after conversions required by a call
      *     to this method
      */
     protected List<Node> convertCallArguments(
-            ExecutableElement method, List<? extends ExpressionTree> actualExprs) {
+            ExecutableElement method,
+            ExecutableType methodType,
+            List<? extends ExpressionTree> actualExprs) {
         // NOTE: It is important to convert one method argument before generating CFG nodes for the
         // next argument, since label binding expects nodes to be generated in execution order.
         // Therefore, this method first determines which conversions need to be applied and then
         // iterates over the actual arguments.
-        List<? extends VariableElement> formals = method.getParameters();
+        List<? extends TypeMirror> formals = methodType.getParameterTypes();
         int numFormals = formals.size();
 
         ArrayList<Node> convertedNodes = new ArrayList<>(numFormals);
@@ -1258,7 +1269,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
             // Create a new array argument if the actuals outnumber the formals, or if the last
             // actual is not assignable to the last formal.
             int lastArgIndex = numFormals - 1;
-            TypeMirror lastParamType = formals.get(lastArgIndex).asType();
+            TypeMirror lastParamType = formals.get(lastArgIndex);
             if (numActuals == numFormals
                     && types.isAssignable(
                             TreeUtils.typeOf(actualExprs.get(numActuals - 1)), lastParamType)) {
@@ -1271,7 +1282,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                                 "CFGBuilder: scan returned null for %s [%s]",
                                 actualExprs.get(i), actualExprs.get(i).getClass());
                     }
-                    convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i).asType()));
+                    convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i)));
                 }
             } else {
                 assert lastParamType instanceof ArrayType
@@ -1280,10 +1291,23 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                 // remaining ones to initialize an array.
                 for (int i = 0; i < lastArgIndex; i++) {
                     Node actualVal = scan(actualExprs.get(i), null);
-                    convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i).asType()));
+                    convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i)));
                 }
 
+                // NOTE: When the last parameter is a type variable vararg and the compiler
+                // cannot find a specific type use to substitute for it, the compiler will
+                // create an unbounded component type instead. For example,
+                // for the following method declaration:
+                // <T> void foo(T... ts) {}
+                // consider this method invocation:
+                // foo();
+                //
+                // At the call site, the compiler doesn't have enough information about the
+                // type to substitute for type variable T. So the component type we are going
+                // to get is simply "T", which is NOT EQUAL to any of the "T"s in the method
+                // declaration if we compare them using the equals() method.
                 TypeMirror elemType = ((ArrayType) lastParamType).getComponentType();
+
                 List<ExpressionTree> inits = new ArrayList<>(numActuals - lastArgIndex);
                 List<Node> initializers = new ArrayList<>(numActuals - lastArgIndex);
                 for (int i = lastArgIndex; i < numActuals; i++) {
@@ -1308,7 +1332,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         } else {
             for (int i = 0; i < numActuals; i++) {
                 Node actualVal = scan(actualExprs.get(i), null);
-                convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i).asType()));
+                convertedNodes.add(methodInvocationConvert(actualVal, formals.get(i)));
             }
         }
 
@@ -1455,7 +1479,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
             // See also BaseTypeVisitor.visitMethodInvocation and QualifierPolymorphism.annotate.
             arguments = Collections.emptyList();
         } else {
-            arguments = convertCallArguments(method, actualExprs);
+            arguments = convertCallArguments(method, TreeUtils.typeFromUse(tree), actualExprs);
         }
 
         // TODO: lock the receiver for synchronized methods
@@ -1711,28 +1735,47 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
      *
      * <p>Note 2: Visits the receiver and adds all necessary blocks to the CFG.
      *
-     * @param tree the field access tree containing the receiver
-     * @return the receiver of the field access
+     * @param tree the field or method access tree containing the receiver: one of
+     *     MethodInvocationTree, AssignmentTree, or IdentifierTree
+     * @return the receiver of the field or method access
      */
     private Node getReceiver(ExpressionTree tree) {
         assert TreeUtils.isFieldAccess(tree) || TreeUtils.isMethodAccess(tree);
         if (tree.getKind() == Tree.Kind.MEMBER_SELECT) {
+            // `tree` has an explicit receiver.
             MemberSelectTree mtree = (MemberSelectTree) tree;
             return scan(mtree.getExpression(), null);
-        } else {
-            Element ele = TreeUtils.elementFromUse(tree);
-            TypeElement declaringClass = ElementUtils.enclosingTypeElement(ele);
-            TypeMirror type = ElementUtils.getType(declaringClass);
-            if (ElementUtils.isStatic(ele)) {
-                ClassNameNode node = new ClassNameNode(type, declaringClass);
-                extendWithClassNameNode(node);
-                return node;
-            } else {
-                Node node = new ImplicitThisNode(type);
-                extendWithNode(node);
-                return node;
-            }
         }
+
+        // Access through an implicit receiver
+        Element ele = TreeUtils.elementFromUse(tree);
+        TypeElement declClassElem = ElementUtils.enclosingTypeElement(ele);
+        TypeMirror declClassType = ElementUtils.getType(declClassElem);
+
+        if (ElementUtils.isStatic(ele)) {
+            ClassNameNode node = new ClassNameNode(declClassType, declClassElem);
+            extendWithClassNameNode(node);
+            return node;
+        }
+
+        // Access through an implicit `this`
+        TreePath enclClassPath = TreePathUtil.pathTillClass(getCurrentPath());
+        ClassTree enclClassTree = (ClassTree) enclClassPath.getLeaf();
+        TypeElement enclClassElem = TreeUtils.elementFromDeclaration(enclClassTree);
+        TypeMirror enclClassType = enclClassElem.asType();
+        while (!TypesUtils.isErasedSubtype(enclClassType, declClassType, types)) {
+            enclClassPath = TreePathUtil.pathTillClass(enclClassPath.getParentPath());
+            if (enclClassPath == null) {
+                enclClassType = declClassType;
+                break;
+            }
+            enclClassTree = (ClassTree) enclClassPath.getLeaf();
+            enclClassElem = TreeUtils.elementFromDeclaration(enclClassTree);
+            enclClassType = enclClassElem.asType();
+        }
+        Node node = new ImplicitThisNode(enclClassType);
+        extendWithNode(node);
+        return node;
     }
 
     /**
@@ -1851,9 +1894,18 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                         assert (kind == Tree.Kind.PLUS_ASSIGNMENT);
                         Node targetRHS = stringConversion(targetLHS);
                         value = stringConversion(value);
-                        Node r = new StringConcatenateAssignmentNode(tree, targetRHS, value);
-                        extendWithNode(r);
-                        return r;
+                        BinaryTree operTree =
+                                treeBuilder.buildBinary(
+                                        leftType,
+                                        withoutAssignment(kind),
+                                        tree.getVariable(),
+                                        tree.getExpression());
+                        handleArtificialTree(operTree);
+                        Node operNode = new StringConcatenateNode(operTree, targetRHS, value);
+                        extendWithNode(operNode);
+                        AssignmentNode assignNode = new AssignmentNode(tree, targetLHS, operNode);
+                        extendWithNode(assignNode);
+                        return assignNode;
                     } else {
                         TypeMirror promotedType = binaryPromotedType(leftType, rightType);
                         Node targetRHS = binaryNumericPromotion(targetLHS, promotedType);
@@ -2575,6 +2627,8 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         return null;
     }
 
+    // This is not invoked for top-level classes.  Maybe it is, for classes defined within method
+    // bodies.
     @Override
     public Node visitClass(ClassTree tree, Void p) {
         declaredClasses.add(tree);
@@ -3330,7 +3384,8 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
 
         List<? extends ExpressionTree> actualExprs = tree.getArguments();
 
-        List<Node> arguments = convertCallArguments(constructor, actualExprs);
+        List<Node> arguments =
+                convertCallArguments(constructor, TreeUtils.typeFromUse(tree), actualExprs);
 
         // TODO: for anonymous classes, don't use the identifier alone.
         // See Issue 890.
@@ -3410,9 +3465,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
         Node node = new FieldAccessNode(tree, expr);
 
         Element element = TreeUtils.elementFromUse(tree);
-        if (ElementUtils.isStatic(element)
-                || expr instanceof ImplicitThisNode
-                || expr instanceof ExplicitThisNode) {
+        if (ElementUtils.isStatic(element) || expr instanceof ThisNode) {
             // No NullPointerException can be thrown, use normal node
             extendWithNode(node);
         } else {
@@ -3874,9 +3927,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                             kind == Tree.Kind.POSTFIX_INCREMENT
                                     || kind == Tree.Kind.POSTFIX_DECREMENT;
                     AssignmentNode unaryAssign =
-                            createIncrementOrDecrementAssign(
-                                    isPostfix ? null : tree, expr, isIncrement);
-                    addToUnaryAssignLookupMap(tree, unaryAssign);
+                            createIncrementOrDecrementAssign(tree, expr, isIncrement, isPostfix);
 
                     if (isPostfix) {
                         TypeMirror exprType = TreeUtils.typeOf(exprTree);
@@ -3932,20 +3983,20 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
     /**
      * Create assignment node which represent increment or decrement.
      *
-     * @param target tree for assignment node. If it's null, corresponding assignment tree will be
-     *     generated.
+     * @param unaryTree increment or decrement tree
      * @param expr expression node to be incremented or decremented
      * @param isIncrement true when it's increment
+     * @param isPostfix true if {@code expr} is a postfix increment or decrement.
      * @return assignment node for corresponding increment or decrement
      */
     private AssignmentNode createIncrementOrDecrementAssign(
-            Tree target, Node expr, boolean isIncrement) {
+            UnaryTree unaryTree, Node expr, boolean isIncrement, boolean isPostfix) {
         ExpressionTree exprTree = (ExpressionTree) expr.getTree();
         TypeMirror exprType = expr.getType();
         TypeMirror oneType = types.getPrimitiveType(TypeKind.INT);
         TypeMirror promotedType = binaryPromotedType(exprType, oneType);
 
-        LiteralTree oneTree = treeBuilder.buildLiteral(Integer.valueOf(1));
+        LiteralTree oneTree = treeBuilder.buildLiteral(1);
         handleArtificialTree(oneTree);
 
         Node exprRHS = binaryNumericPromotion(expr, promotedType);
@@ -3960,6 +4011,9 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
                         isIncrement ? Tree.Kind.PLUS : Tree.Kind.MINUS,
                         exprTree,
                         oneTree);
+        if (isPostfix) {
+            postfixLookupMap.put(unaryTree, operTree);
+        }
         handleArtificialTree(operTree);
 
         Node operNode;
@@ -3973,9 +4027,12 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
 
         Node narrowed = narrowAndBox(operNode, exprType);
 
-        if (target == null) {
+        Tree target;
+        if (isPostfix) {
             target = treeBuilder.buildAssignment(exprTree, (ExpressionTree) narrowed.getTree());
             handleArtificialTree(target);
+        } else {
+            target = unaryTree;
         }
 
         AssignmentNode assignNode = new AssignmentNode(target, expr, narrowed);
@@ -4129,7 +4186,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
      * @param clazz a class
      * @return the TypeMirror for the class
      */
-    private TypeMirror getTypeMirror(Class<?> clazz) {
+    protected TypeMirror getTypeMirror(Class<?> clazz) {
         return TypesUtils.typeFromClass(clazz, types, elements);
     }
 
@@ -4143,7 +4200,7 @@ public class CFGTranslationPhaseOne extends TreeScanner<Node, Void> {
      * @param clazz a class, which must have a canonical name
      * @return the TypeMirror for the class, or {@code null} if the type is not present
      */
-    private @Nullable TypeMirror maybeGetTypeMirror(Class<?> clazz) {
+    protected @Nullable TypeMirror maybeGetTypeMirror(Class<?> clazz) {
         String name = clazz.getCanonicalName();
         assert name != null : clazz + " does not have a canonical name";
         TypeElement element = elements.getTypeElement(name);

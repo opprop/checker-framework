@@ -207,6 +207,10 @@ import javax.tools.Diagnostic.Kind;
     // "-Ainfer=stubs" or "-Ainfer=jaifs".
     "infer",
 
+    // Whether to output a copy of each file for which annotations were inferred, formatted
+    // as an ajava file. Can only be used with -Ainfer=ajava
+    "inferOutputOriginal",
+
     // With each warning, in addition to the concrete error key,
     // output the SuppressWarnings strings that can be used to
     // suppress that warning.
@@ -251,6 +255,7 @@ import javax.tools.Diagnostic.Kind;
     // that were not found on the class path
     // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFound
     "stubWarnIfNotFound",
+    "stubNoWarnIfNotFound",
     // Whether to ignore missing classes even when warnIfNotFound is set to true and other classes
     // from the same package are present (useful if a package spans more than one jar).
     // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFoundIgnoresClasses
@@ -2045,7 +2050,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
     /**
      * Determines whether all the warnings pertaining to a given tree should be suppressed. Returns
      * true if the tree is within the scope of a @SuppressWarnings annotation, one of whose values
-     * suppresses the checker's warnings. Also, returns true if the {@code errKey} matches a string
+     * suppresses the checker's warning. Also, returns true if the {@code errKey} matches a string
      * in {@code -AsuppressWarnings}.
      *
      * @param tree the tree that might be a source of a warning
@@ -2073,6 +2078,25 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
 
         // trees.getPath might be slow, but this is only used in error reporting
         @Nullable TreePath path = trees.getPath(this.currentRoot, tree);
+
+        return shouldSuppressWarnings(path, errKey);
+    }
+
+    /**
+     * Determines whether all the warnings pertaining to a given tree path should be suppressed.
+     * Returns true if the path is within the scope of a @SuppressWarnings annotation, one of whose
+     * values suppresses the checker's warning.
+     *
+     * @param path the TreePath that might be a source of, or related to, a warning
+     * @param errKey the error key the checker is emitting
+     * @return true if no warning should be emitted for the given path because it is contained by a
+     *     declaration with an appropriately-valued {@code @SuppressWarnings} annotation; false
+     *     otherwise
+     */
+    public boolean shouldSuppressWarnings(@Nullable TreePath path, String errKey) {
+        if (path == null) {
+            return false;
+        }
 
         @Nullable VariableTree var = TreePathUtil.enclosingVariable(path);
         if (var != null && shouldSuppressWarnings(TreeUtils.elementFromTree(var), errKey)) {

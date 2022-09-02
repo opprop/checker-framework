@@ -1,7 +1,175 @@
-Version 3.21.3-eisop1 (March ?, 2022)
+Version 3.23.0-eisop1 (July 14, 2022)
 -------------------------------------
 
+**Implementation details:**
+
+Added support for viewpoint adaptation of types via the added
+ViewpointAdapter interface. This support is experimental and the API
+will change, in particular if the feature is fully integrated with
+the DependentTypesHelper.
+
+Improved defaulting in stub files:
+Method `AnnotatedTypeFactory.getDeclAnnotations` now returns the
+annotations for a package element. Previously, it returned an empty set
+when parsing another file. (eisop#270)
+
+Method `CFAbstractTransfer.visitMethodInvocation` now only creates a
+`ConditionalTransferResult` when the method return type is boolean or
+Boolean. This avoids unnecessary duplication of many stores, reducing
+memory consumption.
+
+Improved the CFG type of implicit this receivers. (typetools#5174)
+
+**Closed issues:**
+
+eisop#270, eisop#281, typetools#5174, typetools#5189.
+
+
+Version 3.23.0 (July 11, 2022)
+------------------------------
+
 **User-visible changes:**
+
+By default, command-line argument `-AstubWarnIfNotFound` is treated as true
+for stub files provided on the command line and false for built-in stub
+files.  Use `-AstubWarnIfNotFound` to enable it for all stub files, and use
+new `-AstubNoWarnIfNotFound` to disable it for all stub files.
+
+New command-line argument `-ApermitStaticOwning` suppresses Resource Leak
+Checker warnings related to static owning fields.
+
+New command-line argument `-ApermitInitializationLeak` suppresses Resource Leak
+Checker warnings related to field initialization.
+
+**Closed issues:**
+
+#4855, #5151, #5166, #5172, #5175, #5181, #5189.
+
+
+Version 3.22.2 (June 14, 2022)
+------------------------------
+
+**Implementation details:**
+
+Expose CFG APIs to allow inserting jumps and throws
+
+
+Version 3.22.1-eisop1 (June 3, 2022)
+------------------------------------
+
+**User-visible changes:**
+
+Type parameters with explicit j.l.Object upper bounds and
+unannotated, unbounded wildcards now behave the same in .astub
+files and in .java files.
+
+**Implementation details:**
+
+In `PropagationTreeAnnotator.visitBinary`, we now consider the two cases where
+the resulting Java type of a binary operation can be different from the operands'
+types: string concatenation and binary comparison. We apply the declaration
+bounds of the resulting Java type to ensure annotations in the ATM are valid.
+
+Deprecated `AnnotatedTypeFactory.binaryTreeArgTypes(AnnotatedTypeMirror, AnnotatedTypeMirror)` in favor of
+`AnnotatedTypeFactory.binaryTreeArgTypes(BinaryTree)` and
+`AnnotatedTypeFactory.compoundAssignmentTreeArgTypes(CompoundAssignmentTree)`.
+
+**Closed issues:**
+
+typetools#3025, typetools#3030, typetools#3236.
+
+Test cases for issues that already pass:
+typetools#2722, typetools#2995, typetools#3015, typetools#3027.
+
+typetools#58 was closed in error. See
+https://github.com/eisop/checker-framework/issues/242
+for follow-up discussions.
+
+
+Version 3.22.1 (June 1, 2022)
+-----------------------------
+
+**Closed issues:**
+#58, #5136, #5138, #5142, #5143.
+
+
+Version 3.22.0-eisop1 (May 6, 2022)
+-----------------------------------
+
+**User-visible changes:**
+
+Added reaching definitions and very busy expressions analysis demos.
+
+**Implementation details:**
+
+Fixed the types of `MethodInvocationNode#arguments` and
+`ObjectCreationNode#arguments` in CFGs. Previously, argument nodes are created
+using the types from the method declaration, which means some nodes are using
+type variables that are not substituted by type arguments at the call site.
+For example, we used to observe `new T[]{"a", "b"}` instead of
+`new String[]{"a", "b"}`, while the second one makes more sense.
+
+Added a new gradle task `fastAssemble` to quickly rebuild the Checker
+Framework for local development. This command will assemble the jar
+files without generating any Javadoc or sources.jar files, thus it is
+faster than the gradle assemble task.
+
+Type system test drivers no longer need to pass `-Anomsgtext`.
+The Checker Framework test driver (in `TypecheckExecutor.compile`) now always
+passes the `-Anomsgtext` option.
+
+Moved the `-AajavaChecks` option from `CheckerFrameworkPerDirectoryTest` to
+`TypecheckExecutor.compile` to ensure the option is used for all tests.
+
+**Closed issues:**
+eisop#210.
+
+
+Version 3.22.0 (May 2, 2022)
+----------------------------
+
+**User-visible changes:**
+
+The Signedness Checker now checks calls to `equals()` as well as to `==`.  When
+two formal parameter types are annotated with @PolySigned, the two arguments at
+a call site must have the same signedness type annotation. (This differs from
+the standard rule for polymorphic qualifiers.)
+
+**Implementation details:**
+
+When passed a NewClassTree that creates an anonymous constructor,
+AnnotatedTypeFactory#constructorFormUse now returns the type of the anonymous
+constructor rather than the type of the super constructor invoked in the
+anonymous classes constructor.  If the super constructor has explicit
+annotations, they are copied to the anonymous classes constructor.
+
+**Closed issues:**
+#5113.
+
+
+Version 3.21.4-eisop1 (April 4, 2022)
+-------------------------------------
+
+**Closed issues:**
+eisop#199, eisop#204.
+
+
+Version 3.21.4 (April 1, 2022)
+------------------------------
+
+**Closed issues:**
+#5086.
+
+
+Version 3.21.3-eisop1 (March 23, 2022)
+--------------------------------------
+
+**User-visible changes:**
+
+If you supply the new `-AjspecifyNullMarkedAlias=false` command-line
+option, then the Nullness Checker will not treat
+`org.jspecify.nullness.NullMarked` as a defaulting annotation.
+By default the `NullMarked` annotation continues to be recognized.
 
 **Implementation details:**
 
@@ -12,7 +180,13 @@ Changed `CFAbstractTransfer.insertIntoStores` from public to protected
 visibility. It is only meant as a utility method for use within a
 transfer function.
 
+Deprecated class `StringConcatenateAssignmentNode` and its usages.
+String concatenate assignments are now desugared to an assignment and
+a concatenation node instead.
+This avoids error prone duplication of logic.
+
 **Closed issues:**
+typetools#5075.
 
 
 Version 3.21.3 (March 1, 2022)
@@ -4215,7 +4389,7 @@ Code Changes
     fixed generic and array handling of @ReadOnly
     fixed @RoMaybe resolution of receivers at method invocation
     fixed parsing of parenthesized trees and conditional trees
-    added initial support for for-enhanced loop
+    added initial support for enhanced-for loop
     fixed constructor behavior on @ReadOnly classes
     added checks for annotations on primitive types inside arrays
 

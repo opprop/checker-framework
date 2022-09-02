@@ -493,6 +493,7 @@ public class QualifierDefaults {
         }
 
         Tree prev = null;
+
         for (Tree t : path) {
             switch (TreeUtils.getKindRecordAsClass(t)) {
                 case ANNOTATED_TYPE:

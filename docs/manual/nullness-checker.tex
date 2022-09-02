@@ -162,6 +162,12 @@ by the Checker Framework.
   \sunjavadoc{java.base/java/lang/System.html\#getProperties()}{System.getProperties()}.
   To make this behavior sound, the Nullness Checker forbids calls that
   might clear any built-in property, as described above.
+
+\item
+  \label{nullness-jspecifyNullMarkedAlias}%
+  If you supply the \code{-AjspecifyNullMarkedAlias=false} command-line option, then the
+  checker will not treat \code{org.jspecify.nullness.NullMarked} as a defaulting
+  annotation. By default the \code{NullMarked} annotation is recognized.
 \end{itemize}
 
 \end{enumerate}
@@ -600,8 +606,10 @@ Section~\ref{null-defaults}) your code uses.  You only need one of these tools.
 % Julia is no longer publicly available.
 % \item
 %   \href{https://juliasoft.com/solutions/}{Julia analyzer},
-\item
-  \href{http://nit.gforge.inria.fr}{Nit: Nullability Inference Tool},
+% This URL no longer works.  As of June 2022, the last Wayback Machine crawl
+% was August 2019.
+% \item
+%   \href{http://nit.gforge.inria.fr}{Nit: Nullability Inference Tool},
 \item
   \href{https://jastadd.cs.lth.se/jastadd-tutorial-examples/non-null-types-for-java/}{Non-null
     checker and inferencer} of the \href{https://jastadd.cs.lth.se/}{JastAdd

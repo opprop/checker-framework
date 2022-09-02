@@ -27,6 +27,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.plumelib.util.CollectionsPlume;
 import org.plumelib.util.StringsPlume;
@@ -47,6 +48,7 @@ import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
@@ -710,7 +712,7 @@ public class AnnotatedTypes {
 
         // Is the method a generic method?
         if (elt.getTypeParameters().isEmpty()) {
-            return Collections.emptyMap();
+            return new HashMap<>();
         }
 
         List<? extends Tree> targs;
@@ -959,12 +961,59 @@ public class AnnotatedTypes {
      * @param method the method's type
      * @param args the arguments to the method invocation
      * @return the types that the method invocation arguments need to be subtype of
+     * @deprecated Use {@link #adaptParameters(AnnotatedTypeFactory,
+     *     AnnotatedTypeMirror.AnnotatedExecutableType, List)} instead
      */
+    @Deprecated
     public static List<AnnotatedTypeMirror> expandVarArgsParameters(
             AnnotatedTypeFactory atypeFactory,
             AnnotatedExecutableType method,
             List<? extends ExpressionTree> args) {
+        return adaptParameters(atypeFactory, method, args);
+    }
+
+    /**
+     * Returns the method parameters for the invoked method (or constructor), with the same number
+     * of arguments as passed to the invocation tree.
+     *
+     * <p>This expands the parameters if the call uses varargs or contracts the parameters if the
+     * call is to an anonymous class that extends a class with an enclosing type. If the call is
+     * neither of these, then the parameters are returned unchanged.
+     *
+     * @param atypeFactory the type factory to use for fetching annotated types
+     * @param method the method or constructor's type
+     * @param args the arguments to the method or constructor invocation
+     * @return a list of the types that the invocation arguments need to be subtype of; has the same
+     *     length as {@code args}
+     */
+    public static List<AnnotatedTypeMirror> adaptParameters(
+            AnnotatedTypeFactory atypeFactory,
+            AnnotatedExecutableType method,
+            List<? extends ExpressionTree> args) {
         List<AnnotatedTypeMirror> parameters = method.getParameterTypes();
+
+        if (parameters.isEmpty()) {
+            return parameters;
+        }
+
+        // Handle anonymous constructors that extend a class with an enclosing type.
+        if (method.getElement().getKind() == ElementKind.CONSTRUCTOR
+                && method.getElement().getEnclosingElement().getSimpleName().contentEquals("")) {
+            DeclaredType t =
+                    TypesUtils.getSuperClassOrInterface(
+                            method.getElement().getEnclosingElement().asType(), atypeFactory.types);
+            if (t.getEnclosingType() != null
+                    && atypeFactory.types.isSameType(
+                            t.getEnclosingType(), parameters.get(0).getUnderlyingType())
+                    && (args.isEmpty()
+                            || !atypeFactory.types.isSameType(
+                                    TreeUtils.typeOf(args.get(0)),
+                                    parameters.get(0).getUnderlyingType()))) {
+                parameters = parameters.subList(1, parameters.size());
+            }
+        }
+
+        // Handle vararg methods.
         if (!method.getElement().isVarArgs()) {
             return parameters;
         }

@@ -6,17 +6,22 @@ plugins {
     id 'java'
     id 'net.ltgt.errorprone' version '2.0.2'
     // Checker Framework pluggable type-checking
-    id 'org.checkerframework' version '0.6.8'
+    id 'org.checkerframework' version '0.6.13'
 }
 
 apply plugin: 'org.checkerframework'
+dependencies {
+    compileOnly 'io.github.eisop:checker-qual:3.22.1-eisop1'
+    testCompileOnly 'io.github.eisop:checker-qual:3.22.1-eisop1'
+    checkerFramework 'io.github.eisop:checker:3.22.1-eisop1'
+}
 
 dependencies {
     // Must use at least version 2.4.0 of Error Prone.
     if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
         errorprone 'com.google.errorprone:error_prone_core:2.10.0'
     } else {
-        errorprone 'com.google.errorprone:error_prone_core:2.11.0'
+        errorprone 'com.google.errorprone:error_prone_core:2.12.0'
     }
 }
 

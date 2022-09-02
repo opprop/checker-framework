@@ -3,7 +3,6 @@ package org.checkerframework.framework.type;
 // The imports from com.sun are all @jdk.Exported and therefore somewhat safe to use.
 // Try to avoid using non-@jdk.Exported classes.
 
-import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BinaryTree;
@@ -18,7 +17,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
-import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
@@ -272,8 +270,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     private final @Nullable WholeProgramInference wholeProgramInference;
     */
 
-    /** Viewpoint adapter used to perform viewpoint adaptation */
-    protected ViewpointAdapter viewpointAdapter;
+    /** Viewpoint adapter used to perform viewpoint adaptation or null */
+    protected @Nullable ViewpointAdapter viewpointAdapter;
 
     /**
      * This formatter is used for converting AnnotatedTypeMirrors to Strings. This formatter will be
@@ -589,47 +587,55 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         /* NO-AFU
-               if (checker.hasOption("infer")) {
-                   checkInvalidOptionsInferSignatures();
-                   String inferArg = checker.getOption("infer");
-                   // No argument means "jaifs", for (temporary) backwards compatibility.
-                   if (inferArg == null) {
-                       inferArg = "jaifs";
-                   }
-                   switch (inferArg) {
-                       case "stubs":
-                           wpiOutputFormat = WholeProgramInference.OutputFormat.STUB;
-                           break;
-                       case "jaifs":
-                           wpiOutputFormat = WholeProgramInference.OutputFormat.JAIF;
-                           break;
-                       case "ajava":
-                           wpiOutputFormat = WholeProgramInference.OutputFormat.AJAVA;
-                           break;
-                       default:
-                           throw new UserError(
-                                   "Bad argument -Ainfer="
-                                           + inferArg
-                                           + " should be one of: -Ainfer=jaifs, -Ainfer=stubs,"
-                                           + " -Ainfer=ajava");
-                   }
-                   if (wpiOutputFormat == WholeProgramInference.OutputFormat.AJAVA) {
-                       wholeProgramInference =
-                               new WholeProgramInferenceImplementation<AnnotatedTypeMirror>(
-                                       this, new WholeProgramInferenceJavaParserStorage(this));
-                   } else {
-                       wholeProgramInference =
-                               new WholeProgramInferenceImplementation<ATypeElement>(
-                                       this, new WholeProgramInferenceScenesStorage(this));
-                   }
-                   if (!checker.hasOption("warns")) {
-                       // Without -Awarns, the inference output may be incomplete, because javac halts
-                       // after issuing an error.
-                       checker.message(Diagnostic.Kind.ERROR, "Do not supply -Ainfer without -Awarns");
-                   }
-               } else {
-                   wholeProgramInference = null;
-               }
+        if (checker.hasOption("infer")) {
+          checkInvalidOptionsInferSignatures();
+          String inferArg = checker.getOption("infer");
+          // No argument means "jaifs", for (temporary) backwards compatibility.
+          if (inferArg == null) {
+            inferArg = "jaifs";
+          }
+          switch (inferArg) {
+            case "stubs":
+              wpiOutputFormat = WholeProgramInference.OutputFormat.STUB;
+              break;
+            case "jaifs":
+              wpiOutputFormat = WholeProgramInference.OutputFormat.JAIF;
+              break;
+            case "ajava":
+              wpiOutputFormat = WholeProgramInference.OutputFormat.AJAVA;
+              break;
+            default:
+              throw new UserError(
+                  "Bad argument -Ainfer="
+                      + inferArg
+                      + " should be one of: -Ainfer=jaifs, -Ainfer=stubs, -Ainfer=ajava");
+          }
+          boolean showWpiFailedInferences = checker.hasOption("showWpiFailedInferences");
+          boolean inferOutputOriginal = checker.hasOption("inferOutputOriginal");
+          if (inferOutputOriginal && wpiOutputFormat != WholeProgramInference.OutputFormat.AJAVA) {
+            checker.message(
+                Diagnostic.Kind.WARNING,
+                "-AinferOutputOriginal only works with -Ainfer=ajava, so it is being ignored.");
+          }
+          if (wpiOutputFormat == WholeProgramInference.OutputFormat.AJAVA) {
+            wholeProgramInference =
+                new WholeProgramInferenceImplementation<AnnotatedTypeMirror>(
+                    this,
+                    new WholeProgramInferenceJavaParserStorage(this, inferOutputOriginal),
+                    showWpiFailedInferences);
+          } else {
+            wholeProgramInference =
+                new WholeProgramInferenceImplementation<ATypeElement>(
+                    this, new WholeProgramInferenceScenesStorage(this), showWpiFailedInferences);
+          }
+          if (!checker.hasOption("warns")) {
+            // Without -Awarns, the inference output may be incomplete, because javac halts
+            // after issuing an error.
+            checker.message(Diagnostic.Kind.ERROR, "Do not supply -Ainfer without -Awarns");
+          }
+        } else {
+          wholeProgramInference = null;
+        }
         */
 
         ignoreUninferredTypeArguments = !checker.hasOption("conservativeUninferredTypeArguments");
@@ -932,20 +938,50 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
             String qualifiedName = packagePrefix + className;
 
+            // If the set candidateAjavaFiles has exactly one element after the loop, a specific
+            // .ajava file was supplied, with no ambiguity, and can be parsed. For an explanation,
+            // see the comment below about possible ambiguity.
+            Set<String> candidateAjavaFiles = new HashSet<>(1);
+            // All .ajava files for this class + checker combo end in this string.
+            String ajavaEnding =
+                    qualifiedName.replaceAll("\\.", "/")
+                            + "-"
+                            + checker.getClass().getCanonicalName()
+                            + ".ajava";
             for (String ajavaLocation : checker.getOption("ajava").split(File.pathSeparator)) {
-                String ajavaPath =
-                        ajavaLocation
-                                + File.separator
-                                + qualifiedName.replaceAll("\\.", "/")
-                                + "-"
-                                + checker.getClass().getCanonicalName()
-                                + ".ajava";
-                File ajavaFile = new File(ajavaPath);
-                if (ajavaFile.exists()) {
-                    currentFileAjavaTypes = new AnnotationFileElementTypes(this);
-                    currentFileAjavaTypes.parseAjavaFileWithTree(ajavaPath, root);
-                    break;
+                // ajavaLocation might either be (1) a directory, or (2) the name of a specific
+                // ajava file. This code must handle both possible cases.
+                // Case (1): ajavaPath is a directory
+                String ajavaPath = ajavaLocation + File.separator + ajavaEnding;
+                File ajavaFileInDir = new File(ajavaPath);
+                if (ajavaFileInDir.exists()) {
+                    // There is a candidate ajava file in one of the root directories.
+                    candidateAjavaFiles.add(ajavaPath);
+                } else {
+                    // Check case (2): ajavaPath might be a specific .ajava file. The tricky thing
+                    // about this is that the "root" is not known, so the correct .ajava file might
+                    // be ambiguous. Consider the following: there are two ajava files:
+                    // ~/foo/foo/Bar-checker.ajava and ~/baz/foo/Bar-checker.ajava. Which is the
+                    // correct one for class foo.Bar? It depends on whether there is a foo.foo.Bar
+                    // or a baz.foo.Bar elsewhere in the project. For that reason, parsing using a
+                    // specific file is done at the **end** of the loop, and if there is more than
+                    // one match no file is parsed for this class and a warning is issued instead.
+                    // The user can disambiguate by supplying a root directory, instead of specific
+                    // files.
+                    if (ajavaLocation.endsWith(File.separator + ajavaEnding)) {
+                        // This is a candidate ajava file. If it is the only candidate, then it
+                        // might be unambiguous. If not, issue a warning.
+                        candidateAjavaFiles.add(ajavaLocation);
+                    }
                 }
+            }
+            if (candidateAjavaFiles.size() == 1) {
+                currentFileAjavaTypes = new AnnotationFileElementTypes(this);
+                currentFileAjavaTypes.parseAjavaFileWithTree(
+                        candidateAjavaFiles.toArray(new String[1])[0], root);
+            } else if (candidateAjavaFiles.size() > 1) {
+                checker.reportWarning(
+                        root, "ambiguous.ajava", String.join(", ", candidateAjavaFiles));
             }
         } else {
             currentFileAjavaTypes = null;
@@ -1006,10 +1042,12 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Factory method to create a ViewpointAdaptor. Subclasses should implement and instantiate a
-     * ViewpointAdapter subclass here if viewpoint adaptation is needed for analysis.
+     * Factory method to create a ViewpointAdapter. Subclasses should implement and instantiate a
+     * ViewpointAdapter subclass if viewpoint adaptation is needed for a type system.
+     *
+     * @return viewpoint adapter to perform viewpoint adaptation or null
      */
-    protected ViewpointAdapter createViewpointAdapter() {
+    protected @Nullable ViewpointAdapter createViewpointAdapter() {
         return null;
     }
 
@@ -1384,6 +1422,35 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     public Set<AnnotationMirror> getTypeDeclarationBounds(TypeMirror type) {
         return qualifierUpperBounds.getBoundQualifiers(type);
+    }
+
+    /**
+     * Compare the given {@code annos} with the declaration bounds of {@code type} and return the
+     * appropriate qualifiers. For each qualifier in {@code annos}, if it is a subtype of the
+     * declaration bound in the same hierarchy, it will be added to the result; otherwise, the
+     * declaration bound will be added to the result instead.
+     *
+     * @param type java type that specifies the qualifier upper bound
+     * @param annos a set of qualifiers to be compared with the declaration bounds of {@code type}
+     * @return the modified {@code annos} after applying the rules described above
+     */
+    public Set<AnnotationMirror> getAnnotationOrTypeDeclarationBound(
+            TypeMirror type, Set<? extends AnnotationMirror> annos) {
+        Set<AnnotationMirror> boundAnnos = getTypeDeclarationBounds(type);
+        Set<AnnotationMirror> results = AnnotationUtils.createAnnotationSet();
+
+        for (AnnotationMirror anno : annos) {
+            AnnotationMirror boundAnno =
+                    qualHierarchy.findAnnotationInSameHierarchy(boundAnnos, anno);
+            assert boundAnno != null;
+
+            if (!qualHierarchy.isSubtype(anno, boundAnno)) {
+                results.add(boundAnno);
+            } else {
+                results.add(anno);
+            }
+        }
+        return results;
     }
 
     /**
@@ -1985,7 +2052,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * <p>Clients should generally call {@link #getReceiverType}.
      *
      * @param tree the expression that might have an implicit receiver
-     * @return the type of the implicit receiver
+     * @return the type of the implicit receiver. Returns null if the expression has an explicit
+     *     receiver or doesn't have a receiver.
      */
     protected @Nullable AnnotatedDeclaredType getImplicitReceiverType(ExpressionTree tree) {
         assert (tree.getKind() == Tree.Kind.IDENTIFIER
@@ -2027,7 +2095,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         if (thisType == null) {
             return null;
         }
-        // An implicit receiver is the first enclosing type that is a subtype of the type where
+        // An implicit receiver is the first enclosing type that is a subtype of the type where the
         // element is declared.
         while (!isSubtype(thisType.getUnderlyingType(), typeOfImplicitReceiver)) {
             thisType = thisType.getEnclosingType();
@@ -2274,7 +2342,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     public ParameterizedExecutableType methodFromUse(
             ExpressionTree tree, ExecutableElement methodElt, AnnotatedTypeMirror receiverType) {
-
         AnnotatedExecutableType memberTypeWithoutOverrides =
                 getAnnotatedType(methodElt); // get unsubstituted type
         AnnotatedExecutableType memberTypeWithOverrides =
@@ -2322,6 +2389,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             adaptGetClassReturnTypeToReceiver(methodType, receiverType, tree);
         }
 
+        methodType.setReturnType(applyCaptureConversion(methodType.getReturnType()));
         return new ParameterizedExecutableType(methodType, typeargs);
     }
 
@@ -2606,55 +2674,83 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *     (inferred) type arguments
      */
     public ParameterizedExecutableType constructorFromUse(NewClassTree tree) {
-        AnnotatedTypeMirror type = fromNewClass(tree);
+        // Get the annotations written on the new class tree.
+        AnnotatedDeclaredType type =
+                (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(tree), false);
+        if (!TreeUtils.isDiamondTree(tree)) {
+            if (tree.getClassBody() == null) {
+                type.setTypeArguments(getExplicitNewClassClassTypeArgs(tree));
+            }
+        } else {
+            type = getAnnotatedType(TypesUtils.getTypeElement(type.underlyingType));
+            // Add explicit annotations below.
+            type.clearAnnotations();
+        }
+
+        Set<AnnotationMirror> explicitAnnos = getExplicitNewClassAnnos(tree);
+        type.addAnnotations(explicitAnnos);
+
+        // Get the enclosing type of the constructor, if one exists.
+        // this.new InnerClass()
+        AnnotatedDeclaredType enclosingType = (AnnotatedDeclaredType) getReceiverType(tree);
+        type.setEnclosingType(enclosingType);
+
+        // Add computed annotations to the type.
         addComputedTypeAnnotations(tree, type);
 
         ExecutableElement ctor = TreeUtils.constructor(tree);
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
-
-        if (tree.getClassBody() != null) {
-            // The artificial constructor for an anonymous class only contains an invocation of the
-            // corresponding super class constructor. The artificial constructor does not have all
-            // the type annotations the super class constructor has, but conceptually it should have
-            // the same type annotations. Instead of copying all the annotations over, we simply use
-            // the super constructor element for the anonymous class constructor.
-            ExecutableElement superCtor = TreeUtils.anonymousSuperConstructor(tree);
-            AnnotatedExecutableType superCtorType = getAnnotatedType(superCtor);
-
-            if (TreeUtils.hasSyntheticArgument(tree)) {
-                // In JDK 8, an anonymous class instantiation with enclosing expression passes
-                // the enclosing expression as the first argument (i.e. synthetic argument),
-                // while the super constructor parameters does not have the counterpart.
-                // Therefore, we get the first parameter of the anonymous constructor and manually
-                // add it to the parameter list at index 0.
-                List<AnnotatedTypeMirror> actualParams =
-                        new ArrayList<>(superCtorType.getParameterTypes().size() + 1);
-                actualParams.add(con.getParameterTypes().get(0));
-                actualParams.addAll(superCtorType.getParameterTypes());
-                superCtorType.setParameterTypes(actualParams);
-
-                // In this case, the constructor type should record the anonymous constructor
-                // element rather than the super constructor element. The additional synthetic
-                // argument will count during the constructor argument checking. See
-                // org.checkerframework.common.basetype.BaseTypeVisitor#checkConstructorInvocation
-                superCtorType.setElement(ctor);
-            }
-
-            con = superCtorType;
-            ctor = superCtor;
-        }
-
         constructorFromUsePreSubstitution(tree, con);
 
         if (viewpointAdapter != null) {
             viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
         }
 
-        con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
+        if (tree.getClassBody() != null) {
+            // Because the anonymous constructor can't have explicit annotations on its parameters,
+            // they are copied from the super constructor invoked in the anonymous constructor. To
+            // do this:
+            // 1. get unsubstituted type of the super constructor.
+            // 2. adapt it to this call site.
+            // 3. copy the parameters to the anonymous constructor, `con`.
+            // 4. copy annotations on the return type to `con`.
+            AnnotatedExecutableType superCon =
+                    getAnnotatedType(TreeUtils.getSuperConstructor(tree));
+            constructorFromUsePreSubstitution(tree, superCon);
+            // no viewpoint adaptation needed for super invocation
+            superCon =
+                    AnnotatedTypes.asMemberOf(types, this, type, superCon.getElement(), superCon);
+            if (superCon.getParameterTypes().size() == con.getParameterTypes().size()) {
+                con.setParameterTypes(superCon.getParameterTypes());
+            } else {
+                // If the super class of the anonymous class has an enclosing type, then it is the
+                // first parameter of the anonymous constructor. For example,
+                // class Outer { class Inner {} }
+                //  new Inner(){};
+                // Then javac creates the following constructor:
+                //  (.Outer x0) {
+                //   x0.super();
+                //   }
+                // So the code below deals with this.
+                List<AnnotatedTypeMirror> p =
+                        new ArrayList<>(superCon.getParameterTypes().size() + 1);
+                if (TreeUtils.hasSyntheticArgument(tree)) {
+                    p.add(con.getParameterTypes().get(0));
+                } else if (con.receiverType != null) {
+                    p.add(con.receiverType);
+                } else {
+                    p.add(con.paramTypes.get(0));
+                }
+                p.addAll(1, superCon.getParameterTypes());
+                con.setParameterTypes(p);
+            }
+            con.getReturnType().replaceAnnotations(superCon.getReturnType().getAnnotations());
+        } else {
+            con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
+        }
 
         Map<TypeVariable, AnnotatedTypeMirror> typeParamToTypeArg =
                 AnnotatedTypes.findTypeArguments(processingEnv, this, tree, ctor, con);
-
         List<AnnotatedTypeMirror> typeargs;
         if (typeParamToTypeArg.isEmpty()) {
             typeargs = Collections.emptyList();
@@ -2664,12 +2760,168 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                             (AnnotatedTypeVariable tv) ->
                                     typeParamToTypeArg.get(tv.getUnderlyingType()),
                             con.getTypeVariables());
-            con = (AnnotatedExecutableType) typeVarSubstitutor.substitute(typeParamToTypeArg, con);
         }
+        if (TreeUtils.isDiamondTree(tree)) {
+            // TODO: This should be done at the same time as type argument inference.
+            List<AnnotatedTypeMirror> classTypeArgs = inferDiamondType(tree);
+            int i = 0;
+            for (AnnotatedTypeMirror typeParam : type.getTypeArguments()) {
+                typeParamToTypeArg.put(
+                        (TypeVariable) typeParam.getUnderlyingType(), classTypeArgs.get(i));
+                i++;
+            }
+        }
+        con = (AnnotatedExecutableType) typeVarSubstitutor.substitute(typeParamToTypeArg, con);
 
         stubTypes.injectRecordComponentType(types, ctor, con);
-
+        if (enclosingType != null) {
+            // Reset the enclosing type because it can be substituted incorrectly.
+            ((AnnotatedDeclaredType) con.getReturnType()).setEnclosingType(enclosingType);
+        }
         return new ParameterizedExecutableType(con, typeargs);
+    }
+
+    /**
+     * Creates an AnnotatedDeclaredType for a NewClassTree. Only adds explicit annotations, unless
+     * newClassTree has a diamond operator. In that case, the annotations on the type arguments are
+     * inferred using the assignment context and contain defaults.
+     *
+     * <p>(Subclass beside {@link GenericAnnotatedTypeFactory} should not override this method.)
+     *
+     * @param newClassTree NewClassTree
+     * @return AnnotatedDeclaredType
+     * @deprecated Use {@link #getExplicitNewClassAnnos(NewClassTree)}, {@link
+     *     #getExplicitNewClassClassTypeArgs(NewClassTree)}, or {@link #getAnnotatedType(ClassTree)}
+     *     instead.
+     */
+    @Deprecated // This should be removed when the #979 is fixed and the remain use is removed.
+    public AnnotatedDeclaredType fromNewClass(NewClassTree newClassTree) {
+        AnnotatedDeclaredType type =
+                (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
+        if (!TreeUtils.isDiamondTree(newClassTree)) {
+            if (newClassTree.getClassBody() == null) {
+                type.setTypeArguments(getExplicitNewClassClassTypeArgs(newClassTree));
+            }
+        } else {
+            assert TreeUtils.isDiamondTree(newClassTree) : "Expected diamond new class tree";
+            TreePath p = getPath(newClassTree);
+            AnnotatedTypeMirror ctxtype = TypeArgInferenceUtil.assignedTo(this, p);
+            if (ctxtype != null && ctxtype.getKind() == TypeKind.DECLARED) {
+                AnnotatedDeclaredType adctx = (AnnotatedDeclaredType) ctxtype;
+                if (type.getTypeArguments().size() == adctx.getTypeArguments().size()) {
+                    // Try to simply take the type arguments from LHS.
+                    List<AnnotatedTypeMirror> oldArgs = type.getTypeArguments();
+                    List<AnnotatedTypeMirror> newArgs = adctx.getTypeArguments();
+                    for (int i = 0; i < type.getTypeArguments().size(); ++i) {
+                        if (!types.isSubtype(
+                                newArgs.get(i).underlyingType, oldArgs.get(i).underlyingType)) {
+                            // One of the underlying types doesn't match. Give up.
+                            newArgs = oldArgs;
+                            break;
+                        }
+                    }
+                    type.setTypeArguments(newArgs);
+                }
+            }
+        }
+
+        Set<AnnotationMirror> explicitAnnos = getExplicitNewClassAnnos(newClassTree);
+        // Type may already have explicit dependent type annotations that have not yet been vpa.
+        type.clearAnnotations();
+        type.addAnnotations(explicitAnnos);
+        // Use the receiver type as enclosing type, if present.
+        AnnotatedDeclaredType enclosingType = (AnnotatedDeclaredType) getReceiverType(newClassTree);
+        if (enclosingType != null) {
+            type.setEnclosingType(enclosingType);
+        }
+        return type;
+    }
+
+    /**
+     * Returns the annotations explicitly written on a NewClassTree.
+     *
+     * <p>{@code new @HERE Class()}
+     *
+     * @param newClassTree a constructor invocation
+     * @return the annotations explicitly written on a NewClassTree
+     */
+    public Set<AnnotationMirror> getExplicitNewClassAnnos(NewClassTree newClassTree) {
+        if (newClassTree.getClassBody() != null) {
+            // In Java 17+, the annotations are on the identifier, so copy them.
+            AnnotatedTypeMirror identifierType = fromTypeTree(newClassTree.getIdentifier());
+            // In Java 11 and lower, if newClassTree creates an anonymous class, then annotations in
+            // this location:
+            //   new @HERE Class() {}
+            // are on not on the identifier newClassTree, but rather on the modifier newClassTree.
+            List<? extends AnnotationTree> annoTrees =
+                    newClassTree.getClassBody().getModifiers().getAnnotations();
+            // Add the annotations to an AnnotatedTypeMirror removes the annotations that are not
+            // supported by this type system.
+            identifierType.addAnnotations(TreeUtils.annotationsFromTypeAnnotationTrees(annoTrees));
+            return identifierType.getAnnotations();
+        } else {
+            return fromTypeTree(newClassTree.getIdentifier()).getAnnotations();
+        }
+    }
+
+    /**
+     * Returns the partially-annotated explicit class type arguments of the new class tree. The
+     * {@code AnnotatedTypeMirror} only include the annotations explicitly written on the explict
+     * type arguments. (If {@code newClass} use a diamond operator, this method returns the empty
+     * list.) For example, when called with {@code new MyClass<@HERE String>()} this method would
+     * return a list containing {@code @HERE String}.
+     *
+     * @param newClass a new class tree
+     * @return the partially annotated {@code AnnotatedTypeMirror}s for the (explicit) class type
+     *     arguments of the new class tree
+     */
+    protected List<AnnotatedTypeMirror> getExplicitNewClassClassTypeArgs(NewClassTree newClass) {
+        if (!TreeUtils.isDiamondTree(newClass)) {
+            return ((AnnotatedDeclaredType) fromTypeTree(newClass.getIdentifier()))
+                    .getTypeArguments();
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Infer the class type arguments for the diamond operator.
+     *
+     * <p>If {@code newClassTree} is assigned to the same type (not a supertype), then the type
+     * arguments are inferred to be the same as the assignment. Otherwise, the type arguments are
+     * annotated by {@link #addComputedTypeAnnotations(Tree, AnnotatedTypeMirror)}.
+     *
+     * @param newClassTree a diamond new class tree
+     * @return the class type arguments for {@code newClassTree}
+     */
+    private List<AnnotatedTypeMirror> inferDiamondType(NewClassTree newClassTree) {
+        assert TreeUtils.isDiamondTree(newClassTree) : "Expected diamond new class tree";
+        AnnotatedDeclaredType diamondType =
+                (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
+
+        TreePath p = getPath(newClassTree);
+        AnnotatedTypeMirror ctxtype = TypeArgInferenceUtil.assignedTo(this, p);
+        if (ctxtype != null && ctxtype.getKind() == TypeKind.DECLARED) {
+            AnnotatedDeclaredType adctx = (AnnotatedDeclaredType) ctxtype;
+            if (diamondType.getTypeArguments().size() == adctx.getTypeArguments().size()) {
+                // Try to simply take the type arguments from LHS.
+                List<AnnotatedTypeMirror> oldArgs = diamondType.getTypeArguments();
+                List<AnnotatedTypeMirror> newArgs = adctx.getTypeArguments();
+                boolean useLhs = true;
+                for (int i = 0; i < diamondType.getTypeArguments().size(); ++i) {
+                    if (!types.isSubtype(
+                            newArgs.get(i).underlyingType, oldArgs.get(i).underlyingType)) {
+                        // One of the underlying types doesn't match. Give up.
+                        useLhs = false;
+                        break;
+                    }
+                }
+                if (useLhs) {
+                    return newArgs;
+                }
+            }
+        }
+        addComputedTypeAnnotations(newClassTree, diamondType);
+        return diamondType.getTypeArguments();
     }
 
     /**
@@ -2705,161 +2957,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     public AnnotatedTypeMirror getMethodReturnType(MethodTree m, ReturnTree r) {
         return getMethodReturnType(m);
-    }
-
-    /**
-     * Creates an AnnotatedDeclaredType for a NewClassTree. Only adds explicit annotations, unless
-     * newClassTree has a diamond operator. In that case, the annotations on the type arguments are
-     * inferred using the assignment context and contain defaults.
-     *
-     * <p>Also, fully annotates the enclosing type of the returned declared type.
-     *
-     * <p>(Subclass beside {@link GenericAnnotatedTypeFactory} should not override this method.)
-     *
-     * @param newClassTree NewClassTree
-     * @return AnnotatedDeclaredType
-     */
-    public AnnotatedDeclaredType fromNewClass(NewClassTree newClassTree) {
-
-        AnnotatedDeclaredType enclosingType = (AnnotatedDeclaredType) getReceiverType(newClassTree);
-
-        // Diamond trees that are not anonymous classes.
-        if (TreeUtils.isDiamondTree(newClassTree) && newClassTree.getClassBody() == null) {
-            AnnotatedDeclaredType type =
-                    (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
-            if (((com.sun.tools.javac.code.Type) type.underlyingType)
-                    .tsym
-                    .getTypeParameters()
-                    .nonEmpty()) {
-                TreePath p = getPath(newClassTree);
-                AnnotatedTypeMirror ctxtype = TypeArgInferenceUtil.assignedTo(this, p);
-                if (ctxtype != null) {
-                    fromNewClassContextHelper(type, ctxtype);
-                } else {
-                    // give up trying and set to raw.
-                    type.setIsUnderlyingTypeRaw();
-                }
-            }
-            AnnotatedDeclaredType fromTypeTree =
-                    (AnnotatedDeclaredType)
-                            TypeFromTree.fromTypeTree(this, newClassTree.getIdentifier());
-            type.replaceAnnotations(fromTypeTree.getAnnotations());
-            type.setEnclosingType(enclosingType);
-            return type;
-        } else if (newClassTree.getClassBody() != null) {
-            AnnotatedDeclaredType type =
-                    (AnnotatedDeclaredType) toAnnotatedType(TreeUtils.typeOf(newClassTree), false);
-            // In Java 11 and lower, if newClassTree creates an anonymous class, then annotations in
-            // this location:
-            //   new @HERE Class() {}
-            // are not on the identifier newClassTree, but rather on the modifier newClassTree.
-            List<? extends AnnotationTree> annos =
-                    newClassTree.getClassBody().getModifiers().getAnnotations();
-
-            // If newClassTree creates an anonymous class from an inner class or inner interface,
-            // then annotations in this location:
-            //   new OuterI.@HERE InnerI(){}
-            // are not on the anonymous class modifier, but rather on the type identifier of the
-            // newClassTree.
-            if (annos.isEmpty()) {
-                Tree node = newClassTree.getIdentifier();
-                if (node instanceof ParameterizedTypeTree) {
-                    node = ((ParameterizedTypeTree) node).getType();
-                }
-
-                if (node instanceof AnnotatedTypeTree) {
-                    annos = ((AnnotatedTypeTree) node).getAnnotations();
-                }
-            }
-
-            type.addAnnotations(TreeUtils.annotationsFromTypeAnnotationTrees(annos));
-
-            // In Java 16+, the annotations are on the identifier, so copy them.
-            AnnotatedDeclaredType identifierType =
-                    (AnnotatedDeclaredType)
-                            TypeFromTree.fromTypeTree(this, newClassTree.getIdentifier());
-            type.addAnnotations(identifierType.getAnnotations());
-            type.setEnclosingType(enclosingType);
-            return type;
-        } else {
-            // If newClassTree does not create an anonymous class (or if this is Java 16+),
-            // newClassTree.getIdentifier includes the explicit annotations in this location:
-            //   new @HERE Class()
-            AnnotatedDeclaredType type =
-                    (AnnotatedDeclaredType)
-                            TypeFromTree.fromTypeTree(this, newClassTree.getIdentifier());
-            type.setEnclosingType(enclosingType);
-            return type;
-        }
-    }
-
-    // This method extracts the ugly hacky parts.
-    // This method should be rewritten and in particular diamonds should be
-    // implemented cleanly.
-    // See Issue 289.
-    private void fromNewClassContextHelper(
-            AnnotatedDeclaredType type, AnnotatedTypeMirror ctxtype) {
-        switch (ctxtype.getKind()) {
-            case DECLARED:
-                AnnotatedDeclaredType adctx = (AnnotatedDeclaredType) ctxtype;
-
-                if (type.getTypeArguments().size() == adctx.getTypeArguments().size()) {
-                    // Try to simply take the type arguments from LHS.
-                    List<AnnotatedTypeMirror> oldArgs = type.getTypeArguments();
-                    List<AnnotatedTypeMirror> newArgs = adctx.getTypeArguments();
-                    for (int i = 0; i < type.getTypeArguments().size(); ++i) {
-                        if (!types.isSubtype(
-                                newArgs.get(i).underlyingType, oldArgs.get(i).underlyingType)) {
-                            // One of the underlying types doesn't match. Give up.
-                            return;
-                        }
-                    }
-
-                    type.setTypeArguments(newArgs);
-
-                    /* It would be nice to call isSubtype for a basic sanity check.
-                     * However, the type might not have been completely initialized yet,
-                     * so isSubtype might fail.
-                     *
-                    if (!typeHierarchy.isSubtype(type, ctxtype)) {
-                        // Simply taking the newArgs didn't result in a valid subtype.
-                        // Give up and simply use the inferred types.
-                        type.setTypeArguments(oldArgs);
-                    }
-                    */
-                } else {
-                    // TODO: Find a way to determine annotated type arguments.
-                    // Look at what Attr and Resolve are doing and rework this whole method.
-                }
-                break;
-
-            case ARRAY:
-                // This new class is in the initializer of an array.
-                // The array being created can't have a generic component type, so nothing to be
-                // done.
-                break;
-            case TYPEVAR:
-                // TODO: this should NOT be necessary.
-                // org.checkerframework.dataflow.cfg.node.MethodAccessNode.MethodAccessNode(ExpressionTree,
-                // Node)
-                // Uses an ExecutableElement, which did not substitute type variables.
-                break;
-            case WILDCARD:
-                // TODO: look at bounds of wildcard and see whether we can improve.
-                break;
-            default:
-                if (ctxtype.getKind().isPrimitive()) {
-                    // See Issue 438. Ignore primitive types for diamond inference - a primitive
-                    // type is never a suitable context anyway.
-                } else {
-                    throw new BugInCF(
-                            "AnnotatedTypeFactory.fromNewClassContextHelper: unexpected context: "
-                                    + ctxtype
-                                    + " ("
-                                    + ctxtype.getKind()
-                                    + ")");
-                }
-        }
     }
 
     /**
@@ -3051,20 +3148,24 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Returns the types of the two arguments to the BinaryTree, accounting for widening and
-     * unboxing if applicable.
+     * Returns the types of the two arguments to the BinaryTree. Please refer to {@link
+     * #binaryTreeArgTypes(TypeMirror, AnnotatedTypeMirror, AnnotatedTypeMirror)} )} for more
+     * details.
      *
      * @param node a binary tree
      * @return the types of the two arguments
      */
     public Pair<AnnotatedTypeMirror, AnnotatedTypeMirror> binaryTreeArgTypes(BinaryTree node) {
         return binaryTreeArgTypes(
-                getAnnotatedType(node.getLeftOperand()), getAnnotatedType(node.getRightOperand()));
+                TreeUtils.typeOf(node),
+                getAnnotatedType(node.getLeftOperand()),
+                getAnnotatedType(node.getRightOperand()));
     }
 
     /**
-     * Returns the types of the two arguments to the CompoundAssignmentTree, accounting for widening
-     * and unboxing if applicable.
+     * Returns the types of the two arguments to the CompoundAssignmentTree. Please refer to {@link
+     * #binaryTreeArgTypes(TypeMirror, AnnotatedTypeMirror, AnnotatedTypeMirror)} ) for more
+     * details.
      *
      * @param node a compound assignment tree
      * @return the types of the two arguments
@@ -3072,17 +3173,80 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     public Pair<AnnotatedTypeMirror, AnnotatedTypeMirror> compoundAssignmentTreeArgTypes(
             CompoundAssignmentTree node) {
         return binaryTreeArgTypes(
-                getAnnotatedType(node.getVariable()), getAnnotatedType(node.getExpression()));
+                TreeUtils.typeOf(node.getVariable()),
+                getAnnotatedType(node.getVariable()),
+                getAnnotatedType(node.getExpression()));
     }
 
     /**
-     * Returns the types of the two arguments to a binarya operation, accounting for widening and
+     * Returns the types of the two arguments to a binary operation. There are two special cases:
+     *
+     * <p>1. If both operands have numeric type, widening and unboxing will be applied accordingly.
+     *
+     * <p>2. If we have a non-string operand in a string concatenation (i.e., result is a string),
+     * we will always return a string ATM for the operand. The resulting ATM will have the original
+     * annotations with the declaration bounds of string type applied. Please check {@link
+     * #getAnnotationOrTypeDeclarationBound} for more details.
+     *
+     * @param resultType the type of the result of a binary operation
+     * @param left the type of the left argument of a binary operation
+     * @param right the type of the right argument of a binary operation
+     * @return the types of the two arguments
+     */
+    protected Pair<AnnotatedTypeMirror, AnnotatedTypeMirror> binaryTreeArgTypes(
+            TypeMirror resultType, AnnotatedTypeMirror left, AnnotatedTypeMirror right) {
+        TypeKind widenedNumericType =
+                TypeKindUtils.widenedNumericType(
+                        left.getUnderlyingType(), right.getUnderlyingType());
+        if (TypeKindUtils.isNumeric(widenedNumericType)) {
+            TypeMirror widenedNumericTypeMirror = types.getPrimitiveType(widenedNumericType);
+            AnnotatedPrimitiveType leftUnboxed = applyUnboxing(left);
+            AnnotatedPrimitiveType rightUnboxed = applyUnboxing(right);
+            AnnotatedPrimitiveType leftWidened =
+                    (leftUnboxed.getKind() == widenedNumericType
+                            ? leftUnboxed
+                            : getWidenedPrimitive(leftUnboxed, widenedNumericTypeMirror));
+            AnnotatedPrimitiveType rightWidened =
+                    (rightUnboxed.getKind() == widenedNumericType
+                            ? rightUnboxed
+                            : getWidenedPrimitive(rightUnboxed, widenedNumericTypeMirror));
+            return Pair.of(leftWidened, rightWidened);
+        } else if (TypesUtils.isString(resultType)) {
+            // the result of a binary operation is String iff it's string concatenation
+            AnnotatedTypeMirror leftStringConverted = left;
+            AnnotatedTypeMirror rightStringConverted = right;
+
+            if (!TypesUtils.isString(left.getUnderlyingType())) {
+                leftStringConverted = toAnnotatedType(resultType, false);
+                Set<AnnotationMirror> annos =
+                        getAnnotationOrTypeDeclarationBound(
+                                resultType, left.getEffectiveAnnotations());
+                leftStringConverted.addAnnotations(annos);
+            }
+            if (!TypesUtils.isString(right.getUnderlyingType())) {
+                rightStringConverted = toAnnotatedType(resultType, false);
+                Set<AnnotationMirror> annos =
+                        getAnnotationOrTypeDeclarationBound(
+                                resultType, right.getEffectiveAnnotations());
+                rightStringConverted.addAnnotations(annos);
+            }
+            return Pair.of(leftStringConverted, rightStringConverted);
+        }
+
+        return Pair.of(left, right);
+    }
+
+    /**
+     * Returns the types of the two arguments to a binary operation, accounting for widening and
      * unboxing if applicable.
      *
      * @param left the type of the left argument of a binary operation
      * @param right the type of the right argument of a binary operation
      * @return the types of the two arguments
+     * @deprecated use {@link #binaryTreeArgTypes(BinaryTree)} or {@link
+     *     #compoundAssignmentTreeArgTypes(CompoundAssignmentTree)}
      */
+    @Deprecated // 2022-06-03
     public Pair<AnnotatedTypeMirror, AnnotatedTypeMirror> binaryTreeArgTypes(
             AnnotatedTypeMirror left, AnnotatedTypeMirror right) {
         TypeKind resultTypeKind =
@@ -4052,9 +4216,13 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         // If parsing annotation files, return only the annotations in the element.
-        if (stubTypes.isParsing()
-                || ajavaTypes.isParsing()
-                || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing())) {
+        // The only exception is package because we always load package-info eagerly
+        // and there is no parent element to parse.
+        boolean isParsing =
+                stubTypes.isParsing()
+                        || ajavaTypes.isParsing()
+                        || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing());
+        if (isParsing && elt.getKind() != ElementKind.PACKAGE) {
             return results;
         }
 
@@ -5302,12 +5470,25 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                         typeVarToAnnotatedTypeArg, typeVariable.getUpperBound());
         AnnotatedTypeMirror upperBound =
                 AnnotatedTypes.annotatedGLB(this, typeVarUpperBound, wildcard.getExtendsBound());
-        // There is a bug in javac such that the upper bound of the captured type variable is not
-        // the greatest lower bound. So the captureTypeVar.getUnderlyingType().getUpperBound() may
-        // not be the same type as upperbound.getUnderlyingType().  See
-        // framework/tests/all-systems/Issue4890Interfaces.java,
-        // framework/tests/all-systems/Issue4890.java and
-        // framework/tests/all-systems/Issue4877.java.
+        if (upperBound.getKind() == TypeKind.INTERSECTION
+                && capturedTypeVar.getUpperBound().getKind() != TypeKind.INTERSECTION) {
+            // There is a bug in javac such that the upper bound of the captured type variable is
+            // not the greatest lower bound. So the
+            // captureTypeVar.getUnderlyingType().getUpperBound() may not be the same type as
+            // upperbound.getUnderlyingType(). See
+            // framework/tests/all-systems/Issue4890Interfaces.java,
+            // framework/tests/all-systems/Issue4890.java and
+            // framework/tests/all-systems/Issue4877.java.
+            // (I think this is https://bugs.openjdk.java.net/browse/JDK-8039222.)
+            for (AnnotatedTypeMirror bound : ((AnnotatedIntersectionType) upperBound).getBounds()) {
+                if (types.isSameType(
+                        bound.underlyingType,
+                        capturedTypeVar.getUpperBound().getUnderlyingType())) {
+                    upperBound = bound;
+                }
+            }
+        }
+
         capturedTypeVar.setUpperBound(upperBound);
 
         // typeVariable's lower bound is a NullType, so there's nothing to substitute.

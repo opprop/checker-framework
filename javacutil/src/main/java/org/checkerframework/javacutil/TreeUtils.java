@@ -335,6 +335,23 @@ public final class TreeUtils {
     }
 
     /**
+     * If the given tree is a parenthesized tree or cast tree, return the enclosed
+     * non-parenthesized, non-cast tree. Otherwise, return the same tree.
+     *
+     * @param tree an expression tree
+     * @return the outermost non-parenthesized non-cast tree enclosed by the given tree
+     */
+    @SuppressWarnings("interning:return") // polymorphism implementation
+    public static @PolyInterned ExpressionTree withoutParensOrCasts(
+            final @PolyInterned ExpressionTree tree) {
+        ExpressionTree t = withoutParens(tree);
+        while (t.getKind() == Tree.Kind.TYPE_CAST) {
+            t = withoutParens(((TypeCastTree) t).getExpression());
+        }
+        return t;
+    }
+
+    /**
      * Gets the {@link Element} for the given Tree API node. For an object instantiation returns the
      * value of the {@link JCNewClass#constructor} field.
      *
@@ -355,7 +372,7 @@ public final class TreeUtils {
         }
 
         if (isExpressionTree(tree)) {
-            tree = withoutParens((ExpressionTree) tree);
+            tree = withoutParensOrCasts((ExpressionTree) tree);
         }
 
         switch (tree.getKind()) {
@@ -849,7 +866,7 @@ public final class TreeUtils {
     // Adding Tree.Kind.NEW_CLASS here doesn't work, because then a
     // tree gets cast to ClassTree when it is actually a NewClassTree,
     // for example in enclosingClass above.
-    /** The set of kinds that represent classes. */
+    /** The kinds that represent classes. */
     private static final Set<Tree.Kind> classTreeKinds;
 
     static {
@@ -862,12 +879,34 @@ public final class TreeUtils {
     }
 
     /**
+     * The kinds that represent declarations that might have {@code @SuppressWarnings} written on
+     * them: classes, methods, and variables.
+     */
+    private static final Set<Tree.Kind> declarationTreeKinds;
+
+    static {
+        declarationTreeKinds = EnumSet.noneOf(Tree.Kind.class);
+        declarationTreeKinds.addAll(classTreeKinds);
+        declarationTreeKinds.add(Tree.Kind.METHOD);
+        declarationTreeKinds.add(Tree.Kind.VARIABLE);
+    }
+
+    /**
      * Return the set of kinds that represent classes.
      *
      * @return the set of kinds that represent classes
      */
     public static Set<Tree.Kind> classTreeKinds() {
         return classTreeKinds;
+    }
+
+    /**
+     * Return the set of kinds that represent declarations: classes, methods, and variables.
+     *
+     * @return the set of kinds that represent declarations
+     */
+    public static Set<Tree.Kind> declarationTreeKinds() {
+        return declarationTreeKinds;
     }
 
     /**
@@ -1919,11 +1958,11 @@ public final class TreeUtils {
     }
 
     /**
-     * Returns the pattern of {@code instanceOfTree} tree or null if the instanceof does not have a
-     * pattern.
+     * Returns the pattern of {@code instanceOfTree} tree. Returns null if the instanceof does not
+     * have a pattern, including if the JDK version does not support instance-of patterns.
      *
      * @param instanceOfTree the {@link InstanceOfTree} whose pattern is returned
-     * @return the {@code PatternTree} of {@code instanceOfTree} or null if is doesn't exist
+     * @return the {@code PatternTree} of {@code instanceOfTree} or null if it doesn't exist
      */
     public static @Nullable Tree instanceOfTreeGetPattern(InstanceOfTree instanceOfTree) {
         if (atLeastJava16) {
@@ -2019,7 +2058,7 @@ public final class TreeUtils {
      * Returns the value (expression) for {@code yieldTree}.
      *
      * @param yieldTree the yield tree
-     * @return the value (expression) for {@code yieldTree}.
+     * @return the value (expression) for {@code yieldTree}
      */
     public static ExpressionTree yieldTreeGetValue(Tree yieldTree) {
         if (atLeastJava13) {

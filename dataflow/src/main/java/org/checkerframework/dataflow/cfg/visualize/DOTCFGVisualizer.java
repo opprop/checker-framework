@@ -33,7 +33,6 @@ import org.checkerframework.javacutil.UserError;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -80,22 +79,32 @@ public class DOTCFGVisualizer<
     }
 
     @Override
-    public @Nullable Map<String, Object> visualize(
+    public Map<String, Object> visualize(
             ControlFlowGraph cfg, Block entry, @Nullable Analysis<V, S, T> analysis) {
-
         String dotGraph = visualizeGraph(cfg, entry, analysis);
+
+        Map<String, Object> vis = new HashMap<>(2);
+        vis.put("dotGraph", dotGraph);
+        return vis;
+    }
+
+    @Override
+    public Map<String, Object> visualizeWithAction(
+            ControlFlowGraph cfg, Block entry, @Nullable Analysis<V, S, T> analysis) {
+        Map<String, Object> vis = visualize(cfg, entry, analysis);
+        String dotGraph = (String) vis.get("dotGraph");
+        if (dotGraph == null) {
+            throw new BugInCF("dotGraph key missing in visualize result!");
+        }
         String dotFileName = dotOutputFileName(cfg.underlyingAST);
 
-        try {
-            FileWriter fStream = new FileWriter(dotFileName);
-            BufferedWriter out = new BufferedWriter(fStream);
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(dotFileName))) {
             out.write(dotGraph);
-            out.close();
         } catch (IOException e) {
             throw new UserError("Error creating dot file (is the path valid?): " + dotFileName, e);
         }
-
-        return Collections.singletonMap("dotFileName", dotFileName);
+        vis.put("dotFileName", dotFileName);
+        return vis;
     }
 
     @SuppressWarnings("keyfor:enhancedfor.type.incompatible")
@@ -334,17 +343,15 @@ public class DOTCFGVisualizer<
      */
     @Override
     public void shutdown() {
-        try {
-            // Open for append, in case of multiple sub-checkers.
-            FileWriter fstream = new FileWriter(outDir + "/methods.txt", true);
-            BufferedWriter out = new BufferedWriter(fstream);
+        // Open for append, in case of multiple sub-checkers.
+        try (FileWriter fstream = new FileWriter(outDir + "/methods.txt", true);
+                BufferedWriter out = new BufferedWriter(fstream)) {
             for (Map.Entry<String, String> kv : generated.entrySet()) {
                 out.write(kv.getKey());
                 out.append("\t");
                 out.write(kv.getValue());
                 out.append(lineSeparator);
             }
-            out.close();
         } catch (IOException e) {
             throw new UserError(
                     "Error creating methods.txt file in: " + outDir + "; ensure the path is valid",

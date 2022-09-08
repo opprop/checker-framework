@@ -32,13 +32,14 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,8 +92,7 @@ public class WholeProgramInferenceJavaParserStorage
    * Directory where .ajava files will be written to and read from. This directory is relative to
    * where the javac command is executed.
    */
-  public static final String AJAVA_FILES_PATH =
-      "build" + File.separator + "whole-program-inference" + File.separator;
+  public static final File AJAVA_FILES_PATH = new File("build", "whole-program-inference");
 
   /** The type factory associated with this. */
   protected final AnnotatedTypeFactory atypeFactory;
@@ -753,10 +753,10 @@ public class WholeProgramInferenceJavaParserStorage
   @Override
   public void writeResultsToFile(OutputFormat outputFormat, BaseTypeChecker checker) {
     if (outputFormat != OutputFormat.AJAVA) {
-      throw new BugInCF("WholeProgramInferenceJavaParser used with format " + outputFormat);
+      throw new BugInCF("WholeProgramInferenceJavaParser used with output format " + outputFormat);
     }
 
-    File outputDir = new File(AJAVA_FILES_PATH);
+    File outputDir = AJAVA_FILES_PATH;
     if (!outputDir.exists()) {
       outputDir.mkdirs();
     }
@@ -764,20 +764,22 @@ public class WholeProgramInferenceJavaParserStorage
     for (String path : modifiedFiles) {
       CompilationUnitAnnos root = sourceToAnnos.get(path);
       prepareCompilationUnitForWriting(root);
-      String packageDir = AJAVA_FILES_PATH;
-      if (root.compilationUnit.getPackageDeclaration().isPresent()) {
-        packageDir +=
-            File.separator
-                + root.compilationUnit
+      File packageDir;
+      if (!root.compilationUnit.getPackageDeclaration().isPresent()) {
+        packageDir = AJAVA_FILES_PATH;
+      } else {
+        packageDir =
+            new File(
+                AJAVA_FILES_PATH,
+                root.compilationUnit
                     .getPackageDeclaration()
                     .get()
                     .getNameAsString()
-                    .replaceAll("\\.", File.separator);
+                    .replaceAll("\\.", File.separator));
       }
 
-      File packageDirFile = new File(packageDir);
-      if (!packageDirFile.exists()) {
-        packageDirFile.mkdirs();
+      if (!packageDir.exists()) {
+        packageDir.mkdirs();
       }
 
       String name = new File(path).getName();
@@ -786,11 +788,11 @@ public class WholeProgramInferenceJavaParserStorage
       }
 
       String nameWithChecker = name + "-" + checker.getClass().getCanonicalName() + ".ajava";
-      String outputPath = packageDir + File.separator + nameWithChecker;
+      File outputPath = new File(packageDir, nameWithChecker);
       if (this.inferOutputOriginal) {
-        String outputPathNoCheckerName = packageDir + File.separator + name + ".ajava";
+        File outputPathNoCheckerName = new File(packageDir, name + ".ajava");
         // Avoid re-writing this file for each checker that was run.
-        if (Files.notExists(Paths.get(outputPathNoCheckerName))) {
+        if (Files.notExists(outputPathNoCheckerName.toPath())) {
           writeAjavaFile(outputPathNoCheckerName, root);
         }
       }
@@ -807,9 +809,8 @@ public class WholeProgramInferenceJavaParserStorage
    * @param outputPath the path to which the ajava file should be written
    * @param root the compilation unit to be written
    */
-  private void writeAjavaFile(String outputPath, CompilationUnitAnnos root) {
-    try {
-      FileWriter writer = new FileWriter(outputPath);
+  private void writeAjavaFile(File outputPath, CompilationUnitAnnos root) {
+    try (Writer writer = new BufferedWriter(new FileWriter(outputPath))) {
 
       // JavaParser can output using lexical preserving printing, which writes the file such that
       // its formatting is close to the original source file it was parsed from as
@@ -855,7 +856,6 @@ public class WholeProgramInferenceJavaParserStorage
           };
 
       writer.write(prettyPrinter.print(root.compilationUnit));
-      writer.close();
     } catch (IOException e) {
       throw new BugInCF("Error while writing ajava file " + outputPath, e);
     }
@@ -1124,7 +1124,7 @@ public class WholeProgramInferenceJavaParserStorage
      */
     public boolean addDeclarationAnnotation(AnnotationMirror annotation) {
       if (declarationAnnotations == null) {
-        declarationAnnotations = new HashSet<>();
+        declarationAnnotations = new HashSet<>(1);
       }
 
       return declarationAnnotations.add(annotation);
@@ -1181,9 +1181,9 @@ public class WholeProgramInferenceJavaParserStorage
     public Map<String, Pair<AnnotatedTypeMirror, AnnotatedTypeMirror>> getPreconditions() {
       if (preconditions == null) {
         return Collections.emptyMap();
+      } else {
+        return Collections.unmodifiableMap(preconditions);
       }
-
-      return Collections.unmodifiableMap(preconditions);
     }
 
     /**
@@ -1379,7 +1379,7 @@ public class WholeProgramInferenceJavaParserStorage
      */
     public boolean addDeclarationAnnotation(AnnotationMirror annotation) {
       if (declarationAnnotations == null) {
-        declarationAnnotations = new HashSet<>();
+        declarationAnnotations = new HashSet<>(1);
       }
 
       return declarationAnnotations.add(annotation);

@@ -1,3 +1,87 @@
+Version 3.25.0-eisop1 (September 3, 2022)
+-----------------------------------------
+
+**User-visible changes:**
+
+The new command-line argument `-AconservativeArgumentNullnessAfterInvocation` improves
+the soundness of the Nullness Checker. In previous versions and without supplying the
+new flag, the receiver and arguments that are passed to non-null parameters in a method call
+or constructor invocation are assumed to be non-null after the invocation.
+This assumption is unsound in general, but holds for most code.
+Use the new flag to soundly handle the nullness of the receiver and arguments in an invocation.
+In a future version, we might change the default for this option.
+
+Support the JSpecify NonNull annotation as an alias in the Nullness Checker.
+
+Fixed ordering of command-line and JDK stubs.
+
+**Closed issues:**
+
+eisop#300, eisop#321.
+
+
+Version 3.25.0 (September 1, 2022)
+----------------------------------
+
+**User-visible changes:**
+
+Make `mustcall.not.inheritable` a warning rather than an error.
+
+The Property File Checker, Internationalization Checker, and Compiler
+Message Checker use `File.pathSeparator` to separate property file paths in
+`-Apropfiles`, rather than ':'.
+
+Added `DoNothingChecker` that does nothing.
+
+**Implementation details:**
+
+**Closed issues:**
+
+#5216, #5240, #5256, #5273.
+
+
+Version 3.24.0-eisop1 (August 5, 2022)
+--------------------------------------
+
+**User-visible changes:**
+
+Postconditions on the parameters of a constructor are now used at new object creations.
+
+
+Version 3.24.0 (August 3, 2022)
+-------------------------------
+
+**User-visible changes:**
+
+Performance improvements.
+
+Minor bug fixes and enhancements.
+
+**Implementation details:**
+
+Prefer `SystemUtil.jreVersion` to `SystemUtil.getJreVersion()`.
+
+**Closed issues:**
+
+#5200, #5216.
+
+
+Version 3.23.0-eisop2 (July 22, 2022)
+-------------------------------------
+
+**Implementation details:**
+
+Improved defaulting in stub files:
+As an extension to the fix for eisop#270, we now allow internally parsing
+multiple stub files at the same time. This should make `AnnotatedTypeFactory.getDeclAnnotations`
+return the expected declaration annotations for all kinds of elements,
+even if it is parsing a different stub file.
+
+**Closed issues:**
+
+eisop#308.
+
+
 Version 3.23.0-eisop1 (July 14, 2022)
 -------------------------------------
 
@@ -4446,7 +4530,7 @@ Code Changes
     fixed mutability type handling for type casts and field access
     fixed bug, ensuring no primitives can be ReadOnly
     a method receiver type is now based on the correct annotation
-    fixed parameter type-checking for overriden methods
+    fixed parameter type-checking for overridden methods
     fixed bug on readonly field initialization
     added handling for unary trees
 

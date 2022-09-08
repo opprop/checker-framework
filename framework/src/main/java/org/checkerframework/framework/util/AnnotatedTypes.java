@@ -337,8 +337,8 @@ public class AnnotatedTypes {
      * @param t the receiver type
      * @param elem the element that should be viewed as member of t
      * @param type unsubstituted type of member
-     * @return the type of member as member of of, with initial type memberType; can be an alias to
-     *     memberType
+     * @return the type of member as member of {@code t}, with initial type memberType; can be an
+     *     alias to memberType
      */
     public static AnnotatedExecutableType asMemberOf(
             Types types,
@@ -1002,14 +1002,24 @@ public class AnnotatedTypes {
             DeclaredType t =
                     TypesUtils.getSuperClassOrInterface(
                             method.getElement().getEnclosingElement().asType(), atypeFactory.types);
-            if (t.getEnclosingType() != null
-                    && atypeFactory.types.isSameType(
-                            t.getEnclosingType(), parameters.get(0).getUnderlyingType())
-                    && (args.isEmpty()
-                            || !atypeFactory.types.isSameType(
-                                    TreeUtils.typeOf(args.get(0)),
-                                    parameters.get(0).getUnderlyingType()))) {
-                parameters = parameters.subList(1, parameters.size());
+            if (t.getEnclosingType() != null) {
+                if (args.isEmpty()) {
+                    // TODO: ugly hack to attempt to fix mismatch
+                    parameters = parameters.subList(1, parameters.size());
+                } else {
+                    TypeMirror p0tm = parameters.get(0).getUnderlyingType();
+                    // Is the first parameter either equal to the enclosing type?
+                    if (atypeFactory.types.isSameType(t.getEnclosingType(), p0tm)) {
+                        // Is the first argument the same type as the first parameter?
+                        if (!atypeFactory.types.isSameType(TreeUtils.typeOf(args.get(0)), p0tm)) {
+                            // Remove the first parameter.
+                            parameters = parameters.subList(1, parameters.size());
+                        }
+                    }
+                }
+                if (parameters.isEmpty()) {
+                    return parameters;
+                }
             }
         }
 
@@ -1330,10 +1340,10 @@ public class AnnotatedTypes {
             final TypeElement type1Class = (TypeElement) type1Executable.getEnclosingElement();
             final TypeElement type2Class = (TypeElement) type2Executable.getEnclosingElement();
 
-            boolean methodIsOverriden =
+            boolean methodIsOverridden =
                     elements.overrides(type1Executable, type2Executable, type1Class)
                             || elements.overrides(type2Executable, type1Executable, type2Class);
-            if (methodIsOverriden) {
+            if (methodIsOverridden) {
                 boolean haveSameIndex =
                         type1Executable.getTypeParameters().indexOf(type1ParamElem)
                                 == type2Executable.getTypeParameters().indexOf(type2ParamElem);

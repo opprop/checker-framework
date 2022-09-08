@@ -443,7 +443,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      */
     protected ReflectionResolver reflectionResolver;
 
-    /** AnnotationClassLoader used to load type annotation classes via reflective lookup. */
+    /** This loads type annotation classes via reflective lookup. */
     protected AnnotationClassLoader loader;
 
     /* NO-AFU
@@ -822,8 +822,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             Enumeration<URL> urls = getClass().getClassLoader().getResources(filename);
             while (urls.hasMoreElements()) {
                 URL url = urls.nextElement();
-                BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-                lines.addAll(in.lines().collect(Collectors.toList()));
+                try (BufferedReader in =
+                        new BufferedReader(new InputStreamReader(url.openStream()))) {
+                    lines.addAll(in.lines().collect(Collectors.toList()));
+                }
             }
             String[] result = lines.toArray(new String[0]);
             return result;
@@ -1175,6 +1177,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     @SuppressWarnings("varargs")
     private final Set<Class<? extends Annotation>> loadTypeAnnotationsFromQualDir(
             Class<? extends Annotation>... explicitlyListedAnnotations) {
+        if (loader != null) {
+            loader.close();
+        }
         loader = createAnnotationClassLoader();
 
         Set<Class<? extends Annotation>> annotations = loader.getBundledAnnotationClasses();
@@ -3805,9 +3810,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *
      * <p>The method uses the parameter only if the most enclosing method cannot be found directly.
      *
-     * @param tree the tree used to find the enclosing method.
+     * @param tree the tree used to find the enclosing method
      * @return receiver type of the most enclosing method being visited
-     * @deprecated Use {@link #getSelfType(Tree)} instead.
+     * @deprecated Use {@link #getSelfType(Tree)} instead
      */
     @Deprecated // 2021-11-01
     protected final @Nullable AnnotatedDeclaredType getCurrentMethodReceiver(Tree tree) {
@@ -3841,7 +3846,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     /**
      * Returns true if {@code tree} is within a constructor.
      *
-     * @param tree the tree that might be within a constructor.
+     * @param tree the tree that might be within a constructor
      * @return true if {@code tree} is within a constructor
      */
     protected final boolean isWithinConstructor(Tree tree) {
@@ -4013,8 +4018,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *       exists and ignorejdkastub option is not supplied <br>
      *   <li>Stub files listed in @StubFiles annotation on the checker; must be in same directory as
      *       the checker<br>
-     *   <li>Stub files provided via -Astubs compiler option
-     *   <li>Ajava files provided via -Aajava compiler option
+     *   <li>Stub files provided via {@code -Astubs} compiler option
+     *   <li>Ajava files provided via {@code -Aajava} compiler option
      * </ol>
      *
      * <p>If a type is annotated with a qualifier from the same hierarchy in more than one stub
@@ -4034,7 +4039,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * <ul>
      *   <li>on the element
      *   <li>written in stubfiles
-     *   <li>inherited from overriden methods, (see {@link InheritedAnnotation})
+     *   <li>inherited from overridden methods, (see {@link InheritedAnnotation})
      *   <li>inherited from superclasses or super interfaces (see {@link Inherited})
      * </ul>
      *
@@ -4049,9 +4054,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     }
 
     /**
-     * Returns the actual annotation mirror used to annotate this element, whose name equals the
-     * passed annotation class. Returns null if none exists. Does not check for aliases of the
-     * annotation class.
+     * Returns the annotation mirror used to annotate this element, whose name equals the passed
+     * annotation class. Looks in the same places specified by {@link #getDeclAnnotation(Element,
+     * Class)}. Returns null if none exists. Does not check for aliases of the annotation class.
      *
      * <p>Call this method from a checker that needs to alias annotations for one purpose and not
      * for another. For example, in the Lock Checker, {@code @LockingFree} and
@@ -4104,8 +4109,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
     /**
      * Returns the actual annotation mirror used to annotate this element, whose name equals the
-     * passed annotation class (or is an alias for it). Returns null if none exists. May return the
-     * canonical annotation that annotationName is an alias for.
+     * passed annotation class (or is an alias for it). Looks in the same places specified by {@link
+     * #getDeclAnnotation(Element, Class)}. Returns null if none exists. May return the canonical
+     * annotation that annotationName is an alias for.
      *
      * <p>This is the private implementation of the same-named, public method.
      *
@@ -4179,7 +4185,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * <ul>
      *   <li>on the element
      *   <li>written in stubfiles
-     *   <li>inherited from overriden methods, (see {@link InheritedAnnotation})
+     *   <li>inherited from overridden methods, (see {@link InheritedAnnotation})
      *   <li>inherited from superclasses or super interfaces (see {@link Inherited})
      * </ul>
      *
@@ -4200,7 +4206,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         Set<AnnotationMirror> results = AnnotationUtils.createAnnotationSet();
         // Retrieving the annotations from the element.
         // This includes annotations inherited from superclasses, but not superinterfaces or
-        // overriden methods.
+        // overridden methods.
         List<? extends AnnotationMirror> fromEle = elements.getAllAnnotationMirrors(elt);
         for (AnnotationMirror annotation : fromEle) {
             try {
@@ -4213,17 +4219,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                         ElementUtils.getQualifiedName(elt),
                         annotation);
             }
-        }
-
-        // If parsing annotation files, return only the annotations in the element.
-        // The only exception is package because we always load package-info eagerly
-        // and there is no parent element to parse.
-        boolean isParsing =
-                stubTypes.isParsing()
-                        || ajavaTypes.isParsing()
-                        || (currentFileAjavaTypes != null && currentFileAjavaTypes.isParsing());
-        if (isParsing && elt.getKind() != ElementKind.PACKAGE) {
-            return results;
         }
 
         // Add annotations from annotation files.
@@ -4241,7 +4236,11 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         // Add the element and its annotations to the cache.
-        cacheDeclAnnos.put(elt, results);
+        if (!stubTypes.isParsing()
+                && !ajavaTypes.isParsing()
+                && (currentFileAjavaTypes == null || !currentFileAjavaTypes.isParsing())) {
+            cacheDeclAnnos.put(elt, results);
+        }
         return results;
     }
 
@@ -4305,8 +4304,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
                         annotationsOnAnnotation =
                                 annotation.getAnnotationType().asElement().getAnnotationMirrors();
                     } catch (com.sun.tools.javac.code.Symbol.CompletionFailure cf) {
-                        // Fix for Issue 348: If a CompletionFailure occurs,
-                        // issue a warning.
+                        // Fix for Issue 348: If a CompletionFailure occurs, issue a warning.
                         checker.reportWarning(
                                 annotation.getAnnotationType().asElement(),
                                 "annotation.not.completed",
@@ -5901,7 +5899,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      * Returns true if the type is immutable. Subclasses can override this method to add types that
      * are mutable, but the annotated type of an object is immutable.
      *
-     * @param type type to test.
+     * @param type type to test
      * @return true if the type is immutable
      */
     public boolean isImmutable(TypeMirror type) {

@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -163,13 +164,13 @@ class MustCallConsistencyAnalyzer {
      * A cache for the result of calling {@code ResourceLeakAnnotatedTypeFactory.getStoreAfter()} on
      * a node. The cache prevents repeatedly computing least upper bounds on stores
      */
-    private final Map<Node, CFStore> cmStoreAfter = new LinkedHashMap<>();
+    private final IdentityHashMap<Node, CFStore> cmStoreAfter = new IdentityHashMap<>();
 
     /**
      * A cache for the result of calling {@code MustCallAnnotatedTypeFactory.getStoreAfter()} on a
      * node. The cache prevents repeatedly computing least upper bounds on stores
      */
-    private final Map<Node, CFStore> mcStoreAfter = new LinkedHashMap<>();
+    private final IdentityHashMap<Node, CFStore> mcStoreAfter = new IdentityHashMap<>();
 
     /** The Resource Leak Checker, used to issue errors. */
     private final ResourceLeakChecker checker;
@@ -366,7 +367,7 @@ class MustCallConsistencyAnalyzer {
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public boolean equals(@Nullable Object obj) {
             if (this == obj) {
                 return true;
             }
@@ -455,7 +456,7 @@ class MustCallConsistencyAnalyzer {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             if (this == o) {
                 return true;
             }
@@ -1123,8 +1124,8 @@ class MustCallConsistencyAnalyzer {
      * Returns true if must-call type of node only contains close. This is a helper method for
      * handling try-with-resources statements.
      *
-     * @param node the node.
-     * @return true if must-call type of node only contains close.
+     * @param node the node
+     * @return true if must-call type of node only contains close
      */
     private boolean isMustCallClose(Node node) {
         MustCallAnnotatedTypeFactory mcAtf =
@@ -2221,7 +2222,7 @@ class MustCallConsistencyAnalyzer {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(@Nullable Object o) {
             if (this == o) {
                 return true;
             }

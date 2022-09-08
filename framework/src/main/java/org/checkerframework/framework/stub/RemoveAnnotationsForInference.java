@@ -29,8 +29,11 @@ import com.google.common.reflect.ClassPath;
 import org.checkerframework.javacutil.BugInCF;
 import org.plumelib.util.CollectionsPlume;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -204,14 +207,13 @@ public class RemoveAnnotationsForInference {
             }
         }
 
-        try {
-            PrintWriter pw = new PrintWriter(absolutePath.toString());
+        try (PrintWriter pw =
+                new PrintWriter(new BufferedWriter(new FileWriter(absolutePath.toString())))) {
             for (String line : lines) {
                 pw.println(line);
             }
-            pw.close();
         } catch (IOException e) {
-            throw new Error(e);
+            throw new UncheckedIOException("problem writing " + absolutePath.toString(), e);
         }
     }
 

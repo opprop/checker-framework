@@ -7,6 +7,7 @@ import com.sun.source.tree.UnaryTree;
 import com.sun.source.tree.VariableTree;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import java.util.Objects;
  *
  * <pre>
  *   <em>variable</em> = <em>expression</em>
+ *   <em>variable</em> += <em>expression</em>
  *   <em>expression</em> . <em>field</em> = <em>expression</em>
  *   <em>expression</em> [ <em>index</em> ] = <em>expression</em>
  * </pre>
@@ -26,6 +28,11 @@ import java.util.Objects;
  *
  * <p>Some desugarings create additional assignments to synthetic local variables. Such assignment
  * nodes are marked as synthetic to allow special handling in transfer functions.
+ *
+ * <p>String concatenation compound assignments are desugared to an assignment and a string
+ * concatenation.
+ *
+ * <p>Numeric compound assignments are desugared to an assignment and a numeric operation.
  */
 public class AssignmentNode extends Node {
 
@@ -78,15 +85,23 @@ public class AssignmentNode extends Node {
      *
      * @return the left-hand-side of the assignment
      */
+    @Pure
     public Node getTarget() {
         return lhs;
     }
 
+    /**
+     * Returns the right-hand-side of the assignment.
+     *
+     * @return the right-hand-side of the assignment
+     */
+    @Pure
     public Node getExpression() {
         return rhs;
     }
 
     @Override
+    @Pure
     public Tree getTree() {
         return tree;
     }
@@ -97,6 +112,7 @@ public class AssignmentNode extends Node {
      *
      * @return true if the assignment node is synthetic
      */
+    @Pure
     public boolean isSynthetic() {
         return synthetic;
     }
@@ -107,11 +123,13 @@ public class AssignmentNode extends Node {
     }
 
     @Override
+    @Pure
     public String toString() {
         return getTarget() + " = " + getExpression() + (synthetic ? " (synthetic)" : "");
     }
 
     @Override
+    @Pure
     public boolean equals(@Nullable Object obj) {
         if (!(obj instanceof AssignmentNode)) {
             return false;
@@ -127,6 +145,7 @@ public class AssignmentNode extends Node {
     }
 
     @Override
+    @Pure
     public Collection<Node> getOperands() {
         return Arrays.asList(getTarget(), getExpression());
     }

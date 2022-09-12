@@ -53,7 +53,7 @@ public abstract class AbstractAnalysis<
     /** The transfer function for regular nodes. */
     // TODO: make final. Currently, the transferFunction has a reference to the analysis, so it
     //  can't be created until the Analysis is initialized.
-    protected @Nullable T transferFunction;
+    protected @MonotonicNonNull T transferFunction;
 
     /** The current control flow graph to perform the analysis on. */
     protected @MonotonicNonNull ControlFlowGraph cfg;
@@ -177,7 +177,7 @@ public abstract class AbstractAnalysis<
                 nodeValues,
                 inputs,
                 cfg.getTreeLookup(),
-                cfg.getUnaryAssignNodeLookup(),
+                cfg.getPostfixNodeLookup(),
                 finalLocalValues);
     }
 
@@ -195,7 +195,7 @@ public abstract class AbstractAnalysis<
                     || (currentTree != null && currentTree == n.getTree())) {
                 return null;
             }
-            // check that 'n' is a subnode of 'node'. Check immediate operands
+            // check that 'n' is a subnode of 'currentNode'. Check immediate operands
             // first for efficiency.
             assert !n.isLValue() : "Did not expect an lvalue, but got " + n;
             if (!currentNode.getOperands().contains(n)
@@ -268,16 +268,30 @@ public abstract class AbstractAnalysis<
 
     @Override
     public @Nullable V getValue(Tree t) {
-        // we don't have a org.checkerframework.dataflow fact about the current node yet
-        if (t == currentTree) {
+        // Dataflow is analyzing the tree, so no value is available.
+        if (t == currentTree || cfg == null) {
             return null;
         }
-        Set<Node> nodesCorrespondingToTree = getNodesForTree(t);
-        if (nodesCorrespondingToTree == null) {
+        V result = getValue(getNodesForTree(t));
+        if (result == null) {
+            result = getValue(cfg.getTreeLookup().get(t));
+        }
+        return result;
+    }
+
+    /**
+     * Returns the least upper bound of the values of {@code nodes}.
+     *
+     * @param nodes a set of nodes
+     * @return the least upper bound of the values of {@code nodes}
+     */
+    private @Nullable V getValue(@Nullable Set<Node> nodes) {
+        if (nodes == null) {
             return null;
         }
+
         V merged = null;
-        for (Node aNode : nodesCorrespondingToTree) {
+        for (Node aNode : nodes) {
             if (aNode.isLValue()) {
                 return null;
             }
@@ -288,6 +302,7 @@ public abstract class AbstractAnalysis<
                 merged = merged.leastUpperBound(v);
             }
         }
+
         return merged;
     }
 
@@ -338,7 +353,6 @@ public abstract class AbstractAnalysis<
         }
         transferInput.node = node;
         setCurrentNode(node);
-        @SuppressWarnings("nullness") // CF bug: "INFERENCE FAILED"
         TransferResult<V, S> transferResult = node.accept(transferFunction, transferInput);
         setCurrentNode(null);
         if (node instanceof AssignmentNode) {

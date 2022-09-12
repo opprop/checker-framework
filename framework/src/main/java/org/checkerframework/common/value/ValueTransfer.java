@@ -1,7 +1,6 @@
 package org.checkerframework.common.value;
 
 import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.Tree;
 
 import org.checkerframework.common.value.qual.ArrayLen;
 import org.checkerframework.common.value.qual.ArrayLenRange;
@@ -41,7 +40,6 @@ import org.checkerframework.dataflow.cfg.node.NumericalMultiplicationNode;
 import org.checkerframework.dataflow.cfg.node.NumericalPlusNode;
 import org.checkerframework.dataflow.cfg.node.NumericalSubtractionNode;
 import org.checkerframework.dataflow.cfg.node.SignedRightShiftNode;
-import org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode;
 import org.checkerframework.dataflow.cfg.node.StringConcatenateNode;
 import org.checkerframework.dataflow.cfg.node.StringConversionNode;
 import org.checkerframework.dataflow.cfg.node.StringLiteralNode;
@@ -601,8 +599,10 @@ public class ValueTransfer extends CFTransfer {
     }
 
     @Override
+    @Deprecated // 2022-03-22
     public TransferResult<CFValue, CFStore> visitStringConcatenateAssignment(
-            StringConcatenateAssignmentNode n, TransferInput<CFValue, CFStore> p) {
+            org.checkerframework.dataflow.cfg.node.StringConcatenateAssignmentNode n,
+            TransferInput<CFValue, CFStore> p) {
         TransferResult<CFValue, CFStore> result = super.visitStringConcatenateAssignment(n, p);
         return stringConcatenation(n.getLeftOperand(), n.getRightOperand(), p, result);
     }
@@ -1537,12 +1537,11 @@ public class ValueTransfer extends CFTransfer {
     protected void processConditionalPostconditions(
             MethodInvocationNode n,
             ExecutableElement methodElement,
-            Tree tree,
+            ExpressionTree tree,
             CFStore thenStore,
             CFStore elseStore) {
         // For String.startsWith(String) and String.endsWith(String), refine the minimum length
         // of the receiver to the minimum length of the argument.
-
         ValueMethodIdentifier methodIdentifier = atypeFactory.getMethodIdentifier();
         if (methodIdentifier.isStartsWithMethod(methodElement)
                 || methodIdentifier.isEndsWithMethod(methodElement)) {

@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,11 +65,8 @@ public class AnnotationFileElementTypes {
     /** Annotations from annotation files (but not from annotated JDK files). */
     private final AnnotationFileAnnotations annotationFileAnnos;
 
-    /**
-     * Whether or not a file is currently being parsed. (If one is being parsed, don't try to parse
-     * another.)
-     */
-    private boolean parsing;
+    /** The number of ongoing parsing tasks. */
+    private int parsingCount;
 
     /** AnnotatedTypeFactory. */
     private final AnnotatedTypeFactory factory;
@@ -95,6 +93,13 @@ public class AnnotationFileElementTypes {
     private final boolean parseAllJdkFiles;
 
     /**
+     * Stores the fully qualified name of top-level classes (from any type of stub file) that are
+     * currently being parsed. This can stop recursively parsing an annotated JDK class that is
+     * currently being processed, which prevents conflicts of definition and infinite loops.
+     */
+    private final Set<String> processingClasses = new LinkedHashSet<>();
+
+    /**
      * Creates an empty annotation source.
      *
      * @param factory AnnotatedTypeFactory
@@ -102,10 +107,10 @@ public class AnnotationFileElementTypes {
     public AnnotationFileElementTypes(AnnotatedTypeFactory factory) {
         this.factory = factory;
         this.annotationFileAnnos = new AnnotationFileAnnotations();
-        this.parsing = false;
+        this.parsingCount = 0;
         String release = SystemUtil.getReleaseValue(factory.getProcessingEnv());
         this.annotatedJdkVersion =
-                release != null ? release : String.valueOf(SystemUtil.getJreVersion());
+                release != null ? release : String.valueOf(SystemUtil.jreVersion);
 
         this.shouldParseJdk = !factory.getChecker().hasOption("ignorejdkastub");
         this.parseAllJdkFiles = factory.getChecker().hasOption("parseAllJdk");
@@ -117,7 +122,7 @@ public class AnnotationFileElementTypes {
      * @return true if files are currently being parsed; otherwise, false
      */
     public boolean isParsing() {
-        return parsing;
+        return parsingCount > 0;
     }
 
     /**
@@ -142,42 +147,48 @@ public class AnnotationFileElementTypes {
      * annotation is requested from a class in that file.
      */
     public void parseStubFiles() {
-        parsing = true;
+        assert parsingCount == 0;
+        ++parsingCount;
         BaseTypeChecker checker = factory.getChecker();
         ProcessingEnvironment processingEnv = factory.getProcessingEnv();
         // 1. jdk.astub
         // Only look in .jar files, and parse it right away.
         if (!checker.hasOption("ignorejdkastub")) {
-            InputStream jdkStubIn = checker.getClass().getResourceAsStream("jdk.astub");
-            if (jdkStubIn != null) {
-                AnnotationFileParser.parseStubFile(
-                        checker.getClass().getResource("jdk.astub").toString(),
-                        jdkStubIn,
-                        factory,
-                        processingEnv,
-                        annotationFileAnnos,
-                        AnnotationFileType.BUILTIN_STUB);
+            try (InputStream jdkStubIn = checker.getClass().getResourceAsStream("jdk.astub")) {
+                if (jdkStubIn != null) {
+                    AnnotationFileParser.parseStubFile(
+                            checker.getClass().getResource("jdk.astub").toString(),
+                            jdkStubIn,
+                            factory,
+                            processingEnv,
+                            annotationFileAnnos,
+                            AnnotationFileType.BUILTIN_STUB,
+                            this);
+                }
+            } catch (IOException e) {
+                throw new Error(e);
             }
             String jdkVersionStub = "jdk" + annotatedJdkVersion + ".astub";
-            InputStream jdkVersionStubIn = checker.getClass().getResourceAsStream(jdkVersionStub);
-            if (jdkVersionStubIn != null) {
-                AnnotationFileParser.parseStubFile(
-                        checker.getClass().getResource(jdkVersionStub).toString(),
-                        jdkVersionStubIn,
-                        factory,
-                        processingEnv,
-                        annotationFileAnnos,
-                        AnnotationFileType.BUILTIN_STUB);
+            try (InputStream jdkVersionStubIn =
+                    checker.getClass().getResourceAsStream(jdkVersionStub)) {
+                if (jdkVersionStubIn != null) {
+                    AnnotationFileParser.parseStubFile(
+                            checker.getClass().getResource(jdkVersionStub).toString(),
+                            jdkVersionStubIn,
+                            factory,
+                            processingEnv,
+                            annotationFileAnnos,
+                            AnnotationFileType.BUILTIN_STUB,
+                            this);
+                }
+            } catch (IOException e) {
+                checker.message(Kind.NOTE, "Could not read annotation resource: " + jdkVersionStub);
             }
 
             // 2. Annotated JDK
             // This preps but does not parse the JDK files (except package-info.java files).
             // The JDK source code files will be parsed later, on demand.
             prepJdkStubs();
-            // prepping the JDK parses all package-info.java files, which sets the `parsing` field
-            // to
-            // false, so re-set it to true.
-            parsing = true;
         }
 
         // 3. Stub files listed in @StubFiles annotation on the checker
@@ -198,12 +209,14 @@ public class AnnotationFileElementTypes {
                     AnnotationFileType.COMMAND_LINE_STUB);
         }
 
-        parsing = false;
+        --parsingCount;
+        assert parsingCount == 0;
     }
 
     /** Parses the ajava files passed through the -Aajava command-line option. */
     public void parseAjavaFiles() {
-        parsing = true;
+        assert parsingCount == 0;
+        ++parsingCount;
         // TODO: Error if this is called more than once?
         SourceChecker checker = factory.getChecker();
         List<String> ajavaFiles = new ArrayList<>();
@@ -213,7 +226,8 @@ public class AnnotationFileElementTypes {
         }
 
         parseAnnotationFiles(ajavaFiles, AnnotationFileType.AJAVA);
-        parsing = false;
+        --parsingCount;
+        assert parsingCount == 0;
     }
 
     /**
@@ -226,18 +240,19 @@ public class AnnotationFileElementTypes {
      * @param root javac tree for the compilation unit stored in {@code ajavaFile}
      */
     public void parseAjavaFileWithTree(String ajavaPath, CompilationUnitTree root) {
-        parsing = true;
+        assert parsingCount == 0;
+        ++parsingCount;
         SourceChecker checker = factory.getChecker();
         ProcessingEnvironment processingEnv = factory.getProcessingEnv();
-        try {
-            InputStream in = new FileInputStream(ajavaPath);
+        try (InputStream in = new FileInputStream(ajavaPath)) {
             AnnotationFileParser.parseAjavaFile(
-                    ajavaPath, in, root, factory, processingEnv, annotationFileAnnos);
+                    ajavaPath, in, root, factory, processingEnv, annotationFileAnnos, this);
         } catch (IOException e) {
             checker.message(Kind.NOTE, "Could not read ajava file: " + ajavaPath);
         }
 
-        parsing = false;
+        --parsingCount;
+        assert parsingCount == 0;
     }
 
     /**
@@ -260,27 +275,27 @@ public class AnnotationFileElementTypes {
                     AnnotationFileUtil.allAnnotationFiles(fullPath, fileType);
             if (allFiles != null) {
                 for (AnnotationFileResource resource : allFiles) {
-                    InputStream annotationFileStream;
-                    try {
-                        annotationFileStream = resource.getInputStream();
+                    try (InputStream annotationFileStream = resource.getInputStream()) {
+                        // We use parseStubFile here even for ajava files because at this stage
+                        // ajava files are parsed as stub files. The extra annotation data in an
+                        // ajava file is parsed when type-checking the ajava file's corresponding
+                        // Java file.
+                        AnnotationFileParser.parseStubFile(
+                                resource.getDescription(),
+                                annotationFileStream,
+                                factory,
+                                processingEnv,
+                                annotationFileAnnos,
+                                fileType == AnnotationFileType.AJAVA
+                                        ? AnnotationFileType.AJAVA_AS_STUB
+                                        : fileType,
+                                this);
                     } catch (IOException e) {
                         checker.message(
                                 Kind.NOTE,
                                 "Could not read annotation resource: " + resource.getDescription());
                         continue;
                     }
-                    // We use parseStubFile here even for ajava files because at this stage ajava
-                    // files are parsed as stub files. The extra annotation data in an ajava file is
-                    // parsed when type-checking the ajava file's corresponding Java file.
-                    AnnotationFileParser.parseStubFile(
-                            resource.getDescription(),
-                            annotationFileStream,
-                            factory,
-                            processingEnv,
-                            annotationFileAnnos,
-                            fileType == AnnotationFileType.AJAVA
-                                    ? AnnotationFileType.AJAVA_AS_STUB
-                                    : fileType);
                 }
             } else {
                 // We didn't find the files.
@@ -289,58 +304,69 @@ public class AnnotationFileElementTypes {
                 if (path.startsWith("checker.jar/")) {
                     path = path.substring("checker.jar/".length());
                 }
-                InputStream in = checker.getClass().getResourceAsStream(path);
-                if (in != null) {
-                    AnnotationFileParser.parseStubFile(
-                            path, in, factory, processingEnv, annotationFileAnnos, fileType);
-                } else {
-                    // Didn't find the file.  Issue a warning.
+                try (InputStream in = checker.getClass().getResourceAsStream(path)) {
+                    if (in != null) {
+                        AnnotationFileParser.parseStubFile(
+                                path,
+                                in,
+                                factory,
+                                processingEnv,
+                                annotationFileAnnos,
+                                fileType,
+                                this);
+                    } else {
+                        // Didn't find the file.  Issue a warning.
 
-                    // When using a compound checker, the target file may be found by the
-                    // current checker's parent checkers. Also check this to avoid a false
-                    // warning. Currently, only the original checker will try to parse the target
-                    // file, the parent checkers are only used to reduce false warnings.
-                    SourceChecker currentChecker = checker;
-                    boolean findByParentCheckers = false;
-                    while (currentChecker != null) {
-                        URL topLevelResource = currentChecker.getClass().getResource("/" + path);
-                        if (topLevelResource != null) {
-                            currentChecker.message(
-                                    Kind.WARNING,
-                                    path
-                                            + " should be in the same directory as "
-                                            + currentChecker.getClass().getSimpleName()
-                                            + ".class, but is at the top level of a jar file: "
-                                            + topLevelResource);
-                            findByParentCheckers = true;
-                            break;
-                        } else {
-                            currentChecker = currentChecker.getParentChecker();
+                        // When using a compound checker, the target file may be found by the
+                        // current checker's parent checkers. Also check this to avoid a false
+                        // warning. Currently, only the original checker will try to parse the
+                        // target file, the parent checkers are only used to reduce false
+                        // warnings.
+                        SourceChecker currentChecker = checker;
+                        boolean findByParentCheckers = false;
+                        while (currentChecker != null) {
+                            URL topLevelResource =
+                                    currentChecker.getClass().getResource("/" + path);
+                            if (topLevelResource != null) {
+                                currentChecker.message(
+                                        Kind.WARNING,
+                                        path
+                                                + " should be in the same directory as "
+                                                + currentChecker.getClass().getSimpleName()
+                                                + ".class, but is at the top level of a jar file: "
+                                                + topLevelResource);
+                                findByParentCheckers = true;
+                                break;
+                            } else {
+                                currentChecker = currentChecker.getParentChecker();
+                            }
+                        }
+                        // If there exists one parent checker that can find this file, don't report
+                        // a warning.
+                        if (!findByParentCheckers) {
+                            File parentPath = new File(path).getParentFile();
+                            String parentPathDescription =
+                                    (parentPath == null
+                                            ? "current directory"
+                                            : "directory " + parentPath.getAbsolutePath());
+                            String msg =
+                                    checker.getClass().getSimpleName()
+                                            + " did not find annotation file or directory "
+                                            + path
+                                            + " on classpath or within "
+                                            + parentPathDescription
+                                            + (fullPath.equals(path) ? "" : (" or at " + fullPath));
+                            StringJoiner sj = new StringJoiner(System.lineSeparator() + "  ");
+                            sj.add(msg);
+                            sj.add("Classpath:");
+                            for (URI uri : new ClassGraph().getClasspathURIs()) {
+                                sj.add(uri.toString());
+                            }
+                            checker.message(Kind.WARNING, sj.toString());
                         }
                     }
-                    // If there exists one parent checker that can find this file, don't report a
-                    // warning.
-                    if (!findByParentCheckers) {
-                        File parentPath = new File(path).getParentFile();
-                        String parentPathDescription =
-                                (parentPath == null
-                                        ? "current directory"
-                                        : "directory " + parentPath.getAbsolutePath());
-                        String msg =
-                                checker.getClass().getSimpleName()
-                                        + " did not find annotation file or directory "
-                                        + path
-                                        + " on classpath or within "
-                                        + parentPathDescription
-                                        + (fullPath.equals(path) ? "" : (" or at " + fullPath));
-                        StringJoiner sj = new StringJoiner(System.lineSeparator() + "  ");
-                        sj.add(msg);
-                        sj.add("Classpath:");
-                        for (URI uri : new ClassGraph().getClasspathURIs()) {
-                            sj.add(uri.toString());
-                        }
-                        checker.message(Kind.WARNING, sj.toString());
-                    }
+                } catch (IOException e) {
+                    checker.message(Kind.NOTE, "Could not read annotation resource: " + path);
                 }
             }
         }
@@ -356,9 +382,6 @@ public class AnnotationFileElementTypes {
      *     does not appear in an annotation file.
      */
     public AnnotatedTypeMirror getAnnotatedTypeMirror(Element e) {
-        if (parsing) {
-            return null;
-        }
         parseEnclosingClass(e);
         AnnotatedTypeMirror type = annotationFileAnnos.atypes.get(e);
         return type == null ? null : type.deepCopy();
@@ -373,28 +396,8 @@ public class AnnotationFileElementTypes {
      * @return an AnnotatedTypeMirror for {@code e} containing only annotations explicitly written
      *     in the annotation file and in the element. {@code null} is returned if {@code element}
      *     does not appear in an annotation file.
-     * @deprecated use {@link #getDeclAnnotations}
-     */
-    @Deprecated // 2021-06-26
-    public Set<AnnotationMirror> getDeclAnnotation(Element elt) {
-        return getDeclAnnotations(elt);
-    }
-
-    /**
-     * Returns the set of declaration annotations for {@code e} containing only annotations
-     * explicitly written in an annotation file or the empty set if {@code e} does not appear in an
-     * annotation file.
-     *
-     * @param elt element for which annotations are returned
-     * @return an AnnotatedTypeMirror for {@code e} containing only annotations explicitly written
-     *     in the annotation file and in the element. {@code null} is returned if {@code element}
-     *     does not appear in an annotation file.
      */
     public Set<AnnotationMirror> getDeclAnnotations(Element elt) {
-        if (parsing) {
-            return Collections.emptySet();
-        }
-
         parseEnclosingClass(elt);
         String eltName = ElementUtils.getQualifiedName(elt);
         if (annotationFileAnnos.declAnnos.containsKey(eltName)) {
@@ -457,7 +460,7 @@ public class AnnotationFileElementTypes {
      */
     public void injectRecordComponentType(
             Types types, Element elt, AnnotatedExecutableType memberType) {
-        if (parsing) {
+        if (isParsing()) {
             throw new BugInCF("parsing while calling injectRecordComponentType");
         }
 
@@ -478,7 +481,9 @@ public class AnnotationFileElementTypes {
                             recordComponentType.componentsByName.get(
                                     elt.getSimpleName().toString());
                     if (recordComponentStub != null && !recordComponentStub.hasAccessorInStubs()) {
-                        replaceAnnotations(memberType.getReturnType(), recordComponentStub.type);
+                        memberType
+                                .getReturnType()
+                                .replaceAnnotations(recordComponentStub.type.getAnnotations());
                     }
                 }
             }
@@ -492,28 +497,18 @@ public class AnnotationFileElementTypes {
                             recordComponentType.getComponentsInCanonicalConstructor();
                     if (componentsInCanonicalConstructor != null) {
                         for (int i = 0; i < componentsInCanonicalConstructor.size(); i++) {
-                            replaceAnnotations(
-                                    memberType.getParameterTypes().get(i),
-                                    componentsInCanonicalConstructor.get(i));
+                            memberType
+                                    .getParameterTypes()
+                                    .get(i)
+                                    .replaceAnnotations(
+                                            componentsInCanonicalConstructor
+                                                    .get(i)
+                                                    .getAnnotations());
                         }
                     }
                 }
             }
         }
-    }
-
-    /**
-     * Replace annotations on destType with those from srcType, first removing any annotations on
-     * destType that are in the same hierarchy as any on srcType.
-     *
-     * @param destType the type whose annotations to remove/replace
-     * @param srcType the type whose annotations are copied to {@code destType}
-     */
-    private void replaceAnnotations(AnnotatedTypeMirror destType, AnnotatedTypeMirror srcType) {
-        for (AnnotationMirror annotation : srcType.getAnnotations()) {
-            destType.removeAnnotationInHierarchy(annotation);
-        }
-        destType.addAnnotations(srcType.getAnnotations());
     }
 
     /**
@@ -527,7 +522,7 @@ public class AnnotationFileElementTypes {
      */
     public @Nullable AnnotatedExecutableType getFakeOverride(
             Element elt, AnnotatedTypeMirror receiverType) {
-        if (parsing) {
+        if (isParsing()) {
             throw new BugInCF("parsing while calling getFakeOverride");
         }
 
@@ -621,19 +616,34 @@ public class AnnotationFileElementTypes {
      * @param e element whose outermost enclosing class will be parsed
      */
     private void parseEnclosingClass(Element e) {
-        if (!shouldParseJdk) {
+        if (!shouldParseJdk
+                || e.getKind() == ElementKind.PACKAGE
+                || e.getKind() == ElementKind.MODULE) {
             return;
         }
+
         String className = getOutermostEnclosingClass(e);
         if (className == null || className.isEmpty()) {
+            // TODO: maybe investigate other situations where the enclosing class is missing
+            //            if (e.getKind() != ElementKind.PACKAGE && e.getKind() !=
+            // ElementKind.MODULE) {
+            //                factory.getChecker().reportWarning(e, "unexpected element " + e + " of
+            // kind " + e.getKind());
+            //            }
+
             return;
         }
+
+        if (processingClasses.contains(className)) {
+            // TODO: some declaration annotations in the enclosing class may still
+            //  be missing, we can revisit this part if it's causing issues
+            return;
+        }
+
         if (jdkStubFiles.containsKey(className)) {
-            parseJdkStubFile(jdkStubFiles.get(className));
-            jdkStubFiles.remove(className);
+            parseJdkStubFile(jdkStubFiles.remove(className));
         } else if (jdkStubFilesJar.containsKey(className)) {
-            parseJdkJarEntry(jdkStubFilesJar.get(className));
-            jdkStubFilesJar.remove(className);
+            parseJdkJarEntry(jdkStubFilesJar.remove(className));
         }
     }
 
@@ -675,18 +685,19 @@ public class AnnotationFileElementTypes {
      * @param path path to file to parse
      */
     private void parseJdkStubFile(Path path) {
-        parsing = true;
+        ++parsingCount;
         try (FileInputStream jdkStub = new FileInputStream(path.toFile())) {
             AnnotationFileParser.parseJdkFileAsStub(
                     path.toFile().getName(),
                     jdkStub,
                     factory,
                     factory.getProcessingEnv(),
-                    annotationFileAnnos);
+                    annotationFileAnnos,
+                    this);
         } catch (IOException e) {
             throw new BugInCF("cannot open the jdk stub file " + path, e);
         } finally {
-            parsing = false;
+            --parsingCount;
         }
     }
 
@@ -697,26 +708,25 @@ public class AnnotationFileElementTypes {
      */
     private void parseJdkJarEntry(String jarEntryName) {
         JarURLConnection connection = getJarURLConnectionToJdk();
-        parsing = true;
+        ++parsingCount;
         try (JarFile jarFile = connection.getJarFile()) {
-            InputStream jdkStub;
-            try {
-                jdkStub = jarFile.getInputStream(jarFile.getJarEntry(jarEntryName));
+            try (InputStream jdkStub = jarFile.getInputStream(jarFile.getJarEntry(jarEntryName))) {
+                AnnotationFileParser.parseJdkFileAsStub(
+                        jarEntryName,
+                        jdkStub,
+                        factory,
+                        factory.getProcessingEnv(),
+                        annotationFileAnnos,
+                        this);
             } catch (IOException e) {
                 throw new BugInCF("cannot open the jdk stub file " + jarEntryName, e);
             }
-            AnnotationFileParser.parseJdkFileAsStub(
-                    jarEntryName,
-                    jdkStub,
-                    factory,
-                    factory.getProcessingEnv(),
-                    annotationFileAnnos);
         } catch (IOException e) {
             throw new BugInCF("cannot open the Jar file " + connection.getEntryName(), e);
         } catch (BugInCF e) {
             throw new BugInCF("Exception while parsing " + jarEntryName + ": " + e.getMessage(), e);
         } finally {
-            parsing = false;
+            --parsingCount;
         }
     }
 
@@ -784,7 +794,7 @@ public class AnnotationFileElementTypes {
         try {
             root = Paths.get(resourceURL.toURI());
         } catch (URISyntaxException e) {
-            throw new BugInCF("Can parse URL: " + resourceURL.toString(), e);
+            throw new BugInCF("Cannot parse URL: " + resourceURL.toString(), e);
         }
 
         try (Stream<Path> walk = Files.walk(root)) {
@@ -852,7 +862,34 @@ public class AnnotationFileElementTypes {
                 }
             }
         } catch (IOException e) {
-            throw new BugInCF("cannot open the Jar file " + resourceURL.getFile(), e);
+            throw new BugInCF("Cannot open the jar file " + resourceURL.getFile(), e);
+        }
+    }
+
+    /**
+     * This method is invoked each time before {@link AnnotationFileParser} processes a top-level
+     * type.
+     *
+     * @param typeName the fully qualified name of the top-level type
+     */
+    void preProcessTopLevelType(String typeName) {
+        boolean added = processingClasses.add(typeName);
+        if (!added) {
+            throw new BugInCF(
+                    "Trying to process type " + typeName + " which is already being processed.");
+        }
+    }
+
+    /**
+     * This method is invoked each time after {@link AnnotationFileParser} processes a top-level
+     * type.
+     *
+     * @param typeName the fully qualified name of the top-level type
+     */
+    void postProcessTopLevelType(String typeName) {
+        boolean removed = processingClasses.remove(typeName);
+        if (!removed) {
+            throw new BugInCF("Cannot find the processing record for type " + typeName);
         }
     }
 }

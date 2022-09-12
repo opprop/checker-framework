@@ -19,9 +19,7 @@ public class StubparserNullnessTest extends CheckerFrameworkPerDirectoryTest {
                 testFiles,
                 org.checkerframework.checker.nullness.NullnessChecker.class,
                 "stubparser-nullness",
-                "-Anomsgtext",
-                "-Astubs=tests/stubparser-nullness",
-                "-AstubWarnIfNotFound");
+                "-Astubs=tests/stubparser-nullness");
     }
 
     @Parameterized.Parameters

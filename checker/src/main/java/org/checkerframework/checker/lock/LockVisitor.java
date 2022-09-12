@@ -85,7 +85,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
     /**
      * Constructs a {@link LockVisitor}.
      *
-     * @param checker the type checker to use.
+     * @param checker the type checker to use
      */
     public LockVisitor(BaseTypeChecker checker) {
         super(checker);
@@ -501,10 +501,10 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         SideEffectAnnotation seaOfOverriderMethod =
                 atypeFactory.methodSideEffectAnnotation(
                         TreeUtils.elementFromDeclaration(overriderTree), false);
-        SideEffectAnnotation seaOfOverridenMethod =
+        SideEffectAnnotation seaOfOverriddenMethod =
                 atypeFactory.methodSideEffectAnnotation(overriddenMethodType.getElement(), false);
 
-        if (seaOfOverriderMethod.isWeakerThan(seaOfOverridenMethod)) {
+        if (seaOfOverriderMethod.isWeakerThan(seaOfOverriddenMethod)) {
             isValid = false;
             reportFailure(
                     "override.sideeffect.invalid",
@@ -648,8 +648,7 @@ public class LockVisitor extends BaseTypeVisitor<LockAnnotatedTypeFactory> {
         AnnotatedExecutableType invokedMethod = mType.executableType;
 
         List<AnnotatedTypeMirror> paramTypes =
-                AnnotatedTypes.expandVarArgsParameters(
-                        atypeFactory, invokedMethod, node.getArguments());
+                AnnotatedTypes.adaptParameters(atypeFactory, invokedMethod, node.getArguments());
 
         // Index on @GuardSatisfied at each location. -1 when no @GuardSatisfied annotation was
         // present.

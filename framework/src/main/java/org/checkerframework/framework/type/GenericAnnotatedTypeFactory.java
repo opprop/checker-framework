@@ -1,6 +1,7 @@
 package org.checkerframework.framework.type;
 
 import com.google.common.collect.Ordering;
+import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
@@ -28,7 +29,6 @@ import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGLambda;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGMethod;
 import org.checkerframework.dataflow.cfg.UnderlyingAST.CFGStatement;
-import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
@@ -221,6 +221,12 @@ public abstract class GenericAnnotatedTypeFactory<
     private boolean shouldDefaultTypeVarLocals;
 
     /**
+     * The inferred types applier utility to use. Initialized in postInit() and should not be
+     * re-assigned after initialization.
+     */
+    private DefaultInferredTypesApplier inferredTypesApplier;
+
+    /**
      * Elements representing variables for which the type of the initializer is being determined in
      * order to apply qualifier parameter defaults.
      *
@@ -408,6 +414,8 @@ public abstract class GenericAnnotatedTypeFactory<
         this.emptyStore = analysis.createEmptyStore(transfer.usesSequentialSemantics());
 
         this.parseAnnotationFiles();
+
+        this.inferredTypesApplier = new DefaultInferredTypesApplier(getQualifierHierarchy(), this);
     }
 
     /**
@@ -614,7 +622,7 @@ public abstract class GenericAnnotatedTypeFactory<
             FlowAnalysis result =
                     BaseTypeChecker.invokeConstructorFor(
                             BaseTypeChecker.getRelatedClassName(checkerClass, "Analysis"),
-                            new Class<?>[] {BaseTypeChecker.class, this.getClass(), List.class},
+                            new Class<?>[] {BaseTypeChecker.class, this.getClass()},
                             new Object[] {checker, this});
             if (result != null) {
                 return result;
@@ -704,10 +712,22 @@ public abstract class GenericAnnotatedTypeFactory<
     }
 
     @Override
-    public AnnotatedDeclaredType fromNewClass(NewClassTree newClassTree) {
-        AnnotatedDeclaredType superResult = super.fromNewClass(newClassTree);
-        dependentTypesHelper.atExpression(superResult, newClassTree);
+    protected List<AnnotatedTypeMirror> getExplicitNewClassClassTypeArgs(
+            NewClassTree newClassTree) {
+        List<AnnotatedTypeMirror> superResult =
+                super.getExplicitNewClassClassTypeArgs(newClassTree);
+        for (AnnotatedTypeMirror superR : superResult) {
+            dependentTypesHelper.atExpression(superR, newClassTree);
+        }
         return superResult;
+    }
+
+    @Override
+    public Set<AnnotationMirror> getExplicitNewClassAnnos(NewClassTree newClassTree) {
+        Set<AnnotationMirror> superResult = super.getExplicitNewClassAnnos(newClassTree);
+        AnnotatedTypeMirror dummy = getAnnotatedNullType(superResult);
+        dependentTypesHelper.atExpression(dummy, newClassTree);
+        return dummy.getAnnotations();
     }
 
     /**
@@ -1599,7 +1619,7 @@ public abstract class GenericAnnotatedTypeFactory<
      */
     protected void handleCFGViz(ControlFlowGraph cfg) {
         if (handleCFGViz) {
-            getCFGVisualizer().visualize(cfg, cfg.getEntryBlock(), analysis);
+            getCFGVisualizer().visualizeWithAction(cfg, cfg.getEntryBlock(), analysis);
         }
     }
 
@@ -1706,18 +1726,19 @@ public abstract class GenericAnnotatedTypeFactory<
         return varargtype;
     }
 
-    /* Returns the type of a right-hand side of an assignment for unary operation like prefix or
-     * postfix increment or decrement.
+    /**
+     * Returns the type of {@code v + 1} or {@code v - 1} where {@code v} is the expression in the
+     * postfixed increment or decrement expression.
      *
-     * @param tree unary operation tree for compound assignment
+     * @param tree a postfixed increment or decrement tree
      * @return AnnotatedTypeMirror of a right-hand side of an assignment for unary operation
      */
     public AnnotatedTypeMirror getAnnotatedTypeRhsUnaryAssign(UnaryTree tree) {
         if (!useFlow) {
             return getAnnotatedType(tree);
         }
-        AssignmentNode n = flowResult.getAssignForUnaryTree(tree);
-        return getAnnotatedType(n.getExpression().getTree());
+        BinaryTree binaryTree = flowResult.getPostfixBinaryTree(tree);
+        return getAnnotatedType(binaryTree);
     }
 
     @Override
@@ -1884,11 +1905,12 @@ public abstract class GenericAnnotatedTypeFactory<
     /**
      * Applies the annotations inferred by the org.checkerframework.dataflow analysis to the type
      * {@code type}.
+     *
+     * @param type the type to modify
+     * @param as the inferred annotations to apply
      */
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, Value as) {
-        DefaultInferredTypesApplier applier =
-                new DefaultInferredTypesApplier(getQualifierHierarchy(), this);
-        applier.applyInferredType(type, as.getAnnotations(), as.getUnderlyingType());
+        inferredTypesApplier.applyInferredType(type, as.getAnnotations(), as.getUnderlyingType());
     }
 
     /**

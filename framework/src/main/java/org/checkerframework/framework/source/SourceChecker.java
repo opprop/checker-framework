@@ -207,6 +207,10 @@ import javax.tools.Diagnostic.Kind;
     // "-Ainfer=stubs" or "-Ainfer=jaifs".
     "infer",
 
+    // Whether to output a copy of each file for which annotations were inferred, formatted
+    // as an ajava file. Can only be used with -Ainfer=ajava
+    "inferOutputOriginal",
+
     // With each warning, in addition to the concrete error key,
     // output the SuppressWarnings strings that can be used to
     // suppress that warning.
@@ -251,6 +255,7 @@ import javax.tools.Diagnostic.Kind;
     // that were not found on the class path
     // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFound
     "stubWarnIfNotFound",
+    "stubNoWarnIfNotFound",
     // Whether to ignore missing classes even when warnIfNotFound is set to true and other classes
     // from the same package are present (useful if a package spans more than one jar).
     // org.checkerframework.framework.stub.AnnotationFileParser.warnIfNotFoundIgnoresClasses
@@ -449,8 +454,8 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
     protected SourceVisitor<?, ?> visitor;
 
     /**
-     * Exceptions to -AwarnUnneededSuppressions processing. No warning about unneeded suppressions
-     * is issued if the SuppressWarnings string matches this pattern.
+     * Exceptions to {@code -AwarnUnneededSuppressions} processing. No warning about unneeded
+     * suppressions is issued if the SuppressWarnings string matches this pattern.
      */
     private @Nullable Pattern warnUnneededSuppressionsExceptions;
 
@@ -550,7 +555,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
 
         // Keep in sync with check in checker-framework/build.gradle and text in installation
         // section of manual.
-        int jreVersion = SystemUtil.getJreVersion();
+        int jreVersion = SystemUtil.jreVersion;
         if (!hasOption("noJreVersionCheck")
                 && jreVersion != 8
                 && jreVersion != 11
@@ -1297,13 +1302,14 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
     public static final String DETAILS_SEPARATOR = " $$ ";
 
     /**
-     * Returns all but the message key part of the message format output by -Adetailedmsgtext.
+     * Returns all but the message key part of the message format output by {@code
+     * -Adetailedmsgtext}.
      *
      * @param source the object from which to obtain source position information; may be an Element,
      *     a Tree, or null
      * @param defaultFormat the message key, in parentheses
      * @param args arguments for interpolation in the string corresponding to the given message key
-     * @return the first part of the message format output by -Adetailedmsgtext
+     * @return the first part of the message format output by {@code -Adetailedmsgtext}
      */
     private String detailedMsgTextPrefix(Object source, String defaultFormat, Object[] args) {
         StringJoiner sj = new StringJoiner(DETAILS_SEPARATOR);
@@ -1895,11 +1901,12 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
     ///
 
     /**
-     * Returns the argument to -AsuppressWarnings, split on commas, or null if no such argument.
-     * Only ever called once; the value is cached in field {@link
+     * Returns the argument to {@code -AsuppressWarnings}, split on commas, or null if no such
+     * argument. Only ever called once; the value is cached in field {@link
      * #suppressWarningsStringsFromOption}.
      *
-     * @return the argument to -AsuppressWarnings, split on commas, or null if no such argument
+     * @return the argument to {@code -AsuppressWarnings}, split on commas, or null if no such
+     *     argument
      */
     private String @Nullable [] getSuppressWarningsStringsFromOption() {
         Map<String, String> options = getOptions();
@@ -2045,7 +2052,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
     /**
      * Determines whether all the warnings pertaining to a given tree should be suppressed. Returns
      * true if the tree is within the scope of a @SuppressWarnings annotation, one of whose values
-     * suppresses the checker's warnings. Also, returns true if the {@code errKey} matches a string
+     * suppresses the checker's warning. Also, returns true if the {@code errKey} matches a string
      * in {@code -AsuppressWarnings}.
      *
      * @param tree the tree that might be a source of a warning
@@ -2074,38 +2081,64 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
         // trees.getPath might be slow, but this is only used in error reporting
         @Nullable TreePath path = trees.getPath(this.currentRoot, tree);
 
-        @Nullable VariableTree var = TreePathUtil.enclosingVariable(path);
-        if (var != null && shouldSuppressWarnings(TreeUtils.elementFromTree(var), errKey)) {
-            return true;
+        return shouldSuppressWarnings(path, errKey);
+    }
+
+    /**
+     * Determines whether all the warnings pertaining to a given tree path should be suppressed.
+     * Returns true if the path is within the scope of a @SuppressWarnings annotation, one of whose
+     * values suppresses the checker's warning.
+     *
+     * @param path the TreePath that might be a source of, or related to, a warning
+     * @param errKey the error key the checker is emitting
+     * @return true if no warning should be emitted for the given path because it is contained by a
+     *     declaration with an appropriately-valued {@code @SuppressWarnings} annotation; false
+     *     otherwise
+     */
+    public boolean shouldSuppressWarnings(@Nullable TreePath path, String errKey) {
+        if (path == null) {
+            return false;
         }
 
-        @Nullable MethodTree method = TreePathUtil.enclosingMethod(path);
-        if (method != null) {
-            @Nullable Element elt = TreeUtils.elementFromTree(method);
-
-            if (shouldSuppressWarnings(elt, errKey)) {
-                return true;
+        while (true) { // iterate through the path; continue until path contains no declarations
+            @Nullable TreePath declPath = TreePathUtil.enclosingDeclarationPath(path);
+            if (declPath == null) {
+                break;
+            } else {
+                path = declPath.getParentPath();
             }
+            Tree decl = declPath.getLeaf();
 
-            if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
-                // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
-                // elements, because they may not have an @AnnotatedFor.
-                return false;
-            }
-        }
+            if (decl.getKind() == Tree.Kind.VARIABLE) {
+                Element elt = TreeUtils.elementFromTree((VariableTree) decl);
+                if (shouldSuppressWarnings(elt, errKey)) {
+                    return true;
+                }
+            } else if (decl.getKind() == Tree.Kind.METHOD) {
+                Element elt = TreeUtils.elementFromTree((MethodTree) decl);
+                if (shouldSuppressWarnings(elt, errKey)) {
+                    return true;
+                }
 
-        @Nullable ClassTree cls = TreePathUtil.enclosingClass(path);
-        if (cls != null) {
-            @Nullable Element elt = TreeUtils.elementFromTree(cls);
+                if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
+                    // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
+                    // elements, because they may not have an @AnnotatedFor.
+                    return false;
+                }
+            } else if (TreeUtils.classTreeKinds().contains(decl.getKind())) {
+                // A class tree
+                Element elt = TreeUtils.elementFromTree((ClassTree) decl);
+                if (shouldSuppressWarnings(elt, errKey)) {
+                    return true;
+                }
 
-            if (shouldSuppressWarnings(elt, errKey)) {
-                return true;
-            }
-
-            if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
-                // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
-                // elements, because they may not have an @AnnotatedFor.
-                return false;
+                if (isAnnotatedForThisCheckerOrUpstreamChecker(elt)) {
+                    // Return false immediately. Do NOT check for AnnotatedFor in the enclosing
+                    // elements, because they may not have an @AnnotatedFor.
+                    return false;
+                }
+            } else {
+                throw new BugInCF("Unexpected declaration kind: " + decl.getKind() + " " + decl);
             }
         }
 
@@ -2671,8 +2704,7 @@ public abstract class SourceChecker extends AbstractTypeProcessor implements Opt
      */
     protected Properties getProperties(Class<?> cls, String filePath, boolean permitNonExisting) {
         Properties prop = new Properties();
-        try {
-            InputStream base = cls.getResourceAsStream(filePath);
+        try (InputStream base = cls.getResourceAsStream(filePath)) {
 
             if (base == null) {
                 // The property file was not found.

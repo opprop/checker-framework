@@ -24,7 +24,9 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 
 /**
- * Converts a field or methods tree into an AnnotatedTypeMirror.
+ * Converts a field or methods tree into an AnnotatedTypeMirror. Using addAnnotations for innerType
+ * can add multiple annotations from the same hierarchy, which is required to get the desired error
+ * messages about duplicate annotations.
  *
  * @see org.checkerframework.framework.type.TypeFromTree
  */
@@ -46,6 +48,11 @@ class TypeFromMemberVisitor extends TypeFromTreeVisitor {
             modifierAnnos = TreeUtils.annotationsFromTypeAnnotationTrees(annoTrees);
         } else {
             modifierAnnos = Collections.emptyList();
+        }
+
+        if (result.getKind() != TypeKind.TYPEVAR || modifierAnnos.isEmpty()) {
+            // See comment in visitMethod
+            ElementAnnotationApplier.apply(result, elt, f);
         }
 
         if (result.getKind() == TypeKind.DECLARED

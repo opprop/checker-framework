@@ -12,8 +12,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
- * Utility class for the Nullness Checker, providing every method in {@link java.util.Optional}, but
- * written for possibly-null references rather than for the {@code Optional} type.
+ * Utility class providing every method in {@link java.util.Optional}, but written for possibly-null
+ * references rather than for the {@code Optional} type.
  *
  * <p>To avoid the need to write the {@code Opt} class name at invocation sites, do:
  *
@@ -24,8 +24,7 @@ import java.util.function.Supplier;
  * <pre>import static org.checkerframework.checker.nullness.util.Opt.*;</pre>
  *
  * <p><b>Runtime Dependency</b>: If you use this class, you must distribute (or link to) {@code
- * checker-qual.jar}, along with your binaries. Or, you can can copy this class into your own
- * project.
+ * checker-qual.jar}, along with your binaries. Or, you can copy this class into your own project.
  *
  * @see java.util.Optional
  */

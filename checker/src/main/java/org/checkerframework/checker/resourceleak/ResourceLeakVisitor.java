@@ -27,6 +27,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 
 /**
@@ -35,6 +36,9 @@ import javax.lang.model.element.TypeElement;
  * valid.
  */
 public class ResourceLeakVisitor extends CalledMethodsVisitor {
+
+    /** True if errors related to static owning fields should be suppressed. */
+    private final boolean permitStaticOwning;
 
     /**
      * Because CalledMethodsVisitor doesn't have a type parameter, we need a reference to the type
@@ -51,6 +55,7 @@ public class ResourceLeakVisitor extends CalledMethodsVisitor {
     public ResourceLeakVisitor(final BaseTypeChecker checker) {
         super(checker);
         rlTypeFactory = (ResourceLeakAnnotatedTypeFactory) atypeFactory;
+        permitStaticOwning = checker.hasOption("permitStaticOwning");
     }
 
     @Override
@@ -251,6 +256,16 @@ public class ResourceLeakVisitor extends CalledMethodsVisitor {
             return;
         }
 
+        Set<Modifier> modifiers = field.getModifiers();
+        if (modifiers.contains(Modifier.STATIC)) {
+            if (permitStaticOwning) {
+                return;
+            }
+            if (modifiers.contains(Modifier.FINAL)) {
+                return;
+            }
+        }
+
         // This value is side-effected.
         List<String> unsatisfiedMustCallObligationsOfOwningField =
                 rlTypeFactory.getMustCallValue(field);
@@ -259,7 +274,7 @@ public class ResourceLeakVisitor extends CalledMethodsVisitor {
             return;
         }
 
-        String error = "";
+        String error;
         Element enclosingElement = field.getEnclosingElement();
         List<String> enclosingMustCallValues = rlTypeFactory.getMustCallValue(enclosingElement);
 
@@ -268,7 +283,13 @@ public class ResourceLeakVisitor extends CalledMethodsVisitor {
                     " The enclosing element "
                             + ElementUtils.getQualifiedName(enclosingElement)
                             + " doesn't have a @MustCall annotation";
+        } else if (enclosingMustCallValues.isEmpty()) {
+            error =
+                    " The enclosing element "
+                            + ElementUtils.getQualifiedName(enclosingElement)
+                            + " has an empty @MustCall annotation";
         } else {
+            error = " [[checkOwningField() did not find a reason!]]"; // should be reassigned
             List<? extends Element> siblingsOfOwningField = enclosingElement.getEnclosedElements();
             for (Element siblingElement : siblingsOfOwningField) {
                 if (siblingElement.getKind() == ElementKind.METHOD

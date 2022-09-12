@@ -23,12 +23,11 @@ import org.checkerframework.dataflow.cfg.node.ReturnNode;
 import org.checkerframework.dataflow.cfg.node.ThrowNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.dataflow.util.PurityUtils;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.visitor.SimpleAnnotatedTypeScanner;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -80,22 +79,28 @@ public class NullnessTransfer
     protected final AnnotatedDeclaredType MAP_TYPE;
 
     /** The type factory for the nullness analysis that was passed to the constructor. */
-    protected final GenericAnnotatedTypeFactory<
-                    NullnessValue,
-                    NullnessStore,
-                    NullnessTransfer,
-                    ? extends CFAbstractAnalysis<NullnessValue, NullnessStore, NullnessTransfer>>
-            nullnessTypeFactory;
+    protected final NullnessAnnotatedTypeFactory nullnessTypeFactory;
 
     /**
      * The type factory for the map key analysis, or null if the Map Key Checker should not be run.
      */
     protected final @Nullable KeyForAnnotatedTypeFactory keyForTypeFactory;
 
-    /** Create a new NullnessTransfer for the given analysis. */
+    /**
+     * True if conservativeArgumentNullnessAfterInvocation flag is turned off, meaning that after a
+     * method call or constructor invocation, arguments of the invocation (including the receiver)
+     * are assumed to be non-null.
+     */
+    private final boolean nonNullAssumptionAfterInvocation;
+
+    /**
+     * Create a new NullnessTransfer for the given analysis.
+     *
+     * @param analysis nullness analysis
+     */
     public NullnessTransfer(NullnessAnalysis analysis) {
         super(analysis);
-        this.nullnessTypeFactory = analysis.getTypeFactory();
+        this.nullnessTypeFactory = (NullnessAnnotatedTypeFactory) analysis.getTypeFactory();
         Elements elements = nullnessTypeFactory.getElementUtils();
         BaseTypeChecker checker = nullnessTypeFactory.getChecker();
         if (checker.hasOption("assumeKeyFor")) {
@@ -117,6 +122,11 @@ public class NullnessTransfer
                                 TypesUtils.typeFromClass(Map.class, analysis.getTypes(), elements),
                                 nullnessTypeFactory,
                                 false);
+
+        nonNullAssumptionAfterInvocation =
+                !analysis.getTypeFactory()
+                        .getChecker()
+                        .getBooleanOption("conservativeArgumentNullnessAfterInvocation", false);
     }
 
     /**
@@ -328,6 +338,8 @@ public class NullnessTransfer
     public TransferResult<NullnessValue, NullnessStore> visitMethodAccess(
             MethodAccessNode n, TransferInput<NullnessValue, NullnessStore> p) {
         TransferResult<NullnessValue, NullnessStore> result = super.visitMethodAccess(n, p);
+        // In contrast to the conditional makeNonNull in visitMethodInvocation, this
+        // makeNonNull is unconditional, as the receiver is definitely non-null after the access.
         makeNonNull(result, n.getReceiver());
         return result;
     }
@@ -348,11 +360,22 @@ public class NullnessTransfer
         return result;
     }
 
-    /*
-     * Provided that m is of a type that implements interface java.util.Map:
+    /**
+     * {@inheritDoc}
+     *
+     * <p>When the conservativeArgumentNullnessAfterInvocation flag is turned off, the receiver and
+     * arguments that are passed to non-null parameters in a method call or constructor invocation
+     * are unsoundly assumed to be non-null after the invocation.
+     *
+     * <p>When the flag is turned on, the analysis is more conservative by checking the method is
+     * SideEffectFree or the receiver is unassignable. Only if either one of the two is true, is the
+     * receiver made non-null. Similar logic is applied to the arguments of the invocation.
+     *
+     * <p>Provided that m is of a type that implements interface java.util.Map:
+     *
      * <ul>
-     * <li>Given a call m.get(k), if k is @KeyFor("m") and m's value type is @NonNull,
-     *     then the result is @NonNull in the thenStore and elseStore of the transfer result.
+     *   <li>Given a call m.get(k), if k is @KeyFor("m") and m's value type is @NonNull, then the
+     *       result is @NonNull in the thenStore and elseStore of the transfer result.
      * </ul>
      */
     @Override
@@ -360,35 +383,51 @@ public class NullnessTransfer
             MethodInvocationNode n, TransferInput<NullnessValue, NullnessStore> in) {
         TransferResult<NullnessValue, NullnessStore> result = super.visitMethodInvocation(n, in);
 
-        // Make receiver non-null.
+        MethodInvocationTree tree = n.getTree();
+        ExecutableElement method = TreeUtils.elementFromUse(tree);
+
+        boolean isMethodSideEffectFree = PurityUtils.isSideEffectFree(atypeFactory, method);
         Node receiver = n.getTarget().getReceiver();
-        makeNonNull(result, receiver);
+        if (nonNullAssumptionAfterInvocation
+                || isMethodSideEffectFree
+                || JavaExpression.fromNode(receiver).isUnassignableByOtherCode()) {
+            // Make receiver non-null.
+            makeNonNull(result, receiver);
+        }
 
         // For all formal parameters with a non-null annotation, make the actual argument non-null.
         // The point of this is to prevent cascaded errors -- the Nullness Checker will issue a
         // warning for the method invocation, but not for subsequent uses of the argument.  See test
         // case FlowNullness.java.
-        MethodInvocationTree tree = n.getTree();
-        ExecutableElement method = TreeUtils.elementFromUse(tree);
         AnnotatedExecutableType methodType = nullnessTypeFactory.getAnnotatedType(method);
         List<AnnotatedTypeMirror> methodParams = methodType.getParameterTypes();
         List<? extends ExpressionTree> methodArgs = tree.getArguments();
         for (int i = 0; i < methodParams.size() && i < methodArgs.size(); ++i) {
-            if (methodParams.get(i).hasAnnotation(NONNULL)) {
+            if (methodParams.get(i).hasAnnotation(NONNULL)
+                    && (nonNullAssumptionAfterInvocation
+                            || isMethodSideEffectFree
+                            || JavaExpression.fromTree(methodArgs.get(i))
+                                    .isUnassignableByOtherCode())) {
                 makeNonNull(result, n.getArgument(i));
             }
         }
 
         // Refine result to @NonNull if n is an invocation of Map.get, the argument is a key for
         // the map, and the map's value type is not @Nullable.
-        if (keyForTypeFactory != null && keyForTypeFactory.isMapGet(n)) {
-            String mapName = JavaExpression.fromNode(receiver).toString();
-            AnnotatedTypeMirror receiverType = nullnessTypeFactory.getReceiverType(n.getTree());
-
-            if (keyForTypeFactory.isKeyForMap(mapName, methodArgs.get(0))
-                    && !hasNullableValueType(receiverType)) {
-                makeNonNull(result, n);
-                refineToNonNull(result);
+        if (nullnessTypeFactory.isMapGet(n)) {
+            boolean isKeyFor;
+            if (keyForTypeFactory != null) {
+                String mapName = JavaExpression.fromNode(receiver).toString();
+                isKeyFor = keyForTypeFactory.isKeyForMap(mapName, methodArgs.get(0));
+            } else {
+                isKeyFor = analysis.getTypeFactory().getChecker().hasOption("assumeKeyFor");
+            }
+            if (isKeyFor) {
+                AnnotatedTypeMirror receiverType = nullnessTypeFactory.getReceiverType(n.getTree());
+                if (!hasNullableValueType(receiverType)) {
+                    makeNonNull(result, n);
+                    refineToNonNull(result);
+                }
             }
         }
 

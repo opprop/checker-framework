@@ -28,6 +28,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.signature.qual.FullyQualifiedName;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.util.NodeUtils;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.qual.DefaultQualifier;
 import org.checkerframework.framework.qual.TypeUseLocation;
@@ -103,6 +105,10 @@ public class NullnessAnnotatedTypeFactory
 
     /** Cache for the nullness annotations. */
     protected final Set<Class<? extends Annotation>> nullnessAnnos;
+
+    /** The Map.get method. */
+    private final ExecutableElement mapGet =
+            TreeUtils.getMethod("java.util.Map", "get", 1, processingEnv);
 
     // List is in alphabetical order.  If you update it, also update
     // ../../../../../../../../docs/manual/nullness-checker.tex
@@ -180,6 +186,8 @@ public class NullnessAnnotatedTypeFactory
                     "org.jetbrains.annotations.NotNull",
                     // http://svn.code.sf.net/p/jmlspecs/code/JMLAnnotations/trunk/src/org/jmlspecs/annotation/NonNull.java
                     "org.jmlspecs.annotation.NonNull",
+                    // https://github.com/jspecify/jspecify/tree/main/src/main/java/org/jspecify/nullness
+                    "org.jspecify.nullness.NonNull",
                     // http://bits.netbeans.org/dev/javadoc/org-netbeans-api-annotations-common/org/netbeans/api/annotations/common/NonNull.html
                     "org.netbeans.api.annotations.common.NonNull",
                     // https://github.com/spring-projects/spring-framework/blob/master/spring-core/src/main/java/org/springframework/lang/NonNull.java
@@ -341,16 +349,21 @@ public class NullnessAnnotatedTypeFactory
                 "org.checkerframework.checker.nullness.compatqual.MonotonicNonNullType",
                 MONOTONIC_NONNULL);
 
-        AnnotationMirror nullMarkedDefaultQual =
-                new AnnotationBuilder(processingEnv, DefaultQualifier.class)
-                        .setValue("value", NonNull.class)
-                        .setValue("locations", new TypeUseLocation[] {TypeUseLocation.UPPER_BOUND})
-                        .setValue("applyToSubpackages", false)
-                        .build();
-        addAliasedDeclAnnotation(
-                "org.jspecify.nullness.NullMarked",
-                DefaultQualifier.class.getCanonicalName(),
-                nullMarkedDefaultQual);
+        if (checker.getBooleanOption("jspecifyNullMarkedAlias", true)) {
+            AnnotationMirror nullMarkedDefaultQual =
+                    new AnnotationBuilder(processingEnv, DefaultQualifier.class)
+                            .setValue("value", NonNull.class)
+                            .setValue(
+                                    "locations",
+                                    new TypeUseLocation[] {TypeUseLocation.UPPER_BOUND})
+                            .setValue("applyToSubpackages", false)
+                            .build();
+
+            addAliasedDeclAnnotation(
+                    "org.jspecify.nullness.NullMarked",
+                    DefaultQualifier.class.getCanonicalName(),
+                    nullMarkedDefaultQual);
+        }
 
         boolean permitClearProperty =
                 checker.getLintOption(
@@ -740,7 +753,7 @@ public class NullnessAnnotatedTypeFactory
     }
 
     @Override
-    public QualifierHierarchy createQualifierHierarchy() {
+    protected QualifierHierarchy createQualifierHierarchy() {
         return new NullnessQualifierHierarchy();
     }
 
@@ -809,9 +822,9 @@ public class NullnessAnnotatedTypeFactory
      * <p>This method ignores aliases of nullness annotations that are declaration annotations,
      * because they may apply to inner types.
      *
-     * @param annoTrees a list of annotations that the the Java parser attached to the
-     *     variable/method declaration; null if this type is not from such a location. This is a
-     *     list of extra annotations to check, in addition to those on the type.
+     * @param annoTrees a list of annotations that the Java parser attached to the variable/method
+     *     declaration; null if this type is not from such a location. This is a list of extra
+     *     annotations to check, in addition to those on the type.
      * @param typeTree the type whose annotations to test
      * @return true if some annotation is a nullness annotation
      */
@@ -1005,4 +1018,14 @@ public class NullnessAnnotatedTypeFactory
         return am;
     }
     */
+
+    /**
+     * Returns true if {@code node} is an invocation of Map.get.
+     *
+     * @param node a node
+     * @return true if {@code node} is an invocation of Map.get
+     */
+    public boolean isMapGet(Node node) {
+        return NodeUtils.isMethodInvocation(node, mapGet, getProcessingEnv());
+    }
 }

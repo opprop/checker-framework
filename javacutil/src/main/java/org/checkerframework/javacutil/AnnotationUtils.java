@@ -31,9 +31,11 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -1577,5 +1579,47 @@ public class AnnotationUtils {
         } catch (ClassNotFoundException e) {
             throw new BugInCF(e);
         }
+    }
+
+    /**
+     * Create a map suitable for storing {@link AnnotationMirror} as keys.
+     *
+     * <p>It can store one instance of {@link AnnotationMirror} of a given declared type, regardless
+     * of the annotation element values.
+     *
+     * @param <V> the value of the map
+     * @return a new map with {@link AnnotationMirror} as key
+     */
+    public static <V> Map<AnnotationMirror, V> createAnnotationMap() {
+        return new TreeMap<>(AnnotationUtils::compareAnnotationMirrors);
+    }
+
+    /**
+     * Constructs a {@link Set} for storing {@link AnnotationMirror}s.
+     *
+     * <p>It stores at most once instance of {@link AnnotationMirror} of a given type, regardless of
+     * the annotation element values.
+     *
+     * @return a sorted new set to store {@link AnnotationMirror} as element
+     */
+    public static NavigableSet<AnnotationMirror> createAnnotationSet() {
+        return new TreeSet<>(AnnotationUtils::compareAnnotationMirrors);
+    }
+
+    /**
+     * Constructs a {@link Set} for storing {@link AnnotationMirror}s to contain all the annotations
+     * in {@code annos}.
+     *
+     * <p>It stores at most once instance of {@link AnnotationMirror} of a given type, regardless of
+     * the annotation element values.
+     *
+     * @param annos a Collection of AnnotationMirrors to put in the created set
+     * @return a sorted new set to store {@link AnnotationMirror} as element
+     */
+    public static NavigableSet<AnnotationMirror> createAnnotationSet(
+            Collection<AnnotationMirror> annos) {
+        TreeSet<AnnotationMirror> set = new TreeSet<>(AnnotationUtils::compareAnnotationMirrors);
+        set.addAll(annos);
+        return set;
     }
 }

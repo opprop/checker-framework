@@ -2,6 +2,7 @@
 # using OpenJDK 8.
 
 # "ubuntu" is the latest LTS release.  "ubuntu:rolling" is the latest release.
+
 # See releases at https://hub.docker.com/_/ubuntu for available images.
 # See https://packages.ubuntu.com/search?suite=default&section=all&arch=any&keywords=openjdk-20-jdk&searchon=names
 # to see what Ubuntu versions support a particular OpenJDK version.

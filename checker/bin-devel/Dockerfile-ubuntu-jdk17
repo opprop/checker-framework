@@ -2,6 +2,7 @@
 # using OpenJDK 17.
 
 # "ubuntu" is the latest LTS release.  "ubuntu:rolling" is the latest release.
+
 # See releases at https://hub.docker.com/_/ubuntu for available images.
 # See https://packages.ubuntu.com/search?suite=default&section=all&arch=any&keywords=openjdk-20-jdk&searchon=names
 # to see what Ubuntu versions support a particular OpenJDK version.
@@ -43,6 +44,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 && wget https://mirrors.sonic.net/apache/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.tar.gz \
 && tar xzvf apache-maven-3.9.1-bin.tar.gz
 ENV PATH="/apache-maven-3.9.1/bin:$PATH"
+
+RUN pip3 install --no-cache-dir lithium-reducer PyGithub pyyaml
 
 RUN pip3 install --no-cache-dir lithium-reducer PyGithub pyyaml
 

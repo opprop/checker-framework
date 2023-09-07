@@ -39,6 +39,11 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-junit.sh
     displayName: test-cftests-junit.sh
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: ./checker/dist
+      artifactName: cf_jdk8
+      artifactType: pipeline
 - job: junit_tests_jdk11
   dependsOn:
    - canary_jobs
@@ -51,6 +56,11 @@ jobs:
     fetchDepth: 25
   - bash: ./checker/bin-devel/test-cftests-junit.sh
     displayName: test-cftests-junit.sh
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: ./checker/dist
+      artifactName: cf_jdk11
+      artifactType: pipeline
 - job: junit_tests_jdk17
   pool:
     vmImage: 'ubuntu-latest'
@@ -154,7 +164,7 @@ jobs:
    - inference_tests_jdk17
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk8:latest
+  container: wmdietl/cf-ubuntu-jdk8:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -166,7 +176,7 @@ jobs:
    - inference_tests_jdk17
   pool:
     vmImage: 'ubuntu-latest'
-  container: mdernst/cf-ubuntu-jdk11:latest
+  container: wmdietl/cf-ubuntu-jdk11:latest
   steps:
   - checkout: self
     fetchDepth: 25
@@ -471,10 +481,51 @@ jobs:
     vmImage: 'ubuntu-latest'
   container: mdernst/cf-ubuntu-jdk19:latest
   steps:
+    - checkout: self
+      fetchDepth: 25
+    - bash: ./checker/bin-devel/test-plume-lib.sh
+      displayName: test-plume-lib.sh
+
+- job: cfinference_jdk8
+  dependsOn:
+   - junit_tests_jdk11
+   - nonjunit_tests_jdk11
+#   - misc_jdk11
+   - typecheck_jdk11
+   - cfinference_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: xingweitian/ubuntu-for-cfi-jdk8:latest
+  steps:
   - checkout: self
     fetchDepth: 25
-  - bash: ./checker/bin-devel/test-plume-lib.sh
-    displayName: test-plume-lib.sh
+  - bash: ./checker/bin-devel/test-cf-inference.sh
+    displayName: test-cf-inference.sh
+- job: cfinference_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: xingweitian/ubuntu-for-cfi-jdk11:latest
+  steps:
+  - checkout: self
+    fetchDepth: 25
+  - bash: ./checker/bin-devel/test-cf-inference.sh
+    displayName: test-cf-inference.sh
+# TODO: need Docker image for JDK 16
+# - job: downstream_jdk16
+#   dependsOn:
+#    - junit_tests_jdk11
+#    - nonjunit_tests_jdk11
+# #   - misc_jdk11
+#    - typecheck_jdk11
+#    - downstream_jdk11
+#   pool:
+#     vmImage: 'ubuntu-latest'
+#   container: mdernst/cf-ubuntu-jdk16:latest
+#   steps:
+#   - checkout: self
+#     fetchDepth: 25
+#   - bash: ./checker/bin-devel/test-downstream.sh
+#     displayName: test-downstream.sh
 
 ## The downstream jobs are not currently needed because test-downstream.sh is empty.
 # - job: downstream_jdk8

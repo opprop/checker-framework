@@ -23,6 +23,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 import java.net.JarURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -403,13 +405,14 @@ public class AnnotationClassLoader implements Closeable {
         URL jarURL = null;
 
         try {
-            jarURL = new URL("jar:file:" + absolutePathToJarFile + "!/");
+            jarURL = new URI("jar:file:" + absolutePathToJarFile + "!/").toURL();
         } catch (MalformedURLException e) {
             processingEnv
                     .getMessager()
                     .printMessage(Kind.NOTE, "Jar URL " + absolutePathToJarFile + " is malformed");
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
         }
-
         return jarURL;
     }
 

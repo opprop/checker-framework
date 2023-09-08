@@ -72,7 +72,7 @@ ext {
     // afu = "${annotationTools}/annotation-file-utilities"
 
     stubparser = "${parentDir}/stubparser"
-    stubparserVersion = "3.25.2"
+    stubparserVersion = "3.24.7"
     stubparserJar = "${stubparser}/javaparser-core/target/stubparser-${stubparserVersion}.jar"
 
     jtregHome = "${parentDir}/jtreg"

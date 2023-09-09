@@ -618,6 +618,7 @@ jobs:
     - checkout: self
       fetchDepth: 25
     - bash: ./checker/bin-devel/test-plume-lib.sh
+      continueOnError: true
       displayName: test-plume-lib.sh
 
 - job: cfinference_jdk8

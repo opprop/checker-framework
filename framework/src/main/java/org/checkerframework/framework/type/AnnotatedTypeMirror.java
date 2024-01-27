@@ -1184,7 +1184,7 @@ public abstract class AnnotatedTypeMirror {
          * @param params an unmodifiable list of parameter types to be captured by this method,
          *     excluding the receiver
          */
-        /*package-private*/ void setParameterTypes(List<AnnotatedTypeMirror> params) {
+        public void setParameterTypes(List<AnnotatedTypeMirror> params) {
             if (paramTypesComputed && isVarArgs() && varargType == null) {
                 throw new BugInCF("Set vararg type before resetting parameter types");
             }
@@ -1233,7 +1233,7 @@ public abstract class AnnotatedTypeMirror {
          * executable type. To use the {@link paramTypes} from different executable type, use {@link
          * #computeVarargType(AnnotatedExecutableType)}.
          */
-        /*package-private*/ void computeVarargType() {
+        public void computeVarargType() {
             computeVarargType(paramTypes);
         }
 

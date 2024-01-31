@@ -13,7 +13,8 @@ source "$SCRIPTDIR"/build.sh
 PLUME_SCRIPTS="$SCRIPTDIR/.plume-scripts"
 
 ## Checker Framework demos
-"$PLUME_SCRIPTS/git-clone-related" eisop checker-framework.demos
+"$PLUME_SCRIPTS/git-clone-related" eisop checker-framework.demos -q --single-branch --depth 50
+(cd ../checker-framework.demos && git checkout e8dd5a0b7a984cbe0b2930be2144626994bf4e07)
 ./gradlew :checker:demosTests --console=plain --warning-mode=all
 
 status=0

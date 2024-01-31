@@ -46,7 +46,13 @@ for PACKAGE in "${PACKAGES[@]}"; do
   echo "PACKAGE=${PACKAGE}"
   PACKAGEDIR="/tmp/${PACKAGE}"
   rm -rf "${PACKAGEDIR}"
-  "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-plume-lib "${PACKAGE}" "${PACKAGEDIR}"
+  "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-plume-lib "${PACKAGE}" "${PACKAGEDIR}" -q --single-branch --depth 50
+  if [ "${PACKAGE}" = "options" ]; then
+    (cd "${PACKAGEDIR}" && git checkout a91f0e15db05b19a150a76eccb7309a47fde2931 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "plume-util" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 81858f0fa83a7d3ba8d57610d1ee9fb7b54f3909 && cd ..)
+  fi
   # Uses "compileJava" target instead of "assemble" to avoid the javadoc error "Error fetching URL:
   # https://docs.oracle.com/en/java/javase/17/docs/api/" due to network problems.
   echo "About to call ./gradlew --console=plain -PcfLocal compileJava"

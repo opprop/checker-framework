@@ -291,15 +291,20 @@ task demosTests(dependsOn: assembleForJavac, group: 'Verification') {
                     ]
                 }
             } else {
-                exec {
-                    workingDir demosDir
-                    executable 'git'
-                    args = [
-                        'pull',
-                        'https://github.com/eisop/checker-framework.demos.git'
-                    ]
-                    ignoreExitValue = true
-                }
+                // Avoiding `git pull` here to stay on the current commit. This is temporary workaround and will be
+                // removed after update to EISOP 3.39.
+                // See commit 246186a7af69a9371cb599d4e352fd29031c3240 for related changes.
+                /*
+                 exec {
+                 workingDir demosDir
+                 executable 'git'
+                 args = [
+                 'pull',
+                 'https://github.com/eisop/checker-framework.demos.git'
+                 ]
+                 ignoreExitValue = true
+                 }
+                 */
             }
             ant.properties.put('checker.lib', file("${projectDir}/dist/checker.jar").absolutePath)
             ant.ant(dir: demosDir.toString())

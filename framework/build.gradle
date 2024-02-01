@@ -43,7 +43,7 @@ jar {
 
 
 def versions = [
-    autoValue       : '1.10.1',
+    autoValue       : '1.10.4',
     lombok          : '1.18.26',
 ]
 

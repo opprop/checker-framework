@@ -12,8 +12,9 @@ source "$SCRIPTDIR"/build.sh
 
 
 # daikon-typecheck: 15 minutes
-"$SCRIPTDIR/.plume-scripts/git-clone-related" codespecs daikon
+"$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-codespecs daikon -q --single-branch --depth 50
 cd ../daikon
+git checkout 439fa9b97eac1e2d08cafdb327fe2085f320b199
 git log | head -n 5
 make compile
 if [ "$TRAVIS" = "true" ] ; then

@@ -13,20 +13,26 @@ source "$SCRIPTDIR"/build.sh
 PLUME_SCRIPTS="$SCRIPTDIR/.plume-scripts"
 
 ## Checker Framework demos
-"$PLUME_SCRIPTS/git-clone-related" eisop checker-framework.demos
+"$PLUME_SCRIPTS/git-clone-related" eisop checker-framework.demos -q --single-branch --depth 50
+(cd ../checker-framework.demos && git checkout e8dd5a0b7a984cbe0b2930be2144626994bf4e07)
 ./gradlew :checker:demosTests --console=plain --warning-mode=all
 
 status=0
 
 ## Code style and formatting
-./gradlew checkBasicStyle spotlessCheck --console=plain --warning-mode=all
+JAVA_VER=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | sed '/^1\./s///' | cut -d'.' -f1)
+if [ "$JAVA_VER" = "8" ] ; then
+  ./gradlew checkBasicStyle --console=plain --warning-mode=all
+else
+  ./gradlew checkBasicStyle spotlessCheck --console=plain --warning-mode=all
+fi
 if grep -n -r --exclude-dir=build --exclude-dir=examples --exclude-dir=jtreg --exclude-dir=tests --exclude="*.astub" --exclude="*.tex" '^\(import static \|import .*\*;$\)'; then
   echo "Don't use static import or wildcard import"
   exit 1
 fi
 make -C checker/bin
 make -C checker/bin-devel
-make -C docs/developer/release
+make -C docs/developer/release check-python-style
 
 ## HTML legality
 ./gradlew htmlValidate --console=plain --warning-mode=all

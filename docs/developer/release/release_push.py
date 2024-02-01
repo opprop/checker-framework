@@ -148,9 +148,8 @@ def stage_maven_artifacts_in_maven_central(new_cf_version):
     gnupgPassphrase = read_first_line(
         "/projects/swlab1/checker-framework/hosting-info/release-private.password"
     )
-    # When bufalo uses gpg2 version 2.2+, then remove signing.gnupg.useLegacyGpg=true
     execute(
-        "./gradlew publish -Prelease=true --no-parallel -Psigning.gnupg.useLegacyGpg=true -Psigning.gnupg.keyName=checker-framework-dev@googlegroups.com -Psigning.gnupg.passphrase=%s"
+        "./gradlew publish -Prelease=true --no-parallel -Psigning.gnupg.keyName=checker-framework-dev@googlegroups.com -Psigning.gnupg.passphrase=%s"
         % gnupgPassphrase,
         working_dir=CHECKER_FRAMEWORK,
     )
@@ -373,7 +372,6 @@ def main(argv):
 
     print_step("Push Step 3: Run development sanity tests")  # SEMIAUTO
     if prompt_yes_no("Perform this step?", True):
-
         print_step("3a: Run javac sanity test on development release.")
         if prompt_yes_no("Run javac sanity test on development release?", True):
             javac_sanity_check(dev_checker_website, new_cf_version)

@@ -46,7 +46,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
   echo "PACKAGE=${PACKAGE}"
   PACKAGEDIR="/tmp/${PACKAGE}"
   rm -rf "${PACKAGEDIR}"
-  "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-plume-lib "${PACKAGE}" "${PACKAGEDIR}" -q --single-branch --depth 50
+  "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-plume-lib "${PACKAGE}" "${PACKAGEDIR}" -q --single-branch --depth 250
   if [ "${PACKAGE}" = "options" ]; then
     (cd "${PACKAGEDIR}" && git checkout a91f0e15db05b19a150a76eccb7309a47fde2931 && cd ..)
   fi

@@ -137,7 +137,7 @@ public abstract class AnnotatedTypeMirror {
     protected final AnnotatedTypeFactory atypeFactory;
 
     /** Actual type wrapped with this AnnotatedTypeMirror. */
-    protected final TypeMirror underlyingType;
+    public final TypeMirror underlyingType;
 
     /**
      * Saves the result of {@code underlyingType.toString().hashcode()} to use when computing the
@@ -1243,8 +1243,7 @@ public abstract class AnnotatedTypeMirror {
          *
          * @param annotatedExecutableType an AnnotatedExecutableType
          */
-        /*package-private*/ void computeVarargType(
-                AnnotatedExecutableType annotatedExecutableType) {
+        public void computeVarargType(AnnotatedExecutableType annotatedExecutableType) {
             computeVarargType(annotatedExecutableType.getParameterTypes());
         }
 
@@ -1330,7 +1329,7 @@ public abstract class AnnotatedTypeMirror {
          *
          * @param receiverType the receiver type
          */
-        /*package-private*/ void setReceiverType(AnnotatedDeclaredType receiverType) {
+        public void setReceiverType(AnnotatedDeclaredType receiverType) {
             this.receiverType = receiverType;
             receiverTypeComputed = true;
         }

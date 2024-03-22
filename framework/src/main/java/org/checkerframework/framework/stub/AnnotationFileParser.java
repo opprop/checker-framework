@@ -887,11 +887,11 @@ public class AnnotationFileParser {
      *   <li>It is in the annotated JDK. Private constructs can't be referenced outside of the JDK
      *       and might refer to types that are not accessible.
      *   <li>It is not an ajava file and {@code -AmergeStubsWithSource} was not supplied. As
-     *       described at https://checkerframework.org/manual/#stub-multiple-specifications, source
+     *       described at https://eisop.github.io/cf/manual/#stub-multiple-specifications, source
      *       files take precedence over stub files unless {@code -AmergeStubsWithSource} is
-     *       supplied. As described at https://checkerframework.org/manual/#ajava-using, source
-     *       files do not take precedence over ajava files (when reading an ajava file, it is as if
-     *       {@code -AmergeStubsWithSource} were supplied).
+     *       supplied. As described at https://eisop.github.io/cf/manual/#ajava-using, source files
+     *       do not take precedence over ajava files (when reading an ajava file, it is as if {@code
+     *       -AmergeStubsWithSource} were supplied).
      * </ul>
      *
      * @param node a declaration
@@ -2051,14 +2051,14 @@ public class AnnotationFileParser {
             NodeWithRange<?> astNode) {
         if (member instanceof MethodDeclaration) {
             MethodDeclaration method = (MethodDeclaration) member;
-            Element elt = findElement(typeElt, method, /*noWarn=*/ true);
+            Element elt = findElement(typeElt, method, /* noWarn= */ true);
             if (elt != null) {
                 putIfAbsent(elementsToDecl, elt, method);
             } else {
                 ExecutableElement overriddenMethod = fakeOverriddenMethod(typeElt, method);
                 if (overriddenMethod == null) {
                     // Didn't find the element and it isn't a fake override.  Issue a warning.
-                    findElement(typeElt, method, /*noWarn=*/ false);
+                    findElement(typeElt, method, /* noWarn= */ false);
                 } else {
                     List<BodyDeclaration<?>> l =
                             fakeOverrideDecls.computeIfAbsent(

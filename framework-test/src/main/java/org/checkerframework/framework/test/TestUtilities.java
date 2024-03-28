@@ -41,26 +41,42 @@ public class TestUtilities {
 
     /** True if the JVM is version 9 or above. */
     public static final boolean IS_AT_LEAST_9_JVM = SystemUtil.jreVersion >= 9;
+
+    /** True if the JVM is version 10 or above. */
+    public static final boolean IS_AT_LEAST_10_JVM = SystemUtil.jreVersion >= 10;
+
     /** True if the JVM is version 11 or above. */
     public static final boolean IS_AT_LEAST_11_JVM = SystemUtil.jreVersion >= 11;
+
     /** True if the JVM is version 11 or lower. */
     public static final boolean IS_AT_MOST_11_JVM = SystemUtil.jreVersion <= 11;
+
     /** True if the JVM is version 14 or above. */
     public static final boolean IS_AT_LEAST_14_JVM = SystemUtil.jreVersion >= 14;
+
     /** True if the JVM is version 14 or lower. */
     public static final boolean IS_AT_MOST_14_JVM = SystemUtil.jreVersion <= 14;
+
     /** True if the JVM is version 16 or above. */
     public static final boolean IS_AT_LEAST_16_JVM = SystemUtil.jreVersion >= 16;
+
     /** True if the JVM is version 16 or lower. */
     public static final boolean IS_AT_MOST_16_JVM = SystemUtil.jreVersion <= 16;
+
     /** True if the JVM is version 17 or above. */
     public static final boolean IS_AT_LEAST_17_JVM = SystemUtil.jreVersion >= 17;
+
     /** True if the JVM is version 17 or lower. */
     public static final boolean IS_AT_MOST_17_JVM = SystemUtil.jreVersion <= 17;
+
     /** True if the JVM is version 18 or above. */
     public static final boolean IS_AT_LEAST_18_JVM = SystemUtil.jreVersion >= 18;
+
     /** True if the JVM is version 18 or lower. */
     public static final boolean IS_AT_MOST_18_JVM = SystemUtil.jreVersion <= 18;
+
+    /** True if the JVM is version 21 or above. */
+    public static final boolean IS_AT_LEAST_21_JVM = SystemUtil.jreVersion >= 21;
 
     static {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -68,14 +84,34 @@ public class TestUtilities {
         compiler.run(null, null, err, "-version");
     }
 
+    /**
+     * Find test java sources within currentDir/tests.
+     *
+     * @param dirNames subdirectories of currentDir/tests
+     * @return found files
+     */
     public static List<File> findNestedJavaTestFiles(String... dirNames) {
         return findRelativeNestedJavaFiles(new File("tests"), dirNames);
     }
 
+    /**
+     * Find test java sources within {@code parent}.
+     *
+     * @param parent directory to search within
+     * @param dirNames subdirectories of {@code parent}
+     * @return found files
+     */
     public static List<File> findRelativeNestedJavaFiles(String parent, String... dirNames) {
         return findRelativeNestedJavaFiles(new File(parent), dirNames);
     }
 
+    /**
+     * Find test java sources within {@code parent}.
+     *
+     * @param parent directory to search within
+     * @param dirNames subdirectories of {@code parent}
+     * @return found files
+     */
     public static List<File> findRelativeNestedJavaFiles(File parent, String... dirNames) {
         File[] dirs = new File[dirNames.length];
 
@@ -212,14 +248,7 @@ public class TestUtilities {
 
         @SuppressWarnings("nullness") // checked above that it's a directory
         File @NonNull [] in = directory.listFiles();
-        Arrays.sort(
-                in,
-                new Comparator<File>() {
-                    @Override
-                    public int compare(File o1, File o2) {
-                        return o1.getName().compareTo(o2.getName());
-                    }
-                });
+        Arrays.sort(in, Comparator.comparing(File::getName));
         for (File file : in) {
             if (file.isDirectory()) {
                 javaFiles.addAll(deeplyEnclosedJavaTestFiles(file));
@@ -245,6 +274,7 @@ public class TestUtilities {
                 String nextLine = in.nextLine();
                 if (nextLine.contains("@skip-test")
                         || (!IS_AT_LEAST_9_JVM && nextLine.contains("@below-java9-jdk-skip-test"))
+                        || (!IS_AT_LEAST_10_JVM && nextLine.contains("@below-java10-jdk-skip-test"))
                         || (!IS_AT_LEAST_11_JVM && nextLine.contains("@below-java11-jdk-skip-test"))
                         || (!IS_AT_MOST_11_JVM && nextLine.contains("@above-java11-jdk-skip-test"))
                         || (!IS_AT_LEAST_14_JVM && nextLine.contains("@below-java14-jdk-skip-test"))
@@ -254,8 +284,9 @@ public class TestUtilities {
                         || (!IS_AT_LEAST_17_JVM && nextLine.contains("@below-java17-jdk-skip-test"))
                         || (!IS_AT_MOST_17_JVM && nextLine.contains("@above-java17-jdk-skip-test"))
                         || (!IS_AT_LEAST_18_JVM && nextLine.contains("@below-java18-jdk-skip-test"))
-                        || (!IS_AT_MOST_18_JVM
-                                && nextLine.contains("@above-java18-jdk-skip-test"))) {
+                        || (!IS_AT_MOST_18_JVM && nextLine.contains("@above-java18-jdk-skip-test"))
+                        || (!IS_AT_LEAST_21_JVM
+                                && nextLine.contains("@below-java21-jdk-skip-test"))) {
                     return false;
                 }
             }
@@ -267,7 +298,7 @@ public class TestUtilities {
     }
 
     public static @Nullable String diagnosticToString(
-            final Diagnostic<? extends JavaFileObject> diagnostic, boolean usingAnomsgtxt) {
+            Diagnostic<? extends JavaFileObject> diagnostic, boolean usingAnomsgtxt) {
 
         String result = diagnostic.toString().trim();
 
@@ -302,7 +333,7 @@ public class TestUtilities {
     }
 
     public static Set<String> diagnosticsToStrings(
-            final Iterable<Diagnostic<? extends JavaFileObject>> actualDiagnostics,
+            Iterable<Diagnostic<? extends JavaFileObject>> actualDiagnostics,
             boolean usingAnomsgtxt) {
         Set<String> actualDiagnosticsStr = new LinkedHashSet<>();
         for (Diagnostic<? extends JavaFileObject> diagnostic : actualDiagnostics) {
@@ -334,19 +365,25 @@ public class TestUtilities {
     }
 
     public static File findComparisonFile(File testFile) {
-        final File comparisonFile =
+        File comparisonFile =
                 new File(testFile.getParent(), testFile.getName().replace(".java", ".out"));
         return comparisonFile;
     }
 
+    /**
+     * Given an option map, return a list of option names.
+     *
+     * @param options an option map
+     * @return return a list of option names
+     */
     public static List<String> optionMapToList(Map<String, @Nullable String> options) {
         List<String> optionList = new ArrayList<>(options.size() * 2);
 
-        for (Map.Entry<String, @Nullable String> opt : options.entrySet()) {
-            optionList.add(opt.getKey());
+        for (Map.Entry<String, @Nullable String> optEntry : options.entrySet()) {
+            optionList.add(optEntry.getKey());
 
-            if (opt.getValue() != null) {
-                optionList.add(opt.getValue());
+            if (optEntry.getValue() != null) {
+                optionList.add(optEntry.getValue());
             }
         }
 
@@ -360,7 +397,7 @@ public class TestUtilities {
      * @param lines what lines to write
      */
     public static void writeLines(File file, Iterable<?> lines) {
-        try (final BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))) {
             Iterator<?> iter = lines.iterator();
             while (iter.hasNext()) {
                 Object next = iter.next();

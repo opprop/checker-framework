@@ -41,12 +41,6 @@ jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-
-def versions = [
-    autoValue       : '1.10.1',
-    lombok          : '1.18.26',
-]
-
 configurations {
     implementation.extendsFrom(annotatedGuava)
 }
@@ -54,7 +48,8 @@ configurations {
 dependencies {
     api project(':javacutil')
     api project(':dataflow')
-    api files("${stubparserJar}")
+    // At the moement, there are no differences between eisop and typetools stubparsers.
+    api 'org.checkerframework:stubparser:3.25.5'
 
     // NO-AFU
     /*
@@ -70,11 +65,12 @@ dependencies {
     // External dependencies:
     // If you add an external dependency, you must shadow its packages.
     // See the comment in ../build.gradle in the shadowJar block.
-    implementation "org.plumelib:plume-util:${plumeUtilVersion}"
-    implementation "org.plumelib:reflection-util:${reflectionUtilVersion}"
-    implementation 'io.github.classgraph:classgraph:4.8.158'
+    implementation "org.plumelib:hashmap-util:${versions.hashmapUtil}"
+    implementation "org.plumelib:plume-util:${versions.plumeUtil}"
+    implementation "org.plumelib:reflection-util:${versions.reflectionUtil}"
+    implementation 'io.github.classgraph:classgraph:4.8.163'
 
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
+    testImplementation "junit:junit:${versions.junit}"
     testImplementation project(':framework-test')
     testImplementation sourceSets.testannotations.output
 
@@ -86,7 +82,7 @@ dependencies {
     testImplementation "org.projectlombok:lombok:${versions.lombok}"
 }
 
-task cloneTypetoolsJdk() {
+task cloneAnnotatedJdk() {
     description 'Obtain or update the annotated JDK.'
     doLast {
         if (file(annotatedJdkHome).exists()) {
@@ -115,7 +111,7 @@ task cloneTypetoolsJdk() {
 }
 
 
-task copyAndMinimizeAnnotatedJdkFiles(dependsOn: cloneTypetoolsJdk, group: 'Build') {
+task copyAndMinimizeAnnotatedJdkFiles(dependsOn: cloneAnnotatedJdk, group: 'Build') {
     dependsOn ':framework:compileJava'
     def inputDir = "${annotatedJdkHome}/src"
     def outputDir = "${buildDir}/generated/resources/annotated-jdk/"
@@ -160,16 +156,6 @@ task copyAndMinimizeAnnotatedJdkFiles(dependsOn: cloneTypetoolsJdk, group: 'Buil
 sourcesJar.dependsOn(copyAndMinimizeAnnotatedJdkFiles)
 
 processResources.dependsOn(copyAndMinimizeAnnotatedJdkFiles)
-
-task checkDependencies(dependsOn: ':maybeCloneAndBuildDependencies') {
-    doLast {
-        if (!file(stubparserJar).exists()) {
-            throw new GradleException("${stubparserJar} does not exist. Try running './gradlew cloneAndBuildDependencies'")
-        }
-    }
-}
-
-compileJava.dependsOn(checkDependencies)
 
 task allSourcesJar(type: Jar, group: 'Build') {
     description 'Creates a sources jar that includes sources for all Checker Framework classes in framework.jar'

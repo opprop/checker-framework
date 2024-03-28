@@ -106,7 +106,7 @@ task cloneTypetoolsJdk() {
                     '-q',
                     '--depth',
                     '1',
-                    'https://github.com/eisop/jdk.git',
+                    'https://github.com/opprop/jdk.git',
                     'jdk'
                 ]
             }

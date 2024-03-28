@@ -51,7 +51,7 @@ for PACKAGE in "${PACKAGES[@]}"; do
     (cd "${PACKAGEDIR}" && git checkout a91f0e15db05b19a150a76eccb7309a47fde2931 && cd ..)
   fi
   if [ "${PACKAGE}" = "plume-util" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 81858f0fa83a7d3ba8d57610d1ee9fb7b54f3909 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 5a8399cd5a38408c129ebc8ee8c198b439634fd0 && cd ..)
   fi
   # Uses "compileJava" target instead of "assemble" to avoid the javadoc error "Error fetching URL:
   # https://docs.oracle.com/en/java/javase/17/docs/api/" due to network problems.

@@ -53,6 +53,33 @@ for PACKAGE in "${PACKAGES[@]}"; do
   if [ "${PACKAGE}" = "plume-util" ]; then
     (cd "${PACKAGEDIR}" && git checkout 5a8399cd5a38408c129ebc8ee8c198b439634fd0 && cd ..)
   fi
+  if [ "${PACKAGE}" = "bcel-util" ]; then
+    (cd "${PACKAGEDIR}" && git checkout be503985957cc29d9b371b3241761f21bd261cb0 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "bibtex-clean" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 79248b39a13adcd46268f056df6502b285a8e0b0 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "html-pretty-print" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 3cb838f7fa30e6de2a9c6a9b102bb9f517d2dd15 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "icalavailable" ]; then
+    (cd "${PACKAGEDIR}" && git checkout d7857ae0aa0cedccac2c623fff8525ba3978006a && cd ..)
+  fi
+  if [ "${PACKAGE}" = "javadoc-lookup" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 83e5bfabd3fdaa5d725520b1aa33b25bb6797d37 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "lookup" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 6a138a1abde5b20eaefcefab2f815463ddd5013c && cd ..)
+  fi
+  if [ "${PACKAGE}" = "multi-version-control" ]; then
+    (cd "${PACKAGEDIR}" && git checkout e75c9e0c74823a528239525e280e097490a643a9 && cd ..)
+  fi
+  if [ "${PACKAGE}" = "require-javadoc" ]; then
+    (cd "${PACKAGEDIR}" && git checkout 6eea833f403509bad8923430a29843d272e524cc && cd ..)
+  fi
+  if [ "${PACKAGE}" = "reflection-util" ]; then
+    (cd "${PACKAGEDIR}" && git checkout cd00c7659a6508436b978955b08896bb7a461e61 && cd ..)
+  fi
   # Uses "compileJava" target instead of "assemble" to avoid the javadoc error "Error fetching URL:
   # https://docs.oracle.com/en/java/javase/17/docs/api/" due to network problems.
   echo "About to call ./gradlew --console=plain -PcfLocal compileJava"

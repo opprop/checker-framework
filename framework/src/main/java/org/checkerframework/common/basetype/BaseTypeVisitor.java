@@ -281,7 +281,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
     private final boolean warnRedundantAnnotations;
 
     /** True if "-AignoreTargetLocations" was passed on the command line. */
-    protected final boolean ignoreTargetLocations;
+    public final boolean ignoreTargetLocations;
 
     /** True if "-AcheckEnclosingExpr" was passed on the command line. */
     private final boolean checkEnclosingExpr;
@@ -794,7 +794,7 @@ public class BaseTypeVisitor<Factory extends GenericAnnotatedTypeFactory<?, ?, ?
             }
 
             for (AnnotationMirror poly : polys) {
-                if (type.hasAnnotationRelaxed(poly)) {
+                if (type.hasAnnotation(poly)) {
                     return Collections.singletonList(
                             DiagMessage.error("invalid.polymorphic.qualifier.use", poly));
                 }

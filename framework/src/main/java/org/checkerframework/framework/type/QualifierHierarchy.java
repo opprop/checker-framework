@@ -237,7 +237,7 @@ public abstract class QualifierHierarchy {
      * @return true iff all qualifiers in {@code subQualifiers} are a subqualifier or equal to the
      *     qualifier in the same hierarchy in {@code superQualifiers}
      */
-    public final boolean isSubtypeShallow(
+    public boolean isSubtypeShallow(
             Collection<? extends AnnotationMirror> subQualifiers,
             TypeMirror subType,
             Collection<? extends AnnotationMirror> superQualifiers,
@@ -373,7 +373,7 @@ public abstract class QualifierHierarchy {
      * @param tm2 the type on which qualifiers2 appear
      * @return the least upper bound of the two sets of qualifiers
      */
-    public final Set<? extends AnnotationMirror> leastUpperBoundsShallow(
+    public Set<? extends AnnotationMirror> leastUpperBoundsShallow(
             Collection<? extends AnnotationMirror> qualifiers1,
             TypeMirror tm1,
             Collection<? extends AnnotationMirror> qualifiers2,

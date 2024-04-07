@@ -8,14 +8,13 @@ echo "SHELLOPTS=${SHELLOPTS}"
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # shellcheck disable=SC1090 # In newer shellcheck than 0.6.0, pass: "-P SCRIPTDIR" (literally)
+export ORG_GRADLE_PROJECT_useJdk17Compiler=true
 source "$SCRIPTDIR"/build.sh
 
 
 # daikon-typecheck: 15 minutes
 "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-codespecs daikon -q --single-branch --depth 50
 cd ../daikon
-# Use a known-working commit ID. Update this in a separate PR to confirm all tests pass.
-git checkout 8845c5b65f4a895c370418140dc78aa0bead1c57
 git log | head -n 5
 make compile
 if [ "$TRAVIS" = "true" ] ; then

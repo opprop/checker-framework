@@ -12,8 +12,6 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.TypeSystemError;
 
-import java.util.Set;
-
 import javax.lang.model.element.AnnotationMirror;
 
 /**
@@ -26,6 +24,7 @@ public class IndexRefinementInfo {
 
     /** The left operand. */
     public final Node left;
+
     /** The right operand. */
     public final Node right;
 
@@ -34,6 +33,7 @@ public class IndexRefinementInfo {
      * expression.
      */
     public final @Nullable AnnotationMirror leftAnno;
+
     /**
      * Annotation for right expressions. Might be null if dataflow doesn't have a value for the
      * expression.
@@ -42,8 +42,10 @@ public class IndexRefinementInfo {
 
     /** The then store. */
     public final CFStore thenStore;
+
     /** The else store. */
     public final CFStore elseStore;
+
     /** The new result, after refinement. */
     public final ConditionalTransferResult<CFValue, CFStore> newResult;
 
@@ -87,8 +89,15 @@ public class IndexRefinementInfo {
         this(result, analysis, node.getRightOperand(), node.getLeftOperand());
     }
 
+    /**
+     * Returns the annotation (from the given set) in the given hierarchy.
+     *
+     * @param set a set of annotations
+     * @param hierarchy a qualifier hierarchy
+     * @return the annotation (from {@code set}) in the given hierarchy
+     */
     private static AnnotationMirror getAnno(AnnotationMirrorSet set, QualifierHierarchy hierarchy) {
-        Set<? extends AnnotationMirror> tops = hierarchy.getTopAnnotations();
+        AnnotationMirrorSet tops = hierarchy.getTopAnnotations();
         if (tops.size() != 1) {
             throw new TypeSystemError(
                     "%s: Found %d tops, but expected one.%nFound: %s",

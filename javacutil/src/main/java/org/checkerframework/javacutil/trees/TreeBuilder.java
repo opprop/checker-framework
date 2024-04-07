@@ -24,6 +24,7 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.Names;
 
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.plumelib.util.CollectionsPlume;
@@ -109,10 +110,11 @@ public class TreeBuilder {
             // Remove captured type variable from a wildcard.
             if (elementType instanceof Type.CapturedType) {
                 elementType = ((Type.CapturedType) elementType).wildcard;
+                TypeElement iteratorElt = (TypeElement) modelTypes.asElement(iteratorType);
+                assert iteratorElt != null
+                        : "@AssumeAssertion(nullness): the iterator type always has an element";
 
-                iteratorType =
-                        modelTypes.getDeclaredType(
-                                (TypeElement) modelTypes.asElement(iteratorType), elementType);
+                iteratorType = modelTypes.getDeclaredType(iteratorElt, elementType);
             }
         }
 
@@ -151,11 +153,13 @@ public class TreeBuilder {
             if (method.getParameters().isEmpty()
                     && method.getSimpleName().contentEquals("hasNext")) {
                 hasNextMethod = (Symbol.MethodSymbol) method;
+                break;
             }
         }
 
-        assert hasNextMethod != null
-                : "@AssumeAssertion(nullness): no hasNext method declared for expression type";
+        if (hasNextMethod == null) {
+            throw new BugInCF("no hasNext method declared for " + exprElement);
+        }
 
         JCTree.JCFieldAccess hasNextAccess = TreeUtils.Select(maker, iteratorExpr, hasNextMethod);
         hasNextAccess.setType(hasNextMethod.asType());
@@ -632,7 +636,7 @@ public class TreeBuilder {
      * Builds an AST Tree to perform a binary operation.
      *
      * @param type result type of the operation
-     * @param op AST Tree operator
+     * @param op an AST Tree operator
      * @param left the left operand tree
      * @param right the right operand tree
      * @return a Tree representing "left &lt; right"

@@ -38,9 +38,11 @@ echo "PACKAGES=" "${PACKAGES[@]}"
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # shellcheck disable=SC1090 # In newer shellcheck than 0.6.0, pass: "-P SCRIPTDIR" (literally)
+export ORG_GRADLE_PROJECT_useJdk17Compiler=true
 source "$SCRIPTDIR"/build.sh
 
 
+failing_packages=""
 echo "PACKAGES=" "${PACKAGES[@]}"
 for PACKAGE in "${PACKAGES[@]}"; do
   echo "PACKAGE=${PACKAGE}"
@@ -48,41 +50,46 @@ for PACKAGE in "${PACKAGES[@]}"; do
   rm -rf "${PACKAGEDIR}"
   "$SCRIPTDIR/.plume-scripts/git-clone-related" eisop-plume-lib "${PACKAGE}" "${PACKAGEDIR}" -q --single-branch --depth 250
   if [ "${PACKAGE}" = "options" ]; then
-    (cd "${PACKAGEDIR}" && git checkout a91f0e15db05b19a150a76eccb7309a47fde2931 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout a60588b489fe804b6b2803443c26a3f95bcf3c36 && cd ..)
   fi
   if [ "${PACKAGE}" = "plume-util" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 5a8399cd5a38408c129ebc8ee8c198b439634fd0 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout e6cfe66414b27e82afba84dff907169286e57dba && cd ..)
   fi
   if [ "${PACKAGE}" = "bcel-util" ]; then
-    (cd "${PACKAGEDIR}" && git checkout be503985957cc29d9b371b3241761f21bd261cb0 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 15a290d99744bde688864349146ddfc7e0f36056 && cd ..)
   fi
   if [ "${PACKAGE}" = "bibtex-clean" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 79248b39a13adcd46268f056df6502b285a8e0b0 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout d1f936b436a885248bc46dbe8b0fb5408a292a1d && cd ..)
   fi
   if [ "${PACKAGE}" = "html-pretty-print" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 3cb838f7fa30e6de2a9c6a9b102bb9f517d2dd15 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 7b787c09bb256a9767ab4b61532b7041452c7817 && cd ..)
   fi
   if [ "${PACKAGE}" = "icalavailable" ]; then
-    (cd "${PACKAGEDIR}" && git checkout d7857ae0aa0cedccac2c623fff8525ba3978006a && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 43a753ebd27245d4fc8ab59918c58461f55ef644 && cd ..)
   fi
   if [ "${PACKAGE}" = "javadoc-lookup" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 83e5bfabd3fdaa5d725520b1aa33b25bb6797d37 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 799fbafb2aba8ac0efba987a447bdf949e31b669 && cd ..)
   fi
   if [ "${PACKAGE}" = "lookup" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 6a138a1abde5b20eaefcefab2f815463ddd5013c && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 075d9fff7be57b3c540b979f35187db1ea8b18eb && cd ..)
   fi
   if [ "${PACKAGE}" = "multi-version-control" ]; then
-    (cd "${PACKAGEDIR}" && git checkout e75c9e0c74823a528239525e280e097490a643a9 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout ca0f076eb7f56d7d1b1fbb2b78a4a54feb298b39 && cd ..)
   fi
   if [ "${PACKAGE}" = "require-javadoc" ]; then
-    (cd "${PACKAGEDIR}" && git checkout 6eea833f403509bad8923430a29843d272e524cc && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout e8181d045b07b1728b3598b2c7646246acb701c3 && cd ..)
   fi
   if [ "${PACKAGE}" = "reflection-util" ]; then
-    (cd "${PACKAGEDIR}" && git checkout cd00c7659a6508436b978955b08896bb7a461e61 && cd ..)
+    (cd "${PACKAGEDIR}" && git checkout 4dcec57d1bdc9d827977602cdc2b623aa533a26c && cd ..)
   fi
   # Uses "compileJava" target instead of "assemble" to avoid the javadoc error "Error fetching URL:
   # https://docs.oracle.com/en/java/javase/17/docs/api/" due to network problems.
   echo "About to call ./gradlew --console=plain -PcfLocal compileJava"
   # Try twice in case of network lossage.
-  (cd "${PACKAGEDIR}" && (./gradlew --console=plain -PcfLocal compileJava || (sleep 60 && ./gradlew --console=plain -PcfLocal compileJava)))
+  (cd "${PACKAGEDIR}" && (./gradlew --console=plain -PcfLocal compileJava || (sleep 60 && ./gradlew --console=plain -PcfLocal compileJava))) || failing_packages="${failing_packages} ${PACKAGE}"
 done
+
+if [ -n "${failing_packages}" ] ; then
+  echo "Failing packages: ${failing_packages}"
+  exit 1
+fi

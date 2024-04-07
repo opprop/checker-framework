@@ -18,12 +18,14 @@ import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.interning.qual.CompareToMethod;
 import org.checkerframework.checker.interning.qual.EqualsMethod;
 import org.checkerframework.checker.interning.qual.InternMethod;
 import org.checkerframework.checker.interning.qual.Interned;
 import org.checkerframework.checker.interning.qual.InternedDistinct;
 import org.checkerframework.checker.interning.qual.UsesObjectEquals;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.signature.qual.CanonicalName;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -50,7 +52,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import javax.tools.Diagnostic.Kind;
+import javax.tools.Diagnostic;
 
 /**
  * Typechecks source code for interning violations. A type is considered interned if its primary
@@ -59,7 +61,7 @@ import javax.tools.Diagnostic.Kind;
  *
  * <ol>
  *   <li value="1">either argument to a "==" or "!=" comparison is not Interned (error
- *       "not.interned"). As a special case, the comparison is permitted if either arugment is
+ *       "not.interned"). As a special case, the comparison is permitted if either argument is
  *       InternedDistinct.
  *   <li value="2">the receiver and argument for a call to an equals method are both Interned
  *       (optional warning "unnecessary.equals")
@@ -71,15 +73,17 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
 
     /** The @Interned annotation. */
     private final AnnotationMirror INTERNED = AnnotationBuilder.fromClass(elements, Interned.class);
+
     /** The @InternedDistinct annotation. */
     private final AnnotationMirror INTERNED_DISTINCT =
             AnnotationBuilder.fromClass(elements, InternedDistinct.class);
+
     /**
      * The declared type of which the equality tests should be tested, if the user explicitly passed
      * one. The user can pass the class name via the {@code -Acheckclass=...} option. Null if no
      * class is specified, or the class specified isn't in the classpath.
      */
-    private final DeclaredType typeToCheck = typeToCheck();
+    private final @Nullable DeclaredType typeToCheck = typeToCheck();
 
     /** The Comparable.compareTo method. */
     private final ExecutableElement comparableCompareTo =
@@ -211,6 +215,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
     public Void visitMethodInvocation(MethodInvocationTree tree, Void p) {
         if (isInvocationOfEquals(tree)) {
             AnnotatedTypeMirror receiverType = atypeFactory.getReceiverType(tree);
+            assert receiverType != null : "@AssumeAssertion(nullness)";
             AnnotatedTypeMirror comp = atypeFactory.getAnnotatedType(tree.getArguments().get(0));
 
             if (this.checker.getLintOption("dotequals", true)
@@ -420,7 +425,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      * @param tree a class
      * @return the class's implementation of equals, or null
      */
-    private MethodTree equalsImplementation(ClassTree tree) {
+    private @Nullable MethodTree equalsImplementation(ClassTree tree) {
         List<? extends Tree> members = tree.getMembers();
         for (Tree member : members) {
             if (member instanceof MethodTree) {
@@ -473,7 +478,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      */
     // TODO: handle != comparisons too!
     // TODO: handle more methods, such as early return from addAll when this == arg
-    private boolean suppressInsideComparison(final BinaryTree binaryTree) {
+    private boolean suppressInsideComparison(BinaryTree binaryTree) {
         // Only handle == binary trees
         if (binaryTree.getKind() != Tree.Kind.EQUAL_TO) {
             return false;
@@ -536,8 +541,8 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
 
         ExecutableElement enclosingMethod = TreeUtils.elementFromDeclaration(methodTree);
 
-        final Element lhs = TreeUtils.elementFromUse((IdentifierTree) left);
-        final Element rhs = TreeUtils.elementFromUse((IdentifierTree) right);
+        Element lhs = TreeUtils.elementFromUse((IdentifierTree) left);
+        Element rhs = TreeUtils.elementFromUse((IdentifierTree) right);
 
         // Matcher to check for if statement that returns zero
         Heuristics.Matcher matcherIfReturnsZero =
@@ -575,7 +580,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
         // "return 0" statement (for the Comparator.compare heuristic).
         if (overrides(enclosingMethod, Comparator.class, "compare")
                 || (hasCompareToMethodAnno && params == 2)) {
-            final boolean returnsZero =
+            boolean returnsZero =
                     new Heuristics.Within(new Heuristics.OfKind(Tree.Kind.IF, matcherIfReturnsZero))
                             .match(getCurrentPath());
 
@@ -605,7 +610,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
         } else if (overrides(enclosingMethod, Comparable.class, "compareTo")
                 || (hasCompareToMethodAnno && params == 1)) {
 
-            final boolean returnsZero =
+            boolean returnsZero =
                     new Heuristics.Within(new Heuristics.OfKind(Tree.Kind.IF, matcherIfReturnsZero))
                             .match(getCurrentPath());
 
@@ -638,15 +643,15 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      * @param topBinaryTree the binary operation to check
      * @return true iff the tree fits a pattern such as (a == b || a.equals(b))
      */
-    private boolean suppressEarlyEquals(final BinaryTree topBinaryTree) {
+    private boolean suppressEarlyEquals(BinaryTree topBinaryTree) {
         // Only handle == binary trees
         if (topBinaryTree.getKind() != Tree.Kind.EQUAL_TO) {
             return false;
         }
 
         // should strip parens
-        final ExpressionTree left = TreeUtils.withoutParens(topBinaryTree.getLeftOperand());
-        final ExpressionTree right = TreeUtils.withoutParens(topBinaryTree.getRightOperand());
+        ExpressionTree left = TreeUtils.withoutParens(topBinaryTree.getLeftOperand());
+        ExpressionTree right = TreeUtils.withoutParens(topBinaryTree.getRightOperand());
 
         // looking for ((a == b || a.equals(b))
         Heuristics.Matcher matcherEqOrEquals =
@@ -766,7 +771,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      * @param topBinaryTree the binary operation to check
      * @return true iff the tree fits the pattern (a == b || a.compareTo(b) == 0)
      */
-    private boolean suppressEarlyCompareTo(final BinaryTree topBinaryTree) {
+    private boolean suppressEarlyCompareTo(BinaryTree topBinaryTree) {
         // Only handle == binary trees
         if (topBinaryTree.getKind() != Tree.Kind.EQUAL_TO) {
             return false;
@@ -780,8 +785,8 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
             return false;
         }
 
-        final Element lhs = TreeUtils.elementFromUse((IdentifierTree) left);
-        final Element rhs = TreeUtils.elementFromUse((IdentifierTree) right);
+        Element lhs = TreeUtils.elementFromUse((IdentifierTree) left);
+        Element rhs = TreeUtils.elementFromUse((IdentifierTree) right);
 
         // looking for ((a == b || a.compareTo(b) == 0)
         Heuristics.Matcher matcherEqOrCompareTo =
@@ -896,7 +901,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
 
         if (tm.getKind() != TypeKind.DECLARED) {
             checker.message(
-                    Kind.WARNING,
+                    Diagnostic.Kind.WARNING,
                     "InterningVisitor.classIsAnnotated: tm = %s (%s)",
                     tm,
                     tm.getClass());
@@ -904,7 +909,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
         Element classElt = ((DeclaredType) tm).asElement();
         if (classElt == null) {
             checker.message(
-                    Kind.WARNING,
+                    Diagnostic.Kind.WARNING,
                     "InterningVisitor.classIsAnnotated: classElt = null for tm = %s (%s)",
                     tm,
                     tm.getClass());
@@ -923,7 +928,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      * @param scope the scope to search for the element corresponding to "this" in
      * @return the element corresponding to "this" in the given scope, or null if not found
      */
-    private Element getThis(Scope scope) {
+    private @Nullable Element getThis(Scope scope) {
         for (Element e : scope.getLocalElements()) {
             if (e.getSimpleName().contentEquals("this")) {
                 return e;
@@ -933,7 +938,7 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
     }
 
     /**
-     * Determines whether or not the given element overrides the named method in the named class.
+     * Returns true if the given element overrides the named method in the named class.
      *
      * @param e an element for a method
      * @param clazz the class
@@ -962,7 +967,8 @@ public final class InterningVisitor extends BaseTypeVisitor<InterningAnnotatedTy
      *
      * @return the type to check
      */
-    DeclaredType typeToCheck() {
+    private @Nullable DeclaredType typeToCheck(
+            @UnknownInitialization(BaseTypeVisitor.class) InterningVisitor this) {
         @SuppressWarnings("signature:assignment.type.incompatible") // user input
         @CanonicalName String className = checker.getOption("checkclass");
         if (className == null) {

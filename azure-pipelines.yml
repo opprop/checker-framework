@@ -968,7 +968,7 @@ jobs:
     - cfinference_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: xingweitian/ubuntu-for-cfi-jdk8:latest
+  container: wmdietl/cf-ubuntu-jdk8:latest
   steps:
     - checkout: self
       fetchDepth: 25
@@ -977,7 +977,21 @@ jobs:
 - job: cfinference_jdk11
   pool:
     vmImage: 'ubuntu-latest'
-  container: xingweitian/ubuntu-for-cfi-jdk11:latest
+  container: wmdietl/cf-ubuntu-jdk11:latest
+  steps:
+    - checkout: self
+      fetchDepth: 25
+    - bash: ./checker/bin-devel/test-cf-inference.sh
+      displayName: test-cf-inference.sh
+- job: cfinference_jdk17
+  dependsOn:
+    - junit_jdk11
+    - nonjunit_jdk11
+    - typecheck_jdk11
+    - cfinference_jdk11
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: wmdietl/cf-ubuntu-jdk17:latest
   steps:
     - checkout: self
       fetchDepth: 25

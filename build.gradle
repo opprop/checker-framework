@@ -81,7 +81,7 @@ ext {
 
     versions = [
         autoValue       : '1.10.4',
-        errorprone      : '2.24.0',
+        errorprone      : '2.24.1',
         hashmapUtil     : '0.0.1',
         junit           : '4.13.2',
         lombok          : '1.18.30',
@@ -159,7 +159,7 @@ allprojects {
     //   * any new checkers have been added, or
     //   * backward-incompatible changes have been made to APIs or elsewhere.
     // To make a snapshot release: ./gradlew publish
-    version '3.42.0-eisop1'
+    version '3.42.0-eisop2'
 
     tasks.withType(JavaCompile).configureEach {
         options.fork = true
@@ -895,8 +895,9 @@ subprojects {
         relocate 'org.plumelib', 'org.checkerframework.org.plumelib'
         relocate 'org.codehaus', 'org.checkerframework.org.codehaus'
         relocate 'org.objectweb.asm', 'org.checkerframework.org.objectweb.asm'
-        relocate 'io.github.classgraph', 'org.checkerframework.io.github.classgraph'
-        relocate 'nonapi.io.github.classgraph', 'org.checkerframework.nonapi.io.github.classgraph'
+        // Add the classgraph relocations if it is included in releases.
+        // relocate 'io.github.classgraph', 'org.checkerframework.io.github.classgraph'
+        // relocate 'nonapi.io.github.classgraph', 'org.checkerframework.nonapi.io.github.classgraph'
         // relocate 'sun', 'org.checkerframework.sun'
         relocate 'com.google', 'org.checkerframework.com.google'
 

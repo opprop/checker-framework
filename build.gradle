@@ -81,13 +81,13 @@ ext {
 
     versions = [
         autoValue       : '1.10.4',
-        errorprone      : '2.23.0',
+        errorprone      : '2.24.0',
         hashmapUtil     : '0.0.1',
         junit           : '4.13.2',
         lombok          : '1.18.30',
         // plume-util includes a version of reflection-util. When updating ensure the versions are consistent.
-        plumeUtil       : '1.8.1',
-        reflectionUtil  : '1.1.0',
+        plumeUtil       : '1.9.0',
+        reflectionUtil  : '1.1.2',
     ]
 }
 
@@ -159,7 +159,7 @@ allprojects {
     //   * any new checkers have been added, or
     //   * backward-incompatible changes have been made to APIs or elsewhere.
     // To make a snapshot release: ./gradlew publish
-    version '3.41.0-eisop1'
+    version '3.42.0-eisop1'
 
     tasks.withType(JavaCompile).configureEach {
         options.fork = true

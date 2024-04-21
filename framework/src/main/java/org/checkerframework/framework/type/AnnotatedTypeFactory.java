@@ -1466,11 +1466,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
         addComputedTypeAnnotations(tree, type);
 
-        if (TreeUtils.isClassTree(tree) || tree.getKind() == Tree.Kind.METHOD) {
+        if (shouldCache && (TreeUtils.isClassTree(tree) || tree.getKind() == Tree.Kind.METHOD)) {
             // Don't cache VARIABLE
-            if (shouldCache) {
-                classAndMethodTreeCache.put(tree, type.deepCopy());
-            }
+            classAndMethodTreeCache.put(tree, type.deepCopy());
         } else {
             // No caching otherwise
         }
@@ -4014,6 +4012,9 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *
      * <p>Note that the given Tree has to be within the current compilation unit, otherwise null
      * will be returned.
+     *
+     * <p>Within a subclass of BaseTypeVisitor, use {@code getCurrentPath()} rather than this
+     * method.
      *
      * @param tree the {@link Tree} to get the path for
      * @return the path for {@code tree} under the current root. Returns null if {@code tree} is not

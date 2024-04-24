@@ -3,12 +3,7 @@ package org.checkerframework.checker.nullness;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeVisitor;
-import org.checkerframework.framework.qual.StubFiles;
 import org.checkerframework.framework.source.SupportedLintOptions;
-
-import java.util.LinkedHashSet;
-import java.util.NavigableSet;
 
 import javax.annotation.processing.SupportedOptions;
 
@@ -17,6 +12,23 @@ import javax.annotation.processing.SupportedOptions;
  * safe initialization. It uses freedom-before-commitment, augmented by type frames (which are
  * crucial to obtain acceptable precision), as its initialization type system.
  *
+ * <p>This checker uses the {@link NullnessNoInitSubchecker} to check for nullness and extends the
+ * {@link InitializationChecker} to also check that all non-null fields are properly initialized.
+ *
+ * <p>You can use the following {@link SuppressWarnings} prefixes with this checker:
+ *
+ * <ul>
+ *   <li>{@code @SuppressWarnings("nullness")} suppresses warnings for both nullness and
+ *       initialization annotations
+ *   <li>{@code @SuppressWarnings("initialization")} suppresses warnings for initialization
+ *       annotations only
+ *   <li>{@code @SuppressWarnings("nullnessnoinit")} suppresses warnings for nullness annotations
+ *       only
+ * </ul>
+ *
+ * @see KeyForSubchecker
+ * @see InitializationChecker
+ * @see NullnessNoInitSubchecker
  * @checker_framework.manual #nullness-checker Nullness Checker
  */
 @SupportedLintOptions({
@@ -25,7 +37,7 @@ import javax.annotation.processing.SupportedOptions;
     // Temporary option to forbid non-null array component types, which is allowed by default.
     // Forbidding is sound and will eventually be the default.
     // Allowing is unsound, as described in Section 3.3.4, "Nullness and arrays":
-    //     https://checkerframework.org/manual/#nullness-arrays
+    //     https://eisop.github.io/cf/manual/#nullness-arrays
     // It is the default temporarily, until we improve the analysis to reduce false positives or we
     // learn what advice to give programmers about avoid false positive warnings.
     // See issue #986: https://github.com/typetools/checker-framework/issues/986
@@ -37,10 +49,10 @@ import javax.annotation.processing.SupportedOptions;
 })
 @SupportedOptions({
     "assumeKeyFor",
+    "assumeInitialized",
     "jspecifyNullMarkedAlias",
     "conservativeArgumentNullnessAfterInvocation"
 })
-@StubFiles({"junit-assertions.astub"})
 public class NullnessChecker extends InitializationChecker {
 
     /** Should we be strict about initialization of {@link MonotonicNonNull} variables? */
@@ -80,24 +92,12 @@ public class NullnessChecker extends InitializationChecker {
     public NullnessChecker() {}
 
     @Override
-    protected LinkedHashSet<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
-        LinkedHashSet<Class<? extends BaseTypeChecker>> checkers =
-                super.getImmediateSubcheckerClasses();
-        if (!hasOptionNoSubcheckers("assumeKeyFor")) {
-            checkers.add(KeyForSubchecker.class);
-        }
-        return checkers;
+    public boolean checkPrimitives() {
+        return false;
     }
 
     @Override
-    public NavigableSet<String> getSuppressWarningsPrefixes() {
-        NavigableSet<String> result = super.getSuppressWarningsPrefixes();
-        result.add("nullness");
-        return result;
-    }
-
-    @Override
-    protected BaseTypeVisitor<?> createSourceVisitor() {
-        return new NullnessVisitor(this);
+    public Class<? extends BaseTypeChecker> getTargetCheckerClass() {
+        return NullnessNoInitSubchecker.class;
     }
 }

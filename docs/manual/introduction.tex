@@ -205,7 +205,7 @@ optional step.
   %BEGIN LATEX
   \\
   %END LATEX
-  \url{https://checkerframework.org/checker-framework-3.32.0-eisop1.zip}
+  \url{https://eisop.github.io/cf/checker-framework-3.42.0-eisop3.zip}
 
 \item
   Unzip it to create a \code{checker-framework-\ReleaseVersion{}} directory.
@@ -222,7 +222,7 @@ optional step.
 Now you are ready to start using the checkers.
 
 We recommend that you work through the
-\ahreforurl{https://checkerframework.org/tutorial/}{Checker
+\ahreforurl{https://eisop.github.io/cf/tutorial/}{Checker
 Framework tutorial}, which demonstrates the Nullness, Regex, and Tainting Checkers.
 
 Section~\ref{example-use} walks you through a simple example.  More detailed
@@ -241,7 +241,7 @@ behavior or in methods that a checker implementation might call.
 \sectionAndLabel{Example use:  detecting a null pointer bug}{example-use}
 
 This section gives a very simple example of running the Checker Framework.
-There is also a \ahreforurl{https://checkerframework.org/tutorial/}{tutorial}
+There is also a \ahreforurl{https://eisop.github.io/cf/tutorial/}{tutorial}
 that you can work along with.
 
   Let's consider this very simple Java class.  The local variable \<ref>'s type is
@@ -337,7 +337,7 @@ Additional topics that apply to all checkers are covered later in the manual:
 
 
 There is a
-\ahreforurl{https://checkerframework.org/tutorial/}{tutorial}
+\ahreforurl{https://eisop.github.io/cf/tutorial/}{tutorial}
 that walks you through using the Checker Framework on the
 command line.
 
@@ -400,6 +400,7 @@ where \<javac> is as specified in Section~\ref{javac-wrapper}.
 You can also run a checker from within your favorite IDE or build system.  See
 Chapter~\ref{external-tools} for details about build tools such as
 Ant (Section~\ref{ant-task}),
+Bazel (Section~\ref{bazel}),
 Buck (Section~\ref{buck}),
 Gradle (Section~\ref{gradle}),
 Maven (Section~\ref{maven}), and
@@ -459,7 +460,7 @@ help you and all other Checker Framework users; see
 Some stub files are used automatically by a checker, without any action on
 your part.  For others, you must pass the \<-Astubs=...> command-line argument.
 As a special case, if an \<.astub> file appears in
-\<checker/resources/>, then pass the command-line option
+\<checker/src/main/resources/>, then pass the command-line option
 use \<-Astubs=checker.jar/\emph{stubfilename.astub}>.
 The ``\<checker.jar>'' should be literal --- don't provide a path.
 This special syntax only works for ``\<checker.jar>''.
@@ -529,7 +530,7 @@ available in \<org.checkerframework.annotatedlib>, then
 % distributed version of the library --- they behave identically.
 
 There is one special case.  If an \<.astub> file is shipped with the
-Checker Framework in \<checker/resources/>, then you can
+Checker Framework in \<checker/src/main/resources/>, then you can
 use \<-Astubs=checker.jar/\emph{stubfilename.astub}>.
 The ``\<checker.jar>'' should be literal --- don't provide a path.
 (This special syntax only works for ``\<checker.jar>''.)
@@ -577,12 +578,14 @@ Unsound checking: ignore some errors
   Suppress all errors and warnings within the definition of a given class
   --- or everywhere except within the definition of a given class.  See
   Section~\ref{askipdefs}.
-\item \<-AassumeSideEffectFree>, \<-AassumeDeterministic>, \<-AassumePure>
+\item \<-AassumeSideEffectFree>, \<-AassumeDeterministic>, \<-AassumePure>, \<-AassumePureGetters>
   Unsoundly assume that every method is side-effect-free, deterministic, or
-  both; see
+  both; or that every getter method is pure.
+  See Section~\ref{purity-suppress-warnings} and
   Section~\ref{type-refinement-purity}.
 \item \<-AassumeAssertionsAreEnabled>, \<-AassumeAssertionsAreDisabled>
-  Whether to assume that assertions are enabled or disabled; see Section~\ref{type-refinement-assertions}.
+  Whether to assume that assertions (Java \<assert> statements) are enabled
+  or disabled; see Section~\ref{type-refinement-assertions}.
 \item \<-AignoreRangeOverflow>
   Ignore the possibility of overflow for range annotations such as
   \<@IntRange>; see Section~\ref{value-checker-overflow}.
@@ -660,9 +663,10 @@ Type-checking modes:  enable/disable functionality
 \item \<-Alint>
   Enable or disable optional checks; see Section~\ref{lint-options}.
 \item \<-AwarnRedundantAnnotations>
-  This flag warns about redundant annotations.
-  A warning is issued if the explicitly written annotation
-  on a type is the same as the default annotation for this type and location.
+  Warn about redundant annotations.
+  A warning is issued if an explicitly written annotation
+  is the same as the default annotation for that location.
+  This feature does not warn about all redundant annotations, only some.
 \item \<-AsuggestPureMethods>
   Suggest methods that could be marked
   \refqualclass{dataflow/qual}{SideEffectFree},
@@ -833,6 +837,29 @@ was compiled.
 Do not check the JRE version the Checker Framework is running on.
 \end{itemize}
 
+Compatibility options
+\begin{itemize}
+
+\item \<-AaliasedTypeAnnos=\emph{aliases}>
+  Defines custom type annotation aliases for the canonical annotations of a checker.
+  `aliases` is in the format
+
+`FQN.canonical.Qualifier1:FQN.alias1.Qual1,FQN.alias2.Qual1;FQN.canonical.Qualifier2:FQN.alias1.Qual2`.
+
+This can only be used for annotations whose attributes have the same names as in the canonical
+annotation, e.g. this will not be usable to declare an alias `@Regex(index = 5)` for `@Regex(value = 5)`.
+When in a Unix system, `;` needs to be escaped.
+
+\item \<-AaliasedDeclAnnos=\emph{aliases}>
+  Defines custom declaration annotation aliases for the canonical annotations of a checker.
+  `aliases` is in the format
+
+`FQN.canonical.Qualifier1:FQN.alias1.Qual1,FQN.alias2.Qual1;FQN.canonical.Qualifier2:FQN.alias1.Qual2`.
+
+This can only be used for annotations without attributes, e.g. this will not be usable to declare an alias for `@EnsuresNonNull(...)`.
+When in a Unix system, `;` needs to be escaped.
+
+\end{itemize}
 
 \noindent
 Some checkers support additional options, which are described in that
@@ -1318,14 +1345,15 @@ occur at run time.
 
 \paragraphAndLabel{Optional example}{annotate-normal-behavior-optional-example}
 Another example is the Optional Checker (\chapterpageref{optional-checker})
-and the \sunjavadoc{java.base/java/util/Optional.html\#orElseThrow()}{orElseThrow} method.
+and the \sunjavadoc{java.base/java/util/Optional.html\#orElseThrow()}{orElseThrow()} method.
 The goal of the Optional Checker is to ensure that the program does not
 crash due to use of a non-present Optional value.  Therefore, the receiver
 of
-\<orElseThrow> is annotated as
+\<orElseThrow()> is annotated as
 \refqualclass{checker/optional/qual}{Present},
-and the Optional Checker issues a warning if the client calls
-\<orElseThrow> on a \refqualclass{checker/optional/qual}{MaybePresent} value.
+and the Optional Checker issues an error if the client calls
+\<orElseThrow()> on a \refqualclass{checker/optional/qual}{MaybePresent} value.
+(For details, see Section~\ref{optional-guarantees}.)
 
 
 \paragraphAndLabel{Permitting crashes in some called methods}{annotate-normal-behavior-skip-libraries}
@@ -1701,4 +1729,7 @@ or suppress warnings.
 % LocalWords:  AassumeDeterministic stubfilename outputformat AparseAllJdk
 % LocalWords:  AmergeStubsWithSource MyBatis AdumpOnErrors AutoValue
 % LocalWords:  specification'' AwarnUnneededSuppressionsExceptions
-% LocalWords:  requireNonNull AstubWarnNote
+% LocalWords:  requireNonNull ApermitUnsupportedJdkVersion AstubWarnNote
+% LocalWords:  AwarnRedundantAnnotations AinferOutputOriginal
+% LocalWords:  AshowPrefixInWarningMessages AstubNoWarnIfNotFound
+% LocalWords:  AshowWpiFailedInferences AassumePureGetters

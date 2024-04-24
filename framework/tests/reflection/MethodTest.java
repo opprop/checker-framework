@@ -60,7 +60,6 @@ public class MethodTest {
         try {
             Class<?> c = Class.forName("MethodTest$SuperClass");
             Method m = c.getMethod(str, new Class[] {});
-
             @TestReflectSibling1
             Object a = m.invoke(superClass, (@TestReflectBottom Object[]) null);
         } catch (Exception ignore) {
@@ -95,6 +94,7 @@ public class MethodTest {
     }
 
     @TestReflectBottom SubClass subClass;
+
     // Test resolution of methods declared in super class
     public void pass5() {
         try {
@@ -203,6 +203,7 @@ public class MethodTest {
     }
 
     boolean flag = false;
+
     // Test lub of return types
     public void testLubReturnPass() {
         try {

@@ -1,15 +1,21 @@
 version: 2
-
 updates:
 - package-ecosystem: "gradle"
+  directory: "/docs/examples/errorprone/"
+  schedule:
+    interval: "daily"
+
+- package-ecosystem: "gradle"
+  directory: "/docs/examples/lombok/"
+  schedule:
+    interval: "daily"
+
+- package-ecosystem: "maven"
+  directory: "/docs/examples/MavenExample/"
+  schedule:
+    interval: "daily"
+
+- package-ecosystem: "github-actions"
   directory: "/"
   schedule:
     interval: "daily"
-  open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: com.amazonaws:aws-java-sdk-bom
-    versions:
-    - "> 1.11.964"
-  - dependency-name: com.google.errorprone:javac
-    versions:
-    - 1.8.0-u20

@@ -6,6 +6,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.regex.qual.Regex;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -55,7 +56,6 @@ import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.SystemUtil;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypeKindUtils;
 import org.checkerframework.javacutil.TypeSystemError;
@@ -85,40 +85,54 @@ import javax.lang.model.type.TypeMirror;
 public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** Fully-qualified class name of {@link UnknownVal}. */
     public static final String UNKNOWN_NAME = "org.checkerframework.common.value.qual.UnknownVal";
+
     /** Fully-qualified class name of {@link BottomVal}. */
     public static final String BOTTOMVAL_NAME = "org.checkerframework.common.value.qual.BottomVal";
+
     /** Fully-qualified class name of {@link PolyValue}. */
     public static final String POLY_NAME = "org.checkerframework.common.value.qual.PolyValue";
+
     /** Fully-qualified class name of {@link ArrayLen}. */
     public static final String ARRAYLEN_NAME = "org.checkerframework.common.value.qual.ArrayLen";
+
     /** Fully-qualified class name of {@link BoolVal}. */
     public static final String BOOLVAL_NAME = "org.checkerframework.common.value.qual.BoolVal";
+
     /** Fully-qualified class name of {@link DoubleVal}. */
     public static final String DOUBLEVAL_NAME = "org.checkerframework.common.value.qual.DoubleVal";
+
     /** Fully-qualified class name of {@link IntVal}. */
     public static final String INTVAL_NAME = "org.checkerframework.common.value.qual.IntVal";
+
     /** Fully-qualified class name of {@link StringVal}. */
     public static final String STRINGVAL_NAME = "org.checkerframework.common.value.qual.StringVal";
+
     /** Fully-qualified class name of {@link ArrayLenRange}. */
     public static final String ARRAYLENRANGE_NAME =
             "org.checkerframework.common.value.qual.ArrayLenRange";
+
     /** Fully-qualified class name of {@link IntRange}. */
     public static final String INTRANGE_NAME = "org.checkerframework.common.value.qual.IntRange";
 
     /** Fully-qualified class name of {@link IntRangeFromGTENegativeOne}. */
     public static final String INTRANGE_FROMGTENEGONE_NAME =
             "org.checkerframework.common.value.qual.IntRangeFromGTENegativeOne";
+
     /** Fully-qualified class name of {@link IntRangeFromNonNegative}. */
     public static final String INTRANGE_FROMNONNEG_NAME =
             "org.checkerframework.common.value.qual.IntRangeFromNonNegative";
+
     /** Fully-qualified class name of {@link IntRangeFromPositive}. */
     public static final String INTRANGE_FROMPOS_NAME =
             "org.checkerframework.common.value.qual.IntRangeFromPositive";
+
     /** Fully-qualified class name of {@link MinLen}. */
     public static final String MINLEN_NAME = "org.checkerframework.common.value.qual.MinLen";
+
     /** Fully-qualified class name of {@link MatchesRegex}. */
     public static final String MATCHES_REGEX_NAME =
             "org.checkerframework.common.value.qual.MatchesRegex";
+
     /** Fully-qualified class name of {@link DoesNotMatchRegex}. */
     public static final String DOES_NOT_MATCH_REGEX_NAME =
             "org.checkerframework.common.value.qual.DoesNotMatchRegex";
@@ -148,42 +162,55 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /** The value() element/field of an @ArrayLen annotation. */
     protected final ExecutableElement arrayLenValueElement =
             TreeUtils.getMethod(ArrayLen.class, "value", 0, processingEnv);
+
     /** The from() element/field of an @ArrayLenRange annotation. */
     protected final ExecutableElement arrayLenRangeFromElement =
             TreeUtils.getMethod(ArrayLenRange.class, "from", 0, processingEnv);
+
     /** The to() element/field of an @ArrayLenRange annotation. */
     protected final ExecutableElement arrayLenRangeToElement =
             TreeUtils.getMethod(ArrayLenRange.class, "to", 0, processingEnv);
+
     /** The value() element/field of a @BoolVal annotation. */
     protected final ExecutableElement boolValValueElement =
             TreeUtils.getMethod(BoolVal.class, "value", 0, processingEnv);
+
     /** The value() element/field of a @DoubleVal annotation. */
     protected final ExecutableElement doubleValValueElement =
             TreeUtils.getMethod(DoubleVal.class, "value", 0, processingEnv);
+
     /** The from() element/field of an @IntRange annotation. */
     protected final ExecutableElement intRangeFromElement =
             TreeUtils.getMethod(IntRange.class, "from", 0, processingEnv);
+
     /** The to() element/field of an @IntRange annotation. */
     protected final ExecutableElement intRangeToElement =
             TreeUtils.getMethod(IntRange.class, "to", 0, processingEnv);
+
     /** The value() element/field of a @IntVal annotation. */
     protected final ExecutableElement intValValueElement =
             TreeUtils.getMethod(IntVal.class, "value", 0, processingEnv);
+
     /** The value() element/field of a @MatchesRegex annotation. */
     public final ExecutableElement matchesRegexValueElement =
             TreeUtils.getMethod(MatchesRegex.class, "value", 0, processingEnv);
+
     /** The value() element/field of a @DoesNotMatchRegex annotation. */
     public final ExecutableElement doesNotMatchRegexValueElement =
             TreeUtils.getMethod(DoesNotMatchRegex.class, "value", 0, processingEnv);
+
     /** The value() element/field of a @MinLen annotation. */
     protected final ExecutableElement minLenValueElement =
             TreeUtils.getMethod(MinLen.class, "value", 0, processingEnv);
+
     /** The field() element/field of a @MinLenFieldInvariant annotation. */
     protected final ExecutableElement minLenFieldInvariantFieldElement =
             TreeUtils.getMethod(MinLenFieldInvariant.class, "field", 0, processingEnv);
+
     /** The minLen() element/field of a @MinLenFieldInvariant annotation. */
     protected final ExecutableElement minLenFieldInvariantMinLenElement =
             TreeUtils.getMethod(MinLenFieldInvariant.class, "minLen", 0, processingEnv);
+
     /** The value() element/field of a @StringVal annotation. */
     public final ExecutableElement stringValValueElement =
             TreeUtils.getMethod(StringVal.class, "value", 0, processingEnv);
@@ -323,7 +350,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     @Override
     protected QualifierHierarchy createQualifierHierarchy() {
-        return new ValueQualifierHierarchy(this, this.getSupportedTypeQualifiers());
+        return new ValueQualifierHierarchy(this.getSupportedTypeQualifiers(), this);
     }
 
     @Override
@@ -339,7 +366,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             public StructuralEqualityComparer createEqualityComparer() {
                 return new StructuralEqualityComparer(areEqualVisitHistory) {
                     @Override
-                    protected boolean arePrimeAnnosEqual(
+                    protected boolean arePrimaryAnnosEqual(
                             AnnotatedTypeMirror type1, AnnotatedTypeMirror type2) {
                         type1.replaceAnnotation(
                                 convertToUnknown(
@@ -350,7 +377,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                                         convertSpecialIntRangeToStandardIntRange(
                                                 type2.getAnnotationInHierarchy(UNKNOWNVAL))));
 
-                        return super.arePrimeAnnosEqual(type1, type2);
+                        return super.arePrimaryAnnosEqual(type1, type2);
                     }
                 };
             }
@@ -363,7 +390,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     @Override
-    public FieldInvariants getFieldInvariants(TypeElement element) {
+    public @Nullable FieldInvariants getFieldInvariants(TypeElement element) {
         AnnotationMirror fieldInvarAnno = getDeclAnnotation(element, MinLenFieldInvariant.class);
         if (fieldInvarAnno == null) {
             return null;
@@ -381,7 +408,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                         minlens);
 
         FieldInvariants superInvariants = super.getFieldInvariants(element);
-        return new FieldInvariants(superInvariants, fields, qualifiers);
+        return new FieldInvariants(superInvariants, fields, qualifiers, this);
     }
 
     /**
@@ -429,6 +456,13 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
             superPair.executableType.getReturnType().replaceAnnotation(am);
         }
         return superPair;
+    }
+
+    @Override
+    public AnnotationMirrorSet getWidenedAnnotations(
+            AnnotationMirrorSet annos, TypeKind typeKind, TypeKind widenedTypeKind) {
+        return AnnotationMirrorSet.singleton(
+                convertSpecialIntRangeToStandardIntRange(annos.first(), typeKind));
     }
 
     /**
@@ -593,7 +627,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     /**
      * Converts {@link IntRangeFromPositive}, {@link IntRangeFromNonNegative}, or {@link
-     * IntRangeFromGTENegativeOne} to {@link IntRange}. Any other annotation is just return.
+     * IntRangeFromGTENegativeOne} to {@link IntRange}. Any other annotation is just returned.
      *
      * @param anm any annotation mirror
      * @return the int range annotation is that equivalent to {@code anm}, or {@code anm} if one
@@ -601,16 +635,78 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      */
     /*package-private*/ AnnotationMirror convertSpecialIntRangeToStandardIntRange(
             AnnotationMirror anm) {
+        return convertSpecialIntRangeToStandardIntRange(anm, Long.MAX_VALUE);
+    }
+
+    /**
+     * Converts {@link IntRangeFromPositive}, {@link IntRangeFromNonNegative}, or {@link
+     * IntRangeFromGTENegativeOne} to {@link IntRange}. Any other annotation is just returned.
+     *
+     * @param anm any annotation mirror
+     * @param primitiveKind a primitive TypeKind
+     * @return the int range annotation is that equivalent to {@code anm}, or {@code anm} if one
+     *     doesn't exist
+     */
+    /*package-private*/ AnnotationMirror convertSpecialIntRangeToStandardIntRange(
+            AnnotationMirror anm, TypeKind primitiveKind) {
+        long max = Long.MAX_VALUE;
+        if (TypeKindUtils.isIntegral(primitiveKind)) {
+            Range maxRange = Range.create(primitiveKind);
+            max = maxRange.to;
+        }
+        return convertSpecialIntRangeToStandardIntRange(anm, max);
+    }
+
+    /**
+     * Converts {@link IntRangeFromPositive}, {@link IntRangeFromNonNegative}, or {@link
+     * IntRangeFromGTENegativeOne} to {@link IntRange}. Any other annotation is just returned.
+     *
+     * @param anm any annotation mirror
+     * @param typeMirror the Java type on which {@code anm} is written
+     * @return the int range annotation is that equivalent to {@code anm}, or {@code anm} if one
+     *     doesn't exist
+     */
+    /*package-private*/ AnnotationMirror convertSpecialIntRangeToStandardIntRange(
+            AnnotationMirror anm, TypeMirror typeMirror) {
+        TypeKind primitiveKind;
+        if (TypesUtils.isPrimitive(typeMirror)) {
+            primitiveKind = typeMirror.getKind();
+        } else if (TypesUtils.isBoxedPrimitive(typeMirror)) {
+            primitiveKind = types.unboxedType(typeMirror).getKind();
+        } else {
+            primitiveKind = TypeKind.LONG;
+        }
+
+        if (TypesUtils.isIntegralPrimitiveOrBoxed(typeMirror)) {
+            Range maxRange = Range.create(primitiveKind);
+            return convertSpecialIntRangeToStandardIntRange(anm, maxRange.to);
+
+        } else {
+            return convertSpecialIntRangeToStandardIntRange(anm, Long.MAX_VALUE);
+        }
+    }
+
+    /**
+     * Converts {@link IntRangeFromPositive}, {@link IntRangeFromNonNegative}, or {@link
+     * IntRangeFromGTENegativeOne} to {@link IntRange}. Any other annotation is just returned.
+     *
+     * @param anm any annotation mirror
+     * @param max the max value to use
+     * @return the int range annotation is that equivalent to {@code anm}, or {@code anm} if one
+     *     doesn't exist
+     */
+    private AnnotationMirror convertSpecialIntRangeToStandardIntRange(
+            AnnotationMirror anm, long max) {
         if (AnnotationUtils.areSameByName(anm, INTRANGE_FROMPOS_NAME)) {
-            return createIntRangeAnnotation(1, Integer.MAX_VALUE);
+            return createIntRangeAnnotation(1, max);
         }
 
         if (AnnotationUtils.areSameByName(anm, INTRANGE_FROMNONNEG_NAME)) {
-            return createIntRangeAnnotation(0, Integer.MAX_VALUE);
+            return createIntRangeAnnotation(0, max);
         }
 
         if (AnnotationUtils.areSameByName(anm, INTRANGE_FROMGTENEGONE_NAME)) {
-            return createIntRangeAnnotation(-1, Integer.MAX_VALUE);
+            return createIntRangeAnnotation(-1, max);
         }
         return anm;
     }
@@ -700,11 +796,9 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
         }
 
         if (TypesUtils.isString(resultType)) {
-            @SuppressWarnings("mustcall:lambda.param") // generics; #979 ?
             List<String> stringVals = CollectionsPlume.mapList((Object o) -> (String) o, values);
             return createStringAnnotation(stringVals);
         } else if (TypesUtils.getClassFromType(resultType) == char[].class) {
-            @SuppressWarnings("mustcall:lambda.param") // generics; #979 ?
             List<String> stringVals =
                     CollectionsPlume.mapList(
                             (Object o) -> {
@@ -729,7 +823,6 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
         switch (primitiveKind) {
             case BOOLEAN:
-                @SuppressWarnings("mustcall:lambda.param") // generics; #979 ?
                 List<Boolean> boolVals =
                         CollectionsPlume.mapList((Object o) -> (Boolean) o, values);
                 return createBooleanAnnotation(boolVals);
@@ -777,14 +870,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of longs; duplicates are allowed and the values may be in any order
      * @return an annotation depends on the values
      */
-    public AnnotationMirror createIntValAnnotation(List<Long> values) {
+    public AnnotationMirror createIntValAnnotation(@Nullable List<Long> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             long valMin = values.get(0);
             long valMax = values.get(values.size() - 1);
@@ -817,14 +910,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of doubles; duplicates are allowed and the values may be in any order
      * @return a {@link DoubleVal} annotation using the values
      */
-    public AnnotationMirror createDoubleValAnnotation(List<Double> values) {
+    public AnnotationMirror createDoubleValAnnotation(@Nullable List<Double> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             return UNKNOWNVAL;
         } else {
@@ -865,14 +958,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of strings; duplicates are allowed and the values may be in any order
      * @return a {@link StringVal} annotation using the values
      */
-    public AnnotationMirror createStringAnnotation(List<String> values) {
+    public AnnotationMirror createStringAnnotation(@Nullable List<String> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             // Too many strings are replaced by their lengths
             List<Integer> lengths = ValueCheckerUtils.getLengthsForStringValues(values);
@@ -894,14 +987,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of integers; duplicates are allowed and the values may be in any order
      * @return a {@link ArrayLen} annotation using the values
      */
-    public AnnotationMirror createArrayLenAnnotation(List<Integer> values) {
+    public AnnotationMirror createArrayLenAnnotation(@Nullable List<Integer> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.isEmpty() || Collections.min(values) < 0) {
             return BOTTOMVAL;
         } else if (values.size() > MAX_VALUES) {
@@ -921,14 +1014,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of booleans; duplicates are allowed and the values may be in any order
      * @return a {@link BoolVal} annotation using the values
      */
-    public AnnotationMirror createBooleanAnnotation(List<Boolean> values) {
+    public AnnotationMirror createBooleanAnnotation(@Nullable List<Boolean> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             return UNKNOWNVAL;
         } else {
@@ -950,14 +1043,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of characters; duplicates are allowed and the values may be in any order
      * @return a {@link IntVal} annotation using the values
      */
-    public AnnotationMirror createCharAnnotation(List<Character> values) {
+    public AnnotationMirror createCharAnnotation(@Nullable List<Character> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             return UNKNOWNVAL;
         } else {
@@ -975,14 +1068,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param values list of doubleacters; duplicates are allowed and the values may be in any order
      * @return a {@link IntVal} annotation using the values
      */
-    public AnnotationMirror createDoubleAnnotation(List<Double> values) {
+    public AnnotationMirror createDoubleAnnotation(@Nullable List<Double> values) {
         if (values == null) {
             return UNKNOWNVAL;
         }
         if (values.isEmpty()) {
             return BOTTOMVAL;
         }
-        values = SystemUtil.withoutDuplicatesSorted(values);
+        values = CollectionsPlume.withoutDuplicatesSorted(values);
         if (values.size() > MAX_VALUES) {
             return UNKNOWNVAL;
         } else {
@@ -997,7 +1090,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      *     not modify or store it.
      * @return an annotation that represents the given set of values
      */
-    public AnnotationMirror createNumberAnnotationMirror(List<Number> values) {
+    public AnnotationMirror createNumberAnnotationMirror(@Nullable List<Number> values) {
         if (values == null) {
             return UNKNOWNVAL;
         } else if (values.isEmpty()) {
@@ -1221,7 +1314,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param rangeAnno a {@code @Range} annotation
      * @return the {@link Range} that the annotation represents
      */
-    public Range getRange(AnnotationMirror rangeAnno) {
+    public @Nullable Range getRange(@Nullable AnnotationMirror rangeAnno) {
         if (rangeAnno == null) {
             return null;
         }
@@ -1257,13 +1350,13 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param intAnno an {@code @IntVal} annotation, or null
      * @return the possible values, deduplicated and sorted
      */
-    public List<Long> getIntValues(AnnotationMirror intAnno) {
+    public @PolyNull List<Long> getIntValues(@PolyNull AnnotationMirror intAnno) {
         if (intAnno == null) {
             return null;
         }
         List<Long> list =
                 AnnotationUtils.getElementValueArray(intAnno, intValValueElement, Long.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1276,14 +1369,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param doubleAnno a {@code @DoubleVal} annotation, or null
      * @return the possible values, deduplicated and sorted
      */
-    public List<Double> getDoubleValues(AnnotationMirror doubleAnno) {
+    public @PolyNull List<Double> getDoubleValues(@PolyNull AnnotationMirror doubleAnno) {
         if (doubleAnno == null) {
             return null;
         }
         List<Double> list =
                 AnnotationUtils.getElementValueArray(
                         doubleAnno, doubleValValueElement, Double.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1296,14 +1389,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param arrayAnno an {@code @ArrayLen} annotation, or null
      * @return the possible array lengths, deduplicated and sorted
      */
-    public List<Integer> getArrayLength(AnnotationMirror arrayAnno) {
+    public @PolyNull List<Integer> getArrayLength(@PolyNull AnnotationMirror arrayAnno) {
         if (arrayAnno == null) {
             return null;
         }
         List<Integer> list =
                 AnnotationUtils.getElementValueArray(
                         arrayAnno, arrayLenValueElement, Integer.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1316,7 +1409,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param intAnno an {@code @IntVal} annotation, or null
      * @return the values represented by the given {@code @IntVal} annotation
      */
-    public List<Character> getCharValues(AnnotationMirror intAnno) {
+    public @PolyNull List<Character> getCharValues(@PolyNull AnnotationMirror intAnno) {
         if (intAnno == null) {
             return Collections.emptyList();
         }
@@ -1337,7 +1430,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param boolAnno a {@code @BoolVal} annotation, or null
      * @return the single possible boolean value, on null if that is not the case
      */
-    public Boolean getBooleanValue(AnnotationMirror boolAnno) {
+    public @Nullable Boolean getBooleanValue(@Nullable AnnotationMirror boolAnno) {
         if (boolAnno == null) {
             return null;
         }
@@ -1359,7 +1452,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param boolAnno a {@code @BoolVal} annotation, or null
      * @return a singleton or empty list of possible boolean values, or null
      */
-    public @Nullable List<Boolean> getBooleanValues(AnnotationMirror boolAnno) {
+    public @Nullable List<Boolean> getBooleanValues(@Nullable AnnotationMirror boolAnno) {
         if (boolAnno == null) {
             return Collections.emptyList();
         }
@@ -1387,14 +1480,14 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param stringAnno a {@code @StringVal} annotation, or null
      * @return the possible values, deduplicated and sorted
      */
-    public List<String> getStringValues(AnnotationMirror stringAnno) {
+    public @PolyNull List<String> getStringValues(@PolyNull AnnotationMirror stringAnno) {
         if (stringAnno == null) {
             return null;
         }
         List<String> list =
                 AnnotationUtils.getElementValueArray(
                         stringAnno, stringValValueElement, String.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1407,14 +1500,15 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param matchesRegexAnno a {@code @MatchesRegex} annotation, or null
      * @return the possible values, deduplicated and sorted
      */
-    public List<String> getMatchesRegexValues(AnnotationMirror matchesRegexAnno) {
+    public @PolyNull List<String> getMatchesRegexValues(
+            @PolyNull AnnotationMirror matchesRegexAnno) {
         if (matchesRegexAnno == null) {
             return null;
         }
         List<String> list =
                 AnnotationUtils.getElementValueArray(
                         matchesRegexAnno, matchesRegexValueElement, String.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1427,14 +1521,15 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param doesNotMatchRegexAnno a {@code @DoesNotMatchRegex} annotation, or null
      * @return the possible values, deduplicated and sorted
      */
-    public List<String> getDoesNotMatchRegexValues(AnnotationMirror doesNotMatchRegexAnno) {
+    public @PolyNull List<String> getDoesNotMatchRegexValues(
+            @PolyNull AnnotationMirror doesNotMatchRegexAnno) {
         if (doesNotMatchRegexAnno == null) {
             return null;
         }
         List<String> list =
                 AnnotationUtils.getElementValueArray(
                         doesNotMatchRegexAnno, doesNotMatchRegexValueElement, String.class);
-        list = SystemUtil.withoutDuplicatesSorted(list);
+        list = CollectionsPlume.withoutDuplicatesSorted(list);
         return list;
     }
 
@@ -1478,7 +1573,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * Used to find the maximum length of an array. Returns null if there is no minimum length
      * known, or if the passed annotation is null.
      */
-    public Integer getMaxLenValue(AnnotationMirror annotation) {
+    public @Nullable Integer getMaxLenValue(@Nullable AnnotationMirror annotation) {
         if (annotation == null) {
             return null;
         }
@@ -1503,7 +1598,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * {@link ValueAnnotatedTypeFactory#canonicalAnnotation(AnnotationMirror)}, which transforms
      * {@link MinLen} annotations into {@link ArrayLenRange} annotations.
      */
-    private Integer getSpecifiedMinLenValue(AnnotationMirror annotation) {
+    private @Nullable Integer getSpecifiedMinLenValue(@Nullable AnnotationMirror annotation) {
         if (annotation == null) {
             return null;
         }
@@ -1530,7 +1625,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * {@link ValueAnnotatedTypeFactory#canonicalAnnotation(AnnotationMirror)}, which transforms
      * {@link MinLen} annotations into {@link ArrayLenRange} annotations.
      */
-    public int getMinLenValue(AnnotationMirror annotation) {
+    public int getMinLenValue(@Nullable AnnotationMirror annotation) {
         Integer minLen = getSpecifiedMinLenValue(annotation);
         if (minLen == null || minLen < 0) {
             return 0;
@@ -1568,7 +1663,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * @param atm annotated type
      * @return the smallest possible integral for which the {@code atm} could be the type
      */
-    public Long getMinimumIntegralValue(AnnotatedTypeMirror atm) {
+    public @Nullable Long getMinimumIntegralValue(AnnotatedTypeMirror atm) {
         AnnotationMirror anm = atm.getAnnotationInHierarchy(UNKNOWNVAL);
         if (AnnotationUtils.areSameByName(anm, INTVAL_NAME)) {
             List<Long> possibleValues = getIntValues(anm);
@@ -1583,7 +1678,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     /**
      * Returns the minimum length of an array expression or 0 if the min length is unknown.
      *
-     * @param sequenceExpression Java expression
+     * @param sequenceExpression a Java expression
      * @param tree expression tree or variable declaration
      * @param currentPath path to local scope
      * @return min length of sequenceExpression or 0
@@ -1643,7 +1738,7 @@ public class ValueAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
      * annotations applied.
      */
     @Override
-    public AnnotatedTypeMirror getDummyAssignedTo(ExpressionTree expressionTree) {
+    public @Nullable AnnotatedTypeMirror getDummyAssignedTo(ExpressionTree expressionTree) {
         TypeMirror type = TreeUtils.typeOf(expressionTree);
         if (type.getKind() != TypeKind.VOID) {
             AnnotatedTypeMirror atm = type(expressionTree);

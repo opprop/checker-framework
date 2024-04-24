@@ -23,6 +23,7 @@ import org.checkerframework.afu.scenelib.el.ATypeElement;
 import org.checkerframework.afu.scenelib.el.TypePathEntry;
 import org.checkerframework.afu.scenelib.io.IndexFileParser;
 import org.checkerframework.afu.scenelib.util.JVMNames;
+import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.signature.qual.BinaryName;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -44,9 +45,10 @@ import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TypeSystemError;
 import org.checkerframework.javacutil.UserError;
 import org.plumelib.util.CollectionsPlume;
+import org.plumelib.util.IPair;
 
 import java.io.File;
 import java.io.IOException;
@@ -246,14 +248,17 @@ public class WholeProgramInferenceScenesStorage
     @Override
     public ATypeElement getParameterAnnotations(
             ExecutableElement methodElt,
-            int i,
+            @Positive int index_1based,
             AnnotatedTypeMirror paramATM,
             VariableElement ve,
             AnnotatedTypeFactory atypeFactory) {
+        if (index_1based == 0) {
+            throw new TypeSystemError("0 is illegal as index argument to getParameterAnnotations");
+        }
         AMethod methodAnnos = getMethodAnnos(methodElt);
         AField param =
                 methodAnnos.vivifyAndAddTypeMirrorToParameter(
-                        i, paramATM.getUnderlyingType(), ve.getSimpleName());
+                        index_1based - 1, paramATM.getUnderlyingType(), ve.getSimpleName());
         return param.type;
     }
 
@@ -264,6 +269,27 @@ public class WholeProgramInferenceScenesStorage
             AnnotatedTypeFactory atypeFactory) {
         AMethod methodAnnos = getMethodAnnos(methodElt);
         return methodAnnos.receiver.type;
+    }
+
+    @Override
+    public AnnotationMirrorSet getMethodDeclarationAnnotations(ExecutableElement elt) {
+        AMethod methodAnnos = getMethodAnnos(elt);
+        Set<Annotation> annos = methodAnnos.tlAnnotationsHere;
+        AnnotationMirrorSet result = new AnnotationMirrorSet();
+        for (Annotation anno : annos) {
+            result.add(
+                    AnnotationConverter.annotationToAnnotationMirror(
+                            anno, atypeFactory.getProcessingEnv()));
+        }
+        return result;
+    }
+
+    @Override
+    public boolean removeMethodDeclarationAnnotation(
+            ExecutableElement methodElt, AnnotationMirror anno) {
+        AMethod methodAnnos = getMethodAnnos(methodElt);
+        return methodAnnos.tlAnnotationsHere.remove(
+                AnnotationConverter.annotationMirrorToAnnotation(anno));
     }
 
     @Override
@@ -414,15 +440,20 @@ public class WholeProgramInferenceScenesStorage
 
     @Override
     public boolean addDeclarationAnnotationToFormalParameter(
-            ExecutableElement methodElt, int index, AnnotationMirror anno) {
+            ExecutableElement methodElt, @Positive int index_1based, AnnotationMirror anno) {
+        if (index_1based == 0) {
+            throw new TypeSystemError(
+                    "0 is illegal as index argument to addDeclarationAnnotationToFormalParameter");
+        }
         if (!ElementUtils.isElementFromSourceCode(methodElt)) {
             return false;
         }
 
-        VariableElement paramElt = methodElt.getParameters().get(index);
+        VariableElement paramElt = methodElt.getParameters().get(index_1based - 1);
         AnnotatedTypeMirror paramAType = atypeFactory.getAnnotatedType(paramElt);
         ATypeElement paramAnnos =
-                getParameterAnnotations(methodElt, index, paramAType, paramElt, atypeFactory);
+                getParameterAnnotations(
+                        methodElt, index_1based, paramAType, paramElt, atypeFactory);
         Annotation sceneAnno = AnnotationConverter.annotationMirrorToAnnotation(anno);
 
         boolean isNewAnnotation = paramAnnos.tlAnnotationsHere.add(sceneAnno);
@@ -552,7 +583,7 @@ public class WholeProgramInferenceScenesStorage
      *       previous annotation and rhsATM.
      * </ul>
      *
-     * @param type ATypeElement of the Scene which will be modified
+     * @param type the ATypeElement of the Scene which will be modified
      * @param jaifPath path to a .jaif file for a Scene; used for marking the scene as modified
      *     (needing to be written to disk)
      * @param rhsATM the RHS of the annotated type on the source code
@@ -571,7 +602,8 @@ public class WholeProgramInferenceScenesStorage
         if (rhsATM instanceof AnnotatedNullType && ignoreNullAssignments) {
             return;
         }
-        AnnotatedTypeMirror atmFromScene = atmFromStorageLocation(rhsATM.getUnderlyingType(), type);
+        TypeMirror rhsTM = rhsATM.getUnderlyingType();
+        AnnotatedTypeMirror atmFromScene = atmFromStorageLocation(rhsTM, type);
         updateAtmWithLub(rhsATM, atmFromScene);
         if (lhsATM instanceof AnnotatedTypeVariable) {
             AnnotationMirrorSet upperAnnos =
@@ -581,7 +613,11 @@ public class WholeProgramInferenceScenesStorage
             if (upperAnnos.size() == rhsATM.getAnnotations().size()
                     && atypeFactory
                             .getQualifierHierarchy()
-                            .isSubtype(rhsATM.getAnnotations(), upperAnnos)) {
+                            .isSubtypeShallow(
+                                    rhsATM.getAnnotations(),
+                                    rhsTM,
+                                    upperAnnos,
+                                    lhsATM.getUnderlyingType())) {
                 return;
             }
         }
@@ -639,7 +675,14 @@ public class WholeProgramInferenceScenesStorage
             // amJaif only contains annotations from the jaif, so it might be missing
             // an annotation in the hierarchy
             if (amJaif != null) {
-                amSource = atypeFactory.getQualifierHierarchy().leastUpperBound(amSource, amJaif);
+                amSource =
+                        atypeFactory
+                                .getQualifierHierarchy()
+                                .leastUpperBoundShallow(
+                                        amSource,
+                                        sourceCodeATM.getUnderlyingType(),
+                                        amJaif,
+                                        jaifATM.getUnderlyingType());
             }
             annosToReplace.add(amSource);
         }
@@ -817,7 +860,7 @@ public class WholeProgramInferenceScenesStorage
      */
     public void prepareSceneForWriting(AScene compilationUnitAnnos) {
         for (Map.Entry<String, AClass> classEntry : compilationUnitAnnos.classes.entrySet()) {
-            prepareClassForWriting(classEntry.getValue());
+            wpiPrepareClassForWriting(classEntry.getValue());
         }
     }
 
@@ -826,9 +869,9 @@ public class WholeProgramInferenceScenesStorage
      *
      * @param classAnnos the class annotations to modify
      */
-    public void prepareClassForWriting(AClass classAnnos) {
+    public void wpiPrepareClassForWriting(AClass classAnnos) {
         for (Map.Entry<String, AMethod> methodEntry : classAnnos.methods.entrySet()) {
-            prepareMethodForWriting(methodEntry.getValue());
+            wpiPrepareMethodForWriting(methodEntry.getValue());
         }
     }
 
@@ -838,8 +881,8 @@ public class WholeProgramInferenceScenesStorage
      *
      * @param methodAnnos the method or constructor annotations to modify
      */
-    public void prepareMethodForWriting(AMethod methodAnnos) {
-        atypeFactory.prepareMethodForWriting(methodAnnos);
+    public void wpiPrepareMethodForWriting(AMethod methodAnnos) {
+        atypeFactory.wpiPrepareMethodForWriting(methodAnnos);
     }
 
     @Override
@@ -952,7 +995,7 @@ public class WholeProgramInferenceScenesStorage
             // firstKey works as a unique identifier for each annotation
             // that should not be inserted in source code
             String firstKey = aTypeElementToString(typeToUpdate);
-            Pair<String, TypeUseLocation> key = Pair.of(firstKey, defLoc);
+            IPair<String, TypeUseLocation> key = IPair.of(firstKey, defLoc);
             Set<String> annosIgnored = annosToIgnore.get(key);
             if (annosIgnored == null) {
                 annosIgnored = new HashSet<>(CollectionsPlume.mapCapacity(1));
@@ -979,7 +1022,7 @@ public class WholeProgramInferenceScenesStorage
      * TypeUseLocation to a set of names of annotations.
      */
     public static class AnnotationsInContexts
-            extends HashMap<Pair<String, TypeUseLocation>, Set<String>> {
+            extends HashMap<IPair<String, TypeUseLocation>, Set<String>> {
         private static final long serialVersionUID = 20200321L;
     }
 

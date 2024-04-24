@@ -19,8 +19,10 @@ public class MethodCall extends JavaExpression {
 
     /** The method being called. */
     protected final ExecutableElement method;
+
     /** The receiver argument. */
     protected final JavaExpression receiver;
+
     /** The arguments. */
     protected final List<JavaExpression> arguments;
 
@@ -88,7 +90,7 @@ public class MethodCall extends JavaExpression {
 
     @Override
     public boolean isDeterministic(AnnotationProvider provider) {
-        return PurityUtils.isDeterministic(provider, method)
+        return (PurityUtils.isDeterministic(provider, method) || provider.isDeterministic(method))
                 && listIsDeterministic(arguments, provider);
     }
 
@@ -145,6 +147,7 @@ public class MethodCall extends JavaExpression {
             return false;
         }
         if (method.getKind() == ElementKind.CONSTRUCTOR) {
+            // No two constructor instances are equal.
             return false;
         }
         MethodCall other = (MethodCall) obj;
@@ -156,7 +159,8 @@ public class MethodCall extends JavaExpression {
     @Override
     public int hashCode() {
         if (method.getKind() == ElementKind.CONSTRUCTOR) {
-            return super.hashCode();
+            // No two constructor instances have the same hashcode.
+            return System.identityHashCode(this);
         }
         return Objects.hash(method, receiver, arguments);
     }

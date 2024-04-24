@@ -88,7 +88,7 @@ public class TestDiagnostic {
             return false;
         }
 
-        final TestDiagnostic other = (TestDiagnostic) otherObj;
+        TestDiagnostic other = (TestDiagnostic) otherObj;
         return other.filename.equals(this.filename)
                 && other.lineNumber == lineNumber
                 && other.kind == this.kind
@@ -107,9 +107,6 @@ public class TestDiagnostic {
      */
     @Override
     public String toString() {
-        if (kind == DiagnosticKind.JSpecify) {
-            return filename + ":" + lineNumber + ": " + message;
-        }
         if (omitParentheses) {
             return filename + ":" + lineNumber + ": " + kind.parseString + ": " + message;
         }

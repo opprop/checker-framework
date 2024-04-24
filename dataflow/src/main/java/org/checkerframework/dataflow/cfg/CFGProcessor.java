@@ -31,13 +31,16 @@ public class CFGProcessor extends BasicTypeProcessor {
      * for.
      */
     private final String className;
+
     /** Name of a specified method to generate the CFG for. */
     private final String methodName;
 
     /** AST for source file. */
     private @Nullable CompilationUnitTree rootTree;
+
     /** AST node for the specified class. */
     private @Nullable ClassTree classTree;
+
     /** AST node for the specified method. */
     private @Nullable MethodTree methodTree;
 
@@ -123,8 +126,10 @@ public class CFGProcessor extends BasicTypeProcessor {
     public static class CFGProcessResult {
         /** Control flow graph. */
         private final @Nullable ControlFlowGraph controlFlowGraph;
+
         /** Did the CFG process succeed? */
         private final boolean isSuccess;
+
         /** Error message (when the CFG process failed). */
         private final @Nullable String errMsg;
 
@@ -133,7 +138,7 @@ public class CFGProcessor extends BasicTypeProcessor {
          *
          * @param cfg control flow graph
          */
-        CFGProcessResult(final ControlFlowGraph cfg) {
+        /*package-private*/ CFGProcessResult(ControlFlowGraph cfg) {
             this(cfg, true, null);
         }
 
@@ -142,7 +147,7 @@ public class CFGProcessor extends BasicTypeProcessor {
          *
          * @param errMsg the error message
          */
-        CFGProcessResult(final String errMsg) {
+        /*package-private*/ CFGProcessResult(String errMsg) {
             this(null, false, errMsg);
         }
 
@@ -160,11 +165,14 @@ public class CFGProcessor extends BasicTypeProcessor {
             this.errMsg = errMsg;
         }
 
-        /** Check if the CFG process succeeded. */
+        /**
+         * Check if the CFG process succeeded.
+         *
+         * @return true if the CFG process succeeded
+         */
         @Pure
         @EnsuresNonNullIf(expression = "getCFG()", result = true)
-        // TODO: add once #1307 is fixed
-        // @EnsuresNonNullIf(expression = "getErrMsg()", result = false)
+        @EnsuresNonNullIf(expression = "getErrMsg()", result = false)
         @SuppressWarnings("nullness:contracts.conditional.postcondition.not.satisfied")
         public boolean isSuccess() {
             return isSuccess;

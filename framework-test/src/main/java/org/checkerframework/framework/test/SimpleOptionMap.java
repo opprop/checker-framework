@@ -95,7 +95,7 @@ public class SimpleOptionMap {
      * @param option the option to add to this object
      * @param value the argument to the option (or null)
      */
-    public void addOptionIfValueNonEmpty(String option, String value) {
+    public void addOptionIfValueNonEmpty(String option, @Nullable String value) {
         if (value != null && !value.isEmpty()) {
             addOption(option, value);
         }
@@ -128,6 +128,15 @@ public class SimpleOptionMap {
                 this.options.put(opt, null);
             }
         }
+    }
+
+    /**
+     * Removes the specified option.
+     *
+     * @param option the option to be removed from this object
+     */
+    public void removeOption(String option) {
+        this.options.remove(option);
     }
 
     /**

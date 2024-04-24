@@ -14,11 +14,9 @@ import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.util.NodeUtils;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.DefaultTypeHierarchy;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.SubtypeIsSupersetQualifierHierarchy;
-import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -34,7 +32,6 @@ import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeKind;
 
 public class KeyForAnnotatedTypeFactory
         extends GenericAnnotatedTypeFactory<
@@ -43,6 +40,7 @@ public class KeyForAnnotatedTypeFactory
     /** The @{@link UnknownKeyFor} annotation. */
     protected final AnnotationMirror UNKNOWNKEYFOR =
             AnnotationBuilder.fromClass(elements, UnknownKeyFor.class);
+
     /** The @{@link KeyForBottom} annotation. */
     protected final AnnotationMirror KEYFORBOTTOM =
             AnnotationBuilder.fromClass(elements, KeyForBottom.class);
@@ -53,12 +51,15 @@ public class KeyForAnnotatedTypeFactory
     /** The Map.containsKey method. */
     private final ExecutableElement mapContainsKey =
             TreeUtils.getMethod("java.util.Map", "containsKey", 1, processingEnv);
+
     /** The Map.get method. */
     private final ExecutableElement mapGet =
             TreeUtils.getMethod("java.util.Map", "get", 1, processingEnv);
+
     /** The Map.put method. */
     private final ExecutableElement mapPut =
             TreeUtils.getMethod("java.util.Map", "put", 2, processingEnv);
+
     /** The KeyFor.value field/element. */
     protected final ExecutableElement keyForValueElement =
             TreeUtils.getMethod(KeyFor.class, "value", 0, processingEnv);
@@ -112,51 +113,10 @@ public class KeyForAnnotatedTypeFactory
     }
 
     @Override
-    protected TypeHierarchy createTypeHierarchy() {
-        return new KeyForTypeHierarchy(
-                checker,
-                getQualifierHierarchy(),
-                checker.getBooleanOption("ignoreRawTypeArguments", true),
-                checker.hasOption("invariantArrays"));
-    }
-
-    @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator(
                 super.createTreeAnnotator(),
                 new KeyForPropagationTreeAnnotator(this, keyForPropagator));
-    }
-
-    // TODO: work on removing this class
-    protected static class KeyForTypeHierarchy extends DefaultTypeHierarchy {
-
-        public KeyForTypeHierarchy(
-                BaseTypeChecker checker,
-                QualifierHierarchy qualifierHierarchy,
-                boolean ignoreRawTypes,
-                boolean invariantArrayComponents) {
-            super(checker, qualifierHierarchy, ignoreRawTypes, invariantArrayComponents);
-        }
-
-        @Override
-        protected boolean isSubtype(
-                AnnotatedTypeMirror subtype, AnnotatedTypeMirror supertype, AnnotationMirror top) {
-            // TODO: THIS IS FROM THE OLD TYPE HIERARCHY.  WE SHOULD FIX DATA-FLOW/PROPAGATION TO DO
-            // THE RIGHT THING
-            if (supertype.getKind() == TypeKind.TYPEVAR && subtype.getKind() == TypeKind.TYPEVAR) {
-                // TODO: Investigate whether there is a nicer and more proper way to
-                // get assignments between two type variables working.
-                if (supertype.getAnnotations().isEmpty()) {
-                    return true;
-                }
-            }
-
-            // Otherwise Covariant would cause trouble.
-            if (subtype.hasAnnotation(KeyForBottom.class)) {
-                return true;
-            }
-            return super.isSubtype(subtype, supertype, top);
-        }
     }
 
     @Override
@@ -212,7 +172,7 @@ public class KeyForAnnotatedTypeFactory
         }
         Collection<String> maps = null;
         AnnotatedTypeMirror type = getAnnotatedType(tree);
-        AnnotationMirror keyForAnno = type.getAnnotation(KeyFor.class);
+        AnnotationMirror keyForAnno = type.getEffectiveAnnotation(KeyFor.class);
         if (keyForAnno != null) {
             maps =
                     AnnotationUtils.getElementValueArray(
@@ -229,7 +189,8 @@ public class KeyForAnnotatedTypeFactory
 
     @Override
     protected QualifierHierarchy createQualifierHierarchy() {
-        return new SubtypeIsSupersetQualifierHierarchy(getSupportedTypeQualifiers(), processingEnv);
+        return new SubtypeIsSupersetQualifierHierarchy(
+                getSupportedTypeQualifiers(), processingEnv, KeyForAnnotatedTypeFactory.this);
     }
 
     /** Returns true if the node is an invocation of Map.containsKey. */

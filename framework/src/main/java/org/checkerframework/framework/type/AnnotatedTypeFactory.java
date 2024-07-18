@@ -181,7 +181,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
     // TODO: when should root be null? What are the use cases?
     // None of the existing test checkers has a null root.
     // Should not be modified between calls to "visit".
-    protected @Nullable CompilationUnitTree root;
+    private @Nullable CompilationUnitTree root;
 
     /** The processing environment to use for accessing compiler internals. */
     protected final ProcessingEnvironment processingEnv;
@@ -974,6 +974,15 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
 
             reflectionResolver = new DefaultReflectionResolver(checker, methodValATF, debug);
         }
+    }
+
+    /**
+     * Get the current CompilationUnitTree.
+     *
+     * @return the current compilation unit being used, or null
+     */
+    protected @Nullable CompilationUnitTree getRoot() {
+        return root;
     }
 
     /**
@@ -1891,10 +1900,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *
      * <p>Subclasses that override this method should also override {@link
      * #addComputedTypeAnnotations(Element, AnnotatedTypeMirror)}.
-     *
-     * <p>In classes that extend {@link GenericAnnotatedTypeFactory}, override {@link
-     * GenericAnnotatedTypeFactory#addComputedTypeAnnotations(Tree, AnnotatedTypeMirror, boolean)}
-     * instead of this method.
      *
      * @param tree an AST node
      * @param type the type obtained from {@code tree}
@@ -2906,10 +2911,6 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         AnnotatedExecutableType con = getAnnotatedType(ctor); // get unsubstituted type
         constructorFromUsePreSubstitution(tree, con);
 
-        if (viewpointAdapter != null) {
-            viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
-        }
-
         if (tree.getClassBody() != null) {
             // Because the anonymous constructor can't have explicit annotations on its parameters,
             // they are copied from the super constructor invoked in the anonymous constructor. To
@@ -2958,6 +2959,10 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
             con = AnnotatedTypes.asMemberOf(types, this, type, ctor, con);
         }
 
+        if (viewpointAdapter != null) {
+            viewpointAdapter.viewpointAdaptConstructor(type, ctor, con);
+        }
+
         Map<TypeVariable, AnnotatedTypeMirror> typeParamToTypeArg =
                 AnnotatedTypes.findTypeArguments(processingEnv, this, tree, ctor, con);
         List<AnnotatedTypeMirror> typeargs;
@@ -2989,7 +2994,7 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
         }
 
         if (ctor.getEnclosingElement().getKind() == ElementKind.ENUM) {
-            Set<AnnotationMirror> enumAnnos = getEnumConstructorQualifiers();
+            AnnotationMirrorSet enumAnnos = getEnumConstructorQualifiers();
             con.getReturnType().replaceAnnotations(enumAnnos);
         }
 
@@ -3009,8 +3014,8 @@ public class AnnotatedTypeFactory implements AnnotationProvider {
      *
      * @return the annotations that should be applied to enum constructors
      */
-    protected Set<AnnotationMirror> getEnumConstructorQualifiers() {
-        return Collections.emptySet();
+    protected AnnotationMirrorSet getEnumConstructorQualifiers() {
+        return new AnnotationMirrorSet();
     }
 
     /**

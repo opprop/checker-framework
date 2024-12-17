@@ -15,7 +15,7 @@ source "$SCRIPTDIR"/build.sh
 ## script rather than in ./test/downstream.sh, because it needs a different
 ## Docker image.
 
-"$SCRIPTDIR/.plume-scripts/git-clone-related" opprop checker-framework-inference
+"$SCRIPTDIR/.git-scripts/git-clone-related" opprop checker-framework-inference
 
 export PATH=$AFU/scripts:$PATH
 cd ../checker-framework-inference
